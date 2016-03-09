@@ -1,2 +1,7 @@
 *.pyc
 .idea/
+dlkit_builders/
+xosid/
+builders/
+sessions/
+test_datastore/

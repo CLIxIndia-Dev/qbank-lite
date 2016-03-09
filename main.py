@@ -1,14 +1,30 @@
+import os
 import web
 
+import assessment
+import logging_
+
+web.config.debug = False
+
 urls = (
-    '/api/v1/assessment/banks/', 'banks'
+    '/api/v1/assessment', assessment.app_assessment,
+    '/api/v1/logging', logging_.app_logging,
+    '/(.*)', 'index'
 )
 
-class banks:
-    def GET(self):
-        return "foo"
+app = web.application(urls, locals())
 
+class index:
+    def GET(self, path):
+        return "Trying to GET {}".format(path)
 
-if __name__ == "__main__":
-    app = web.application(urls, globals())
+################################################
+# INITIALIZER
+################################################
+
+def is_test():
+    if 'WEBPY_ENV' in os.environ:
+        return os.environ['WEBPY_ENV'] == 'test'
+
+if (not is_test()) and __name__ == "__main__":
     app.run()
