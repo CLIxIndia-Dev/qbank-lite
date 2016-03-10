@@ -1,18 +1,118 @@
 import json
+import os
+import re
 
-from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound
+from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
 from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
 
 from inflection import underscore
 
 from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
-    ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES
+    ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES, ASSET_GENUS_TYPES,\
+    ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES
+
+from urllib import quote
 
 import utilities
 
+EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
+EDX_IMAGE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-image-asset'])
+EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
+EDX_MULTI_CHOICE_PROBLEM_TYPE = Type(**ITEM_GENUS_TYPES['multi-choice-edx'])
+EDX_NUMERIC_RESPONSE_PROBLEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx'])
+GENERIC_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['generic'])
+ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['wrong-answer'])
+JAVASCRIPT_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['javascript'])
+JPG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['jpg'])
+JSON_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['json'])
+LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
+PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 
+def add_file_ids_to_form(form, file_ids):
+    """
+    Add existing asset_ids to a form
+    :param form:
+    :param image_ids:
+    :return:
+    """
+    for label, file_id in file_ids.iteritems():
+        form.add_asset(Id(file_id['assetId']), label, Id(file_id['assetContentTypeId']))
+    return form
+
+def add_files_to_form(form, files):
+    """
+    Whether an item form or a question form
+    :param form:
+    :return:
+    """
+    def _clean(label):
+        return re.sub(r'[^\w\d]', '_', label)
+
+    def _get_file_label(file_path):
+        # http://stackoverflow.com/questions/678236/how-to-get-the-filename-without-the-extension-from-a-path-in-python
+        return os.path.splitext(os.path.basename(file_path))[0]
+
+    def _get_file_extension(file_name):
+        return os.path.splitext(os.path.basename(file_name))[-1]
+
+    def _infer_display_name(text):
+        text = text.strip()
+        if text == '':
+            return 'Unknown Display Name'
+        if '_' not in text:
+            return text
+
+        if text.split('_')[0].startswith('lec'):
+            first_part = text.split('_')[0]
+            text = 'Lecture ' + first_part.split('lec')[-1] + '_' + text.split('_')[-1]
+        elif text.split('_')[0].startswith('ps'):
+            first_part = text.split('_')[0]
+            text = 'Problem Set ' + first_part.split('ps')[-1] + '_' + text.split('_')[-1]
+        elif text.split('_')[0].startswith('ex'):
+            first_part = text.split('_')[0]
+            text = 'Exam ' + first_part.split('ex')[-1] + '_' + text.split('_')[-1]
+
+        if text.split('_')[-1].startswith('p'):
+            second_part = text.split('_')[-1]
+            text = text.split('_')[0] + ': Problem ' + second_part.split('p')[-1]
+        elif text.split('_')[-1].startswith('Q'):
+            second_part = text.split('_')[-1]
+            text = text.split('_')[0] + ': Question ' + second_part.split('Q')[-1]
+        return text
+
+    for file_name, file_data in files.iteritems():
+        # default assume is a file
+        prettify_type = 'file'
+        genus = EDX_FILE_ASSET_GENUS_TYPE
+        file_type = _get_file_extension(file_name).lower()
+        label = _get_file_label(file_name)
+        if file_type:
+            if 'png' in file_type:
+                ac_genus_type = PNG_ASSET_CONTENT_GENUS_TYPE
+                genus = EDX_IMAGE_ASSET_GENUS_TYPE
+                prettify_type = 'image'
+            elif 'jpg' in file_type:
+                ac_genus_type = JPG_ASSET_CONTENT_GENUS_TYPE
+                genus = EDX_IMAGE_ASSET_GENUS_TYPE
+                prettify_type = 'image'
+            elif 'json' in file_type:
+                ac_genus_type = JSON_ASSET_CONTENT_GENUS_TYPE
+            elif 'tex' in file_type:
+                ac_genus_type = LATEX_ASSET_CONTENT_GENUS_TYPE
+            elif 'javascript' in file_type:
+                ac_genus_type = JAVASCRIPT_ASSET_CONTENT_GENUS_TYPE
+            else:
+                ac_genus_type = GENERIC_ASSET_CONTENT_GENUS_TYPE
+        else:
+            ac_genus_type = GENERIC_ASSET_CONTENT_GENUS_TYPE
+
+        display_name = _infer_display_name(label) + ' ' + prettify_type.title()
+        description = ('Supporting ' + prettify_type + ' for assessment Question: ' +
+                       _infer_display_name(label))
+        form.add_file(file_data, _clean(label), genus, ac_genus_type, display_name, description)
+    return form
 
 def check_assessment_has_items(bank, assessment_id):
     """
@@ -25,11 +125,126 @@ def check_assessment_has_items(bank, assessment_id):
     if not items.available():
         raise LookupError('No items')
 
+def create_new_item(bank, data):
+    if ('question' in data and
+            'type' in data['question'] and
+            'edx' in data['question']['type']):
+        # should have body / setup
+        # should have list of choices
+        # should have set of right answers
+        # metadata (if not present, it is okay):
+        #  * max attempts
+        #  * weight
+        #  * showanswer
+        #  * rerandomize
+        #  * author username
+        #  * student display name
+        #  * author comments
+        #  * extra python script
+        # any files?
+        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE,
+                                              ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+        form.display_name = data['name']
+        form.description = data['description']
+        question_type = data['question']['type']
+        if 'multi-choice' in question_type:
+            form.set_genus_type(EDX_MULTI_CHOICE_PROBLEM_TYPE)
+        elif 'numeric-response' in question_type:
+            form.set_genus_type(EDX_NUMERIC_RESPONSE_PROBLEM_GENUS_TYPE)
+
+        if 'learningObjectiveIds' in data:
+            form = set_item_learning_objectives(data, form)
+
+        expected = ['question']
+        utilities.verify_keys_present(data, expected)
+
+        expected = ['questionString']
+        utilities.verify_keys_present(data['question'], expected)
+
+        form.add_text(data['question']['questionString'], 'questionString')
+
+        optional = ['python_script','latex','edxml','solution']
+        for opt in optional:
+            if opt in data:
+                form.add_text(data[opt], opt)
+
+        metadata = ['attempts','markdown','showanswer','weight']
+        # metadata = ['attempts','markdown','rerandomize','showanswer','weight']
+                    # 'author','author_comments','student_display_name']
+        for datum in metadata:
+            if datum in data:
+                method = getattr(form, 'add_' + datum)
+                method(data[datum])
+
+        irt = ['difficulty','discrimination']
+        for datum in irt:
+            if datum in data:
+                method = getattr(form, 'set_' + datum + '_value')
+                method(data[datum])
+
+        if 'files' in data:
+            files_list = {}
+            for filename, file in data['files'].iteritems():
+                files_list[filename] = DataInputStream(file)
+            form = add_files_to_form(form, files_list)
+    else:
+        form = bank.get_item_form_for_create([ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+        form.display_name = str(data['name'])
+        form.description = str(data['description'])
+        if 'genus' in data:
+            form.set_genus_type(Type(data['genus']))
+
+        if 'learningObjectiveIds' in data:
+            form = set_item_learning_objectives(data, form)
+
+    new_item = bank.create_item(form)
+    return new_item
+
 def find_answer_in_answers(ans_id, ans_list):
     for ans in ans_list:
         if ans.ident == ans_id:
             return ans
     return None
+
+def get_answer_records(answer):
+    """answer is a dictionary"""
+    # check for wrong-answer genus type to get the right
+    # record types for feedback
+    a_type = Type(answer['type'])
+    if 'genus' in answer and answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
+        a_types = [a_type, Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])]
+    else:
+        a_types = [a_type]
+    return a_types
+
+def get_choice_files(files):
+    """
+    Adapted from http://stackoverflow.com/questions/4558983/slicing-a-dictionary-by-keys-that-start-with-a-certain-string
+    :param files:
+    :return:
+    """
+    # return {k:v for k,v in files.iteritems() if k.startswith('choice')}
+    return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
+
+
+def get_object_bank(manager, object_id, object_type='item', bank_id=None):
+    """Get the object's bank even without the bankId"""
+    # primarily used for Item and AssessmentsOffered
+    if bank_id is None:
+        lookup_session = getattr(manager, 'get_{0}_lookup_session'.format(object_type))()
+        lookup_session.use_federated_bank_view()
+        object_ = getattr(lookup_session, 'get_{0}'.format(object_type))(utilities.clean_id(object_id))
+        bank_id = object_.object_map['assignedBankIds'][0]
+    return manager.get_bank(utilities.clean_id(bank_id))
+
+def get_ovs_file_set(files, index):
+    choice_files = get_choice_files(files)
+    if len(choice_files.keys()) % 2 != 0:
+        raise NullArgument('Large and small image files')
+    small_file = choice_files['choice' + str(index) + 'small']
+    big_file = choice_files['choice' + str(index) + 'big']
+    return (small_file, big_file)
+
 
 def get_question_status(bank, section, question_id):
     """
@@ -160,6 +375,19 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
         return_data.append(new_offering)
     return return_data
 
+def set_item_learning_objectives(data, form):
+    # over-writes current ID list
+    id_list = []
+    if not isinstance(data['learningObjectiveIds'], list):
+        data['learningObjectiveIds'] = [data['learningObjectiveIds']]
+    for _id in data['learningObjectiveIds']:
+        if '@' in _id:
+            id_list.append(Id(quote(_id)))
+        else:
+            id_list.append(Id(_id))
+    form.set_learning_objectives(id_list)
+    return form
+
 def update_answer_form(answer, form, question=None):
     if answer['type'] == 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
         if 'responseString' in answer:
@@ -194,6 +422,7 @@ def update_answer_form(answer, form, question=None):
             # choices are 0 indexed
             choice_id = choices[int(answer['choiceId']) - 1]  # not sure if we need the OSID Id or string
             form.add_choice_id(choice_id['id'])  # just include the MongoDB ObjectId, not the whole dict
+
     elif answer['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
         # no correct answers here...
         return form
@@ -202,6 +431,219 @@ def update_answer_form(answer, form, question=None):
             form.set_decimal_value(float(answer['decimalValue']))
         if 'tolerance' in answer:
             form.set_tolerance_value(float(answer['tolerance']))
+    else:
+        raise Unsupported()
+
+    return form
+
+def update_item_metadata(data, form):
+    """Update the metadata / IRT for an edX item
+
+    :param request:
+    :param data:
+    :param form:
+    :return:
+    """
+    if ('type' in data and
+        'edx' in data['type']):
+        valid_fields = ['attempts','markdown','showanswer','weight',
+                        'difficulty','discrimination']
+        for field in valid_fields:
+            if field in data:
+                if hasattr(form, 'add_' + field):
+                    update_method = getattr(form, 'add_' + field)
+                elif hasattr(form, 'set_' + field):
+                    update_method = getattr(form, 'set_' + field)
+                else:
+                    update_method = getattr(form, 'set_' + field + '_value')
+                # These forms are very strict (Java), so
+                # have to know the exact input type. We
+                # can't predict, so try a couple variations
+                # if this fails...yes we're silly.
+                val = data[field]
+                try:
+                    try:
+                        try:
+                            update_method(str(val))
+                        except:
+                            update_method(int(val))
+                    except:
+                        update_method(float(val))
+                except:
+                    raise LookupError
+    else:
+        # do nothing here for other types of problems
+        pass
+
+    return form
+
+def update_question_form(question, form, create=False):
+    """
+    Check the create flag--if creating the question, then all 3 viewset files
+    are needed. If not creating, can update only a single file.
+    """
+    if question['type'] == 'question-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
+        form.set_text(question['questionString'])
+    elif (question['type'] == 'question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU' or
+          question['type'] == 'question-record-type%3Aeuler-rotation%40ODL.MIT.EDU'):
+        # need to differentiate on create here because update might not use all
+        # the fields, whereas we need to enforce a minimum of data on create
+        if create:
+            if 'questionString' in question:
+                form.set_text(question['questionString'])
+            else:
+                raise NullArgument('questionString')
+
+            if 'firstAngle' in question:
+                form.set_first_angle_projection(question['firstAngle'])
+
+            # files = request.FILES
+            files = {}
+            # if 'manip' in files:
+            #     form.set_manip(DataInputStream(files['manip']))
+            # else:
+            #     raise NullArgument('manip file')
+            # if not ('frontView' in files and 'sideView' in files and 'topView' in files):
+            #     raise NullArgument('All three view set attribute(s) required for Ortho-3D items.')
+            # else:
+            #     form.set_ortho_view_set(front_view=DataInputStream(files['frontView']),
+            #                             side_view=DataInputStream(files['sideView']),
+            #                             top_view=DataInputStream(files['topView']))
+        else:
+            if 'questionString' in question:
+                form.set_text(question['questionString'])
+            if 'firstAngle' in question:
+                form.set_first_angle_projection(question['firstAngle'])
+            # files = request.FILES
+            # files = {}
+            # if 'manip' in files:
+            #     form.set_manip(DataInputStream(files['manip']))
+            # if 'frontView' in files:
+            #     form.set_ovs_view(DataInputStream(files['frontView']), 'frontView')
+            # if 'sideView' in files:
+            #     form.set_ovs_view(DataInputStream(files['sideView']), 'sideView')
+            # if 'topView' in files:
+            #     form.set_ovs_view(DataInputStream(files['topView']), 'topView')
+    elif question['type'] == 'question-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU':
+        # need to differentiate on create here because update might not use all
+        # the fields, whereas we need to enforce a minimum of data on create
+        if create:
+            if 'questionString' in question:
+                form.set_text(question['questionString'])
+            else:
+                raise NullArgument('questionString')
+
+            if 'firstAngle' in question:
+                form.set_first_angle_projection(question['firstAngle'])
+
+            # files = request.FILES
+            files = {}
+            if 'manip' in files:
+                if 'promptName' in question:
+                    manip_name = question['promptName']
+                else:
+                    manip_name = 'A manipulatable'
+
+                # TODO set the manip name to the question['promptName']
+                # and find the right choice / ovs to go with it
+                if 'rightAnswer' in question:
+                    right_answer_sm, right_answer_lg = get_ovs_file_set(files,
+                                                                        question['rightAnswer'])
+                    form.set_manip(DataInputStream(files['manip']),
+                                   DataInputStream(right_answer_sm),
+                                   DataInputStream(right_answer_lg),
+                                   manip_name)
+                else:
+                    form.set_manip(DataInputStream(files['manip']),
+                                   name=manip_name)
+
+                if not ('choice0small' in files and 'choice0big' in files):
+                    raise NullArgument('At least two choice set attribute(s) required for Ortho-3D items.')
+                elif not ('choice1small' in files and 'choice1big' in files):
+                    raise NullArgument('At least two choice set attribute(s) required for Ortho-3D items.')
+                else:
+                    choice_files = get_choice_files(files)
+                    if len(choice_files.keys()) % 2 != 0:
+                        raise NullArgument('Large and small image files')
+                    num_files = len(choice_files.keys()) / 2
+                    for i in range(0,num_files):
+                        # this goes with the code ~20 lines above, where
+                        # the right choice files are saved with the manip...
+                        # but, regardless, make a choice for each provided
+                        # viewset. Trust the consumer to pair things up
+                        # properly. Need the choiceId to set the answer
+                        if 'rightAnswer' in question and i == int(question['rightAnswer']):
+                            # save this as a choice anyways
+                            small_file = DataInputStream(choice_files['choice' + str(i) + 'small'])
+                            big_file = DataInputStream(choice_files['choice' + str(i) + 'big'])
+                        else:
+                            small_file = DataInputStream(choice_files['choice' + str(i) + 'small'])
+                            big_file = DataInputStream(choice_files['choice' + str(i) + 'big'])
+                        if 'choiceNames' in question:
+                            name = question['choiceNames'][i]
+                        else:
+                            name = ''
+                        form.set_ortho_choice(small_asset_data=small_file,
+                                              large_asset_data=big_file,
+                                              name=name)
+            else:
+                # is a match the ortho manip, so has choice#manip and
+                # primary object of viewset
+                raise NullArgument('manip file')
+
+        else:
+            if 'questionString' in question:
+                form.set_text(question['questionString'])
+            if 'firstAngle' in question:
+                form.set_first_angle_projection(question['firstAngle'])
+            # files = request.FILES
+            # files = {}
+            # if 'manip' in files:
+            #     form.set_manip(DataInputStream(files['manip']))
+
+            # TODO: change a choice set
+    elif question['type'] == 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU':
+        if "rerandomize" in question:
+            form.add_rerandomize(question['rerandomize'])
+        if create:
+            expected = ['questionString','choices']
+            utilities.verify_keys_present(question, expected)
+
+            should_be_list = ['choices']
+            utilities.verify_min_length(question, should_be_list, 2)
+
+            form.set_text(str(question['questionString']))
+            # files get set after the form is returned, because
+            # need the new_item
+            # now manage the choices
+            for ind, choice in enumerate(question['choices']):
+                if isinstance(choice, dict):
+                    form.add_choice(choice.get('text', ''),
+                                    choice.get('name', 'Choice ' + str(int(ind) + 1)))
+                else:
+                    form.add_choice(choice, 'Choice ' + str(int(ind) + 1))
+        else:
+            if 'questionString' in question:
+                form.set_text(str(question['questionString']))
+            if 'choices' in question:
+                # delete the old choices first
+                for current_choice in form.my_osid_object_form._my_map['choices']:
+                    form.clear_choice(current_choice)
+                # now add the new ones
+                for ind, choice in enumerate(question['choices']):
+                    if isinstance(choice, dict):
+                        form.add_choice(choice.get('text', ''),
+                                        choice.get('name', 'Choice ' + str(int(ind) + 1)))
+                    else:
+                        form.add_choice(choice, 'Choice ' + str(int(ind) + 1))
+    elif question['type'] == 'question-record-type%3Afiles-submission%40ODL.MIT.EDU':
+        form.set_text(str(question['questionString']))
+    elif question['type'] == 'question-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
+        if create:
+            form.set_text(str(question['questionString']))
+        else:
+            if 'questionString' in question:
+                form.set_text(str(question['questionString']))
     else:
         raise Unsupported()
 

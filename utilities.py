@@ -14,7 +14,10 @@ from dlkit_edx.proxy_example import TestRequest
 class BaseClass:
     @staticmethod
     def data():
-        return json.loads(web.data())
+        try:
+            return json.loads(web.data())
+        except (ValueError, TypeError):
+            return {}
 
 
 def format_response(func):
@@ -23,7 +26,10 @@ def format_response(func):
     def wrapper(self, *args):
         results = func(self, *args)
         web.header('Content-type', 'application/json')
-        return results
+        if isinstance(results, dict):
+            return json.dumps(results)
+        else:
+            return results
     return wrapper
 
 
@@ -68,7 +74,15 @@ def convert_dl_object(obj):
         return json.dumps(obj)
 
 def extract_items(item_list):
-    return json.dumps([i.object_map for i in item_list])
+    try:
+        if item_list.available() > 0:
+            return json.dumps([i.object_map for i in item_list])
+        else:
+            return json.dumps([])
+    except AttributeError:
+        if len(item_list) > 0:
+            return json.dumps([i.object_map for i in item_list])
+        return json.dumps([])
 
 def handle_exceptions(ex):
     print traceback.format_exc(10)
@@ -122,3 +136,12 @@ def verify_keys_present(my_dict, list_of_keys):
     for key in list_of_keys:
         if key not in my_dict:
             raise KeyError('"' + key + '" required in input parameters but not provided.')
+
+def verify_min_length(my_dict, list_of_keys, expected_len):
+    for key in list_of_keys:
+        if not isinstance(my_dict[key], list):
+            raise TypeError('"' + key + '" is not a list.')
+        else:
+            if len(my_dict[key]) < int(expected_len):
+                raise TypeError('"' + key + '" is shorter than ' + str(expected_len) + '.')
+
