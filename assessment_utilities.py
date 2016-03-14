@@ -284,7 +284,10 @@ def get_response_submissions(response):
         submission = response['integerValues']
     elif is_multiple_choice(response):
         if isinstance(response, dict):
-            submission = response['choiceIds']
+            if isinstance(response['choiceIds'], list):
+                submission = response['choiceIds']
+            else:
+                submission = [response['choiceIds']]
         else:
             submission = response.getlist('choiceIds')
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
@@ -678,7 +681,8 @@ def update_response_form(response, form):
             for choice in response['choiceIds']:
                 form.add_choice_id(choice)
         else:
-            raise InvalidArgument('ChoiceIds should be a list.')
+            form.add_choice_id(response['choiceIds'])
+            # raise InvalidArgument('ChoiceIds should be a list.')
     elif response['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
         for file_label, file_data in response['files'].iteritems():
             form.add_file(DataInputStream(file_data), file_label)

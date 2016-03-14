@@ -307,7 +307,7 @@ class ItemsList(utilities.BaseClass):
                 pass
             return return_data
         except (KeyError, PermissionDenied, Unsupported,
-                InvalidArgument, NullArgument) as ex:
+                InvalidArgument, NullArgument, TypeError) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1108,7 +1108,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 local_data_map['type'] = question.object_map['recordTypeIds'][0]
                 local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                         'answer-record-type')
-
             update_form = autils.update_response_form(local_data_map, response_form)
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo

@@ -1,5 +1,7 @@
 import json
 
+from copy import deepcopy
+
 from dlkit_edx.primordium import Id, Type
 
 from nose.tools import *
@@ -1990,98 +1992,19 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         For the Reviewable offered and taken records
         :return:
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-
-        # Use POST to create an item
-        item_name = 'a really complicated item'
-        item_desc = 'meant to differentiate students'
-        question_string = 'can you manipulate this?'
-        question_type = 'question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        answer_string = 'yes!'
-        answer_type = 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        payload = {
-            "name": item_name,
-            "description": item_desc,
-            "question": {
-                "type": question_type,
-                "questionString": question_string
-            },
-            "answers": [{
-                "type": answer_type,
-                "integerValues": {
-                    "frontFaceValue": 1,
-                    "sideFaceValue" : 2,
-                    "topFaceValue"  : 3
-                }
-            }],
-        }
-        stringified_payload = deepcopy(payload)
-        stringified_payload['manip'] = self.manip
-        stringified_payload['frontView'] = self.front
-        stringified_payload['sideView'] = self.side
-        stringified_payload['topView'] = self.top
-        stringified_payload['question'] = json.dumps(payload['question'])
-        stringified_payload['answers'] = json.dumps(payload['answers'])
-
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(items_endpoint, stringified_payload)
-        self.ok(req)
-
-        item = json.loads(req.body)
-        item_1_id = unquote(item['id'])
+        item = self.create_item()
+        correct_choice = item['answers'][0]['choiceIds'][0]
         question_1_id = unquote(self.extract_question(item)['id'])
 
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(items_endpoint)
-        self.ok(req)
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
 
-        # Now create an assessment, link the item to it,
-        # and create an offering.
-        # Use the offering_id to create the taken
-        assessments_endpoint = bank_endpoint + 'assessments/'
-        assessment_name = 'a really hard assessment'
-        assessment_desc = 'meant to differentiate students'
-        payload = {
-            "name": assessment_name,
-            "description": assessment_desc
-        }
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessments_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessments_endpoint, payload, format='json')
-        self.ok(req)
-        assessment_id = unquote(json.loads(req.body)['id'])
+        assessment_detail_endpoint = self.url + '/assessments/' + assessment_id
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
 
-        assessment_detail_endpoint = assessments_endpoint + assessment_id + '/'
-        assessment_offering_endpoint = assessment_detail_endpoint + 'assessmentsoffered/'
-        assessment_items_endpoint = assessment_detail_endpoint + 'items/'
-
-        # POST should create the linkage
-        payload = {
-            'itemIds' : [item_1_id]
-        }
-        link_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_items_endpoint)
-        self.sign_client(link_post_sig)
-        req = self.client.post(assessment_items_endpoint, payload, format='json')
-        self.ok(req)
-
+        self.link_item_to_assessment(item, assessment)
 
         # Use POST to create an offering
-        offering_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_endpoint)
-        self.sign_client(offering_post_sig)
-
         payload = {
             "startTime" : {
                 "day"   : 1,
@@ -2093,8 +2016,9 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
             }
         }
 
-        self.sign_client(offering_post_sig)
-        req = self.client.post(assessment_offering_endpoint, payload, format='json')
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
         offering_id = unquote(offering['id'])
@@ -2104,33 +2028,19 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         for opt in review_options:
             self.assertTrue(offering['reviewOptions']['whetherCorrect'][opt])
 
-        assessment_offering_detail_endpoint = bank_endpoint + 'assessmentsoffered/' + offering_id + '/'
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + offering_id
 
         # Convert to a learner to test the rest of this
-        self.convert_user_to_bank_learner(bank_id)
         # Can POST to create a new taken
-        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + 'assessmentstaken/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_takens_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessment_offering_takens_endpoint)
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
         self.ok(req)
         taken = json.loads(req.body)
-        taken_id = unquote(taken['id'])
 
         # verify the "reviewWhetherCorrect" is True
         self.assertTrue(taken['reviewWhetherCorrect'])
 
-        taken_endpoint = bank_endpoint + 'assessmentstaken/' + taken_id + '/'
-
-        self.convert_user_to_bank_instructor(bank_id)
-
-        self.delete_item(auth, taken_endpoint)
-        self.delete_item(auth, assessment_offering_detail_endpoint)
-
         # try again, but set to only view correct after attempt
-        offering_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_endpoint)
-        self.sign_client(offering_post_sig)
-
         payload = {
             "startTime"     : {
                 "day"   : 1,
@@ -2147,8 +2057,9 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
             }
         }
 
-        self.sign_client(offering_post_sig)
-        req = self.client.post(assessment_offering_endpoint, payload, format='json')
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
         offering_id = unquote(offering['id'])
@@ -2161,98 +2072,148 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
             else:
                 self.assertTrue(offering['reviewOptions']['whetherCorrect'][opt])
 
-        assessment_offering_detail_endpoint = bank_endpoint + 'assessmentsoffered/' + offering_id + '/'
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + offering_id
 
         # Can POST to create a new taken
-        self.convert_user_to_bank_learner(bank_id)
-
-        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + 'assessmentstaken/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_takens_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessment_offering_takens_endpoint)
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
         self.ok(req)
         taken = json.loads(req.body)
         taken_id = unquote(taken['id'])
-        taken_endpoint = bank_endpoint + 'assessmentstaken/' + taken_id + '/'
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
 
         # verify the "reviewWhetherCorrect" is False
         self.assertFalse(taken['reviewWhetherCorrect'])
 
         # now submitting an answer should let reviewWhetherCorrect be True
         right_response = {
-            "integerValues": {
-                "frontFaceValue" : 1,
-                "sideFaceValue"  : 2,
-                "topFaceValue"   : 3
-            }
+            "choiceIds": [correct_choice]
         }
 
-        finish_taken_endpoint = taken_endpoint + 'finish/'
-        taken_questions_endpoint = taken_endpoint + 'questions/'
-        question_1_endpoint = taken_questions_endpoint + question_1_id + '/'
-        question_1_submit_endpoint = question_1_endpoint + 'submit/'
+        finish_taken_endpoint = taken_endpoint + '/finish'
+        taken_questions_endpoint = taken_endpoint + '/questions'
+        question_1_endpoint = taken_questions_endpoint + '/' + question_1_id
+        question_1_submit_endpoint = question_1_endpoint + '/submit'
 
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_1_submit_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_1_submit_endpoint, right_response, format='json')
+        req = self.app.post(question_1_submit_endpoint,
+                            params=json.dumps(right_response),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
 
-        post_sig = calculate_signature(auth, self.headers, 'POST', finish_taken_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(finish_taken_endpoint)
+        req = self.app.post(finish_taken_endpoint)
         self.ok(req)
 
-        get_sig = calculate_signature(auth, self.headers, 'GET', taken_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(taken_endpoint)
+        req = self.app.get(taken_endpoint)
         self.ok(req)
         taken = json.loads(req.body)
 
         self.assertTrue(taken['reviewWhetherCorrect'])
 
-        self.convert_user_to_bank_instructor(bank_id)
-
-        self.delete_item(auth, taken_endpoint)
-        self.delete_item(auth, assessment_offering_detail_endpoint)
-
-        self.delete_item(auth, assessment_detail_endpoint)
-
-        item_1_endpoint = items_endpoint + item_1_id + '/'
-        self.delete_item(auth, item_1_endpoint)
-        self.delete_item(auth, bank_endpoint)
-
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
+    def create_assessment(self):
+        # Now create an assessment, link the item to it,
+        # and create an offering.
+        # Use the offering_id to create the taken
+        assessments_endpoint = self.url + '/assessments'
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def create_item(self):
+        items_endpoint = self.url + '/items'
+
+        # Use POST to create an item
+        payload = self.item_payload()
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        item = json.loads(req.body)
+        return item
+
+    def create_offered(self):
+        url = '{0}/assessments/{1}/assessmentsoffered'.format(self.url,
+                                                              unquote(self.assessment['id']))
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            }
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        return json.loads(req.body)
+
     def item_payload(self):
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
-        question_body = 'can you manipulate this?'
-        question_choices = [
-            'yes',
-            'no',
-            'maybe'
-        ]
+        question_string = 'can you manipulate this?'
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        answer = 2
+        answer_string = 'yes!'
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-
         return {
-            "name"                  : item_name,
-            "description"           : item_desc,
-            "question"              : {
-                "type"           : question_type,
-                "questionString" : question_body,
-                "choices"        : question_choices
+            "name": item_name,
+            "description": item_desc,
+            "question": {
+                "type": question_type,
+                "questionString": question_string,
+                "choices": ['1', '2', '3']
             },
-            "answers"               : [{
-                "type"      : answer_type,
-                "choiceId"  : answer
+            "answers": [{
+                "type": answer_type,
+                "choiceId": 1
             }],
         }
 
+    def link_item_to_assessment(self, item, assessment):
+        assessment_items_endpoint = '{0}/assessments/{1}/items'.format(self.url,
+                                                                       unquote(assessment['id']))
+
+        # POST should create the linkage
+        payload = {
+            'itemIds': [unquote(item['id'])]
+        }
+        req = self.app.post(assessment_items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+    def responded(self, _req, _correct=False):
+        expected_response = {
+            "responded" : True,
+            "correct"   : _correct
+        }
+        self.ok(_req)
+        self.assertEqual(
+            json.loads(_req.body),
+            expected_response
+        )
+
     def setUp(self):
         super(AssessmentTakingTests, self).setUp()
-        self.url += '/banks/' + unquote(str(self._bank.ident)) + '/items'
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+        self.item = self.create_item()
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(self.item, self.assessment)
+
+        self.offered = self.create_offered()
 
     def tearDown(self):
         """
@@ -2271,376 +2232,101 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         for taking assessments
         :return:
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-
-        # Use POST to create an item
-        item_name = 'a really complicated item'
-        item_desc = 'meant to differentiate students'
-        question_string = 'can you manipulate this?'
-        question_type = 'question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        answer_string = 'yes!'
-        answer_type = 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        payload = {
-            "name": item_name,
-            "description": item_desc,
-            "question": {
-                "type": question_type,
-                "questionString": question_string
-            },
-            "answers": [{
-                "type": answer_type,
-                "integerValues": {
-                    "frontFaceValue": 1,
-                    "sideFaceValue" : 2,
-                    "topFaceValue"  : 3
-                }
-            }],
-        }
-        stringified_payload = deepcopy(payload)
-        stringified_payload['manip'] = self.manip
-        stringified_payload['frontView'] = self.front
-        stringified_payload['sideView'] = self.side
-        stringified_payload['topView'] = self.top
-        stringified_payload['question'] = json.dumps(payload['question'])
-        stringified_payload['answers'] = json.dumps(payload['answers'])
-
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(items_endpoint, stringified_payload)
-        self.ok(req)
-
-        item = json.loads(req.body)
-        item_1_id = unquote(item['id'])
-        question_1_id = unquote(self.extract_question(item)['id'])
-        # expected_files_1 = self.extract_question(item)['files']
-
-        # for this test, create a second item
-        item_name_2 = 'a really complicated item'
-        item_desc_2 = 'meant to differentiate students'
-        question_string_2 = 'can you manipulate this second thing?'
-        question_type = 'question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        answer_type = 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
-        payload = {
-            "name": item_name_2,
-            "description": item_desc_2,
-            "question": {
-                "type": question_type,
-                "questionString": question_string_2
-            },
-            "answers": [{
-                "type": answer_type,
-                "integerValues": {
-                    "frontFaceValue": 4,
-                    "sideFaceValue" : 5,
-                    "topFaceValue"  : 0
-                }
-            }],
-        }
-        self.manip.seek(0)
-        self.front.seek(0)
-        self.side.seek(0)
-        self.top.seek(0)
-        stringified_payload = deepcopy(payload)
-        stringified_payload['manip'] = self.manip
-        stringified_payload['frontView'] = self.front
-        stringified_payload['sideView'] = self.side
-        stringified_payload['topView'] = self.top
-        stringified_payload['question'] = json.dumps(payload['question'])
-        stringified_payload['answers'] = json.dumps(payload['answers'])
-
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(items_endpoint, stringified_payload)
-        self.ok(req)
-
-        item = json.loads(req.body)
-        item_2_id = unquote(item['id'])
-        question_2_id = unquote(self.extract_question(item)['id'])
-        # expected_files_2 = self.extract_question(item)['files']
-
-
-        items_with_files = items_endpoint + '?files'
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_with_files)
-        self.sign_client(get_sig)
-        req = self.client.get(items_with_files)
-        self.ok(req)
-        expected_files_1 = json.loads(req.body)['data']['results'][0]['question']['files']
-        expected_files_2 = json.loads(req.body)['data']['results'][1]['question']['files']
-
-        # Now create an assessment, link the item2 to it,
-        # and create an offering.
-        # Use the offering_id to create the taken
-        assessments_endpoint = bank_endpoint + 'assessments/'
-        assessment_name = 'a really hard assessment'
-        assessment_desc = 'meant to differentiate students'
-        payload = {
-            "name": assessment_name,
-            "description": assessment_desc
-        }
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessments_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessments_endpoint, payload, format='json')
-        self.ok(req)
-        assessment_id = unquote(json.loads(req.body)['id'])
-
-        assessment_detail_endpoint = assessments_endpoint + assessment_id + '/'
-        assessment_offering_endpoint = assessment_detail_endpoint + 'assessmentsoffered/'
-        assessment_items_endpoint = assessment_detail_endpoint + 'items/'
-
-        # POST should create the linkage
-        payload = {
-            'itemIds' : [item_1_id, item_2_id]
-        }
-        link_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_items_endpoint)
-        self.sign_client(link_post_sig)
-        req = self.client.post(assessment_items_endpoint, payload, format='json')
-        self.ok(req)
-
-
-        # Use POST to create an offering
-        offering_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_endpoint)
-        self.sign_client(offering_post_sig)
-
-        payload = {
-            "startTime" : {
-                "day"   : 1,
-                "month" : 1,
-                "year"  : 2015
-            },
-            "duration"  : {
-                "days"  : 2
-            }
-        }
-
-
-        self.sign_client(offering_post_sig)
-        req = self.client.post(assessment_offering_endpoint, payload, format='json')
-        self.ok(req)
-        offering = json.loads(req.body)
-        offering_id = unquote(offering['id'])
-
-        assessment_offering_detail_endpoint = bank_endpoint + 'assessmentsoffered/' + offering_id + '/'
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
 
         # Can POST to create a new taken
-        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + 'assessmentstaken/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_takens_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessment_offering_takens_endpoint)
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
         self.ok(req)
         taken = json.loads(req.body)
         taken_id = unquote(taken['id'])
 
         # Instructor can now take the assessment
-        taken_endpoint = bank_endpoint + 'assessmentstaken/' + taken_id + '/'
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
 
         # Only GET of this endpoint is supported
-        taken_questions_endpoint = taken_endpoint + 'questions/'
+        taken_questions_endpoint = taken_endpoint + '/questions'
 
         # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', taken_questions_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(taken_questions_endpoint)
-        self.not_allowed(req, 'DELETE')
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          taken_questions_endpoint)
 
         # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', taken_questions_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(taken_questions_endpoint)
-        self.not_allowed(req, 'PUT')
+        self.assertRaises(AppError,
+                          self.app.put,
+                          taken_questions_endpoint)
 
         # POST to this root url also returns a 405
-        post_sig = calculate_signature(auth, self.headers, 'POST', taken_questions_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(taken_questions_endpoint)
-        self.not_allowed(req, 'POST')
+        self.assertRaises(AppError,
+                          self.app.post,
+                          taken_questions_endpoint)
 
-        taken_with_files = taken_questions_endpoint + '?files'
-        get_sig = calculate_signature(auth, self.headers, 'GET', taken_with_files)
-        self.sign_client(get_sig)
-        req = self.client.get(taken_with_files)
+        req = self.app.get(taken_questions_endpoint)
         self.ok(req)
         questions = json.loads(req.body)
-        question_1 = questions['data']['results'][0]
-        question_2 = questions['data']['results'][1]
-        self.verify_links(req, 'TakenQuestions')
+        question = questions[0]
 
-        self.verify_question(question_1,
-                             question_string,
-                             question_type)
-        self.verify_ortho_files(question_1, expected_files_1)
+        question_submit_endpoint = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                                          taken_id,
+                                                                                          unquote(question['id']))
 
-        self.verify_question(question_2,
-                             question_string_2,
-                             question_type)
-        self.verify_ortho_files(question_2, expected_files_2)
+        item_definition = self.item_payload()
 
+        self.verify_question(question,
+                             item_definition['question']['questionString'],
+                             item_definition['question']['type'])
 
-        # Because this is an ortho3D problem, we expect
-        # that the files endpoint also works
-        question_1_endpoint = taken_questions_endpoint + question_1_id + '/'
-        question_1_files_endpoint = question_1_endpoint + 'files/'
-        question_1_status_endpoint = question_1_endpoint + 'status/'
-        question_1_submit_endpoint = question_1_endpoint + 'submit/'
-        question_2_endpoint = taken_questions_endpoint + question_2_id + '/'
-        question_2_files_endpoint = question_2_endpoint + 'files/'
-        question_2_status_endpoint = question_2_endpoint + 'status/'
-        question_2_submit_endpoint = question_2_endpoint + 'submit/'
-
-        # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', question_1_files_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(question_1_files_endpoint)
-        self.not_allowed(req, 'DELETE')
-
-        # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', question_1_files_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(question_1_files_endpoint)
-        self.not_allowed(req, 'PUT')
-
-        # POST to this root url also returns a 405
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_1_files_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_1_files_endpoint)
-        self.not_allowed(req, 'POST')
-
-        # POST, PUT, DELETE should not work on the status URLs
-        # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', question_1_status_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(question_1_status_endpoint)
-        self.not_allowed(req, 'DELETE')
-
-        # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', question_1_status_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(question_1_status_endpoint)
-        self.not_allowed(req, 'PUT')
-
-        # POST to this root url also returns a 405
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_1_status_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_1_status_endpoint)
-        self.not_allowed(req, 'POST')
-
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_1_files_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_1_files_endpoint)
-        self.ok(req)
-        self.verify_taking_files(req)
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_2_files_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_2_files_endpoint)
-        self.ok(req)
-        self.verify_taking_files(req)
-
-        # checking on the question status now should return a not-responded
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_1_status_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_1_status_endpoint)
-        self.not_responded(req)
-
+        wrong_choice = question['choices'][1]['id']
         # Can submit a wrong response
         wrong_response = {
-            "integerValues": {
-                "frontFaceValue" : 0,
-                "sideFaceValue"  : 1,
-                "topFaceValue"   : 2
-            }
+            "choiceIds": [wrong_choice]
         }
 
         # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', question_1_submit_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(question_1_submit_endpoint)
-        self.not_allowed(req, 'DELETE')
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          question_submit_endpoint)
 
         # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', question_1_submit_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(question_1_submit_endpoint)
-        self.not_allowed(req, 'PUT')
+        self.assertRaises(AppError,
+                          self.app.put,
+                          question_submit_endpoint)
 
         # GET to this root url also returns a 405
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_1_submit_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_1_submit_endpoint)
-        self.not_allowed(req, 'GET')
+        self.assertRaises(AppError,
+                          self.app.get,
+                          question_submit_endpoint)
 
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_1_submit_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_1_submit_endpoint, wrong_response, format='json')
+        req = self.app.post(question_submit_endpoint,
+                             params=json.dumps(wrong_response),
+                             headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_submission(req, _expected_result=False)
 
+        question_status_endpoint = '{0}/assessmentstaken/{1}/questions/{2}/status'.format(self.url,
+                                                                                          taken_id,
+                                                                                          unquote(question['id']))
+
         # checking on the question status now should return a responded but wrong
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_1_status_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_1_status_endpoint)
+        req = self.app.get(question_status_endpoint)
         self.responded(req, False)
 
         # can resubmit using the specific ID
+        right_choice = question['choices'][0]['id']
         right_response = {
-            "integerValues": {
-                "frontFaceValue" : 1,
-                "sideFaceValue"  : 2,
-                "topFaceValue"   : 3
-            }
+            "choiceIds": [right_choice]
         }
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_1_submit_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_1_submit_endpoint, right_response, format='json')
+        req = self.app.post(question_submit_endpoint,
+                             params=json.dumps(right_response),
+                             headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_submission(req, _expected_result=True)
 
-        # checking on the question status now should return a responsded, right
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_1_status_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_1_status_endpoint)
+        # checking on the question status now should return a responded, right
+        req = self.app.get(question_status_endpoint)
         self.responded(req, True)
 
-        # checking on the second question status now should return a not-responded
-        get_sig = calculate_signature(auth, self.headers, 'GET', question_2_status_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(question_2_status_endpoint)
-        self.not_responded(req)
-
-        # can submit to the second question in the assessment
-        right_response = {
-            "integerValues": {
-                "frontFaceValue" : 4,
-                "sideFaceValue"  : 5,
-                "topFaceValue"   : 0
-            }
-        }
-        post_sig = calculate_signature(auth, self.headers, 'POST', question_2_submit_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(question_2_submit_endpoint, right_response, format='json')
-        self.ok(req)
-        self.verify_submission(req, _expected_result=True)
-
-        self.delete_item(auth, taken_endpoint)
-        self.delete_item(auth, assessment_offering_detail_endpoint)
-        self.delete_item(auth, assessment_detail_endpoint)
-
-        item_1_endpoint = items_endpoint + item_1_id + '/'
-        item_2_endpoint = items_endpoint + item_2_id + '/'
-        self.delete_item(auth, item_1_endpoint)
-        self.delete_item(auth, item_2_endpoint)
-        self.delete_item(auth, bank_endpoint)
 
 class BasicServiceTests(BaseAssessmentTestCase):
     """Test the views for getting the basic service calls
@@ -2744,6 +2430,76 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
     def tearDown(self):
         super(MultipleChoiceTests, self).tearDown()
 
+    def verify_answers(self, _data, _a_strs, _a_types):
+        """
+        verify just the answers part of an item. Should allow you to pass
+        in either a request response or a json object...load if needed
+        """
+        try:
+            try:
+                data = json.loads(_data.body)
+                if 'data' in data:
+                    data = data['data']['results']
+            except:
+                data = json.loads(_data)
+        except:
+            data = _data
+
+        if 'answers' in data:
+            answers = data['answers']
+        elif 'results' in data:
+            answers = data['results']
+        else:
+            answers = data
+
+        if isinstance(answers, list):
+            ind = 0
+            for _a in _a_strs:
+                if _a_types[ind] == 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
+                    self.assertEqual(
+                        answers[ind]['text']['text'],
+                        _a
+                    )
+                self.assertIn(
+                    _a_types[ind],
+                    answers[ind]['recordTypeIds']
+                )
+                ind += 1
+        elif isinstance(answers, dict):
+            if _a_types[0] == 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
+                self.assertEqual(
+                    answers['text']['text'],
+                    _a_strs[0]
+                )
+            self.assertIn(
+                _a_types[0],
+                answers['recordTypeIds']
+            )
+        else:
+            self.fail('Bad answer format.')
+
+    def verify_questions_answers(self, _req, _q_str, _q_type, _a_str, _a_type, _id=None):
+        """
+        helper method to verify the questions & answers in a returned item
+        takes care of all the language stuff
+        Assumes multiple answers, to _a_str and _a_type must be lists
+        """
+        req = json.loads(_req.body)
+        if _id:
+            data = None
+            for item in req:
+                if (item['id'] == _id or
+                        item['id'] == quote(_id)):
+                    data = item
+            if not data:
+                raise LookupError('Item with id: ' + _id + ' not found.')
+        else:
+            data = req
+
+        self.verify_question(data, _q_str, _q_type)
+
+        self.verify_answers(data, _a_str, _a_type)
+
     def test_multiple_choice_questions_are_randomized_if_flag_set(self):
         edx_mc_q = Type(**QUESTION_RECORD_TYPES['multi-choice-edx'])
         edx_mc_a = Type(**ANSWER_RECORD_TYPES['multi-choice-edx'])
@@ -2811,16 +2567,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             )
 
     def test_edx_multi_choice_answer_index_too_high(self):
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -2835,8 +2582,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 4
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -2851,26 +2596,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             }],
         }
 
-        req = self.client.post(items_endpoint,
-                               payload,
-                               format='json')
-        self.code(req, 500)
-        self.message(req,
-                     'Correct answer 4 is not valid. Not that many choices!',
-                     True)
-        self.delete_item(auth, bank_endpoint)
+        self.assertRaises(AppError,
+                          self.app.post,
+                          items_endpoint,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_edx_multi_choice_answer_index_too_low(self):
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -2885,8 +2618,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 0
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -2901,27 +2632,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             }],
         }
 
-        req = self.client.post(items_endpoint,
-                               payload,
-                               format='json')
-
-        self.code(req, 500)
-        self.message(req,
-                     'Correct answer 0 is not valid. Must be between 1 and # of choices.',
-                     True)
-        self.delete_item(auth, bank_endpoint)
+        self.assertRaises(AppError,
+                          self.app.post,
+                          items_endpoint,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_edx_multi_choice_answer_not_enough_choices(self):
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
@@ -2932,8 +2650,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 1
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -2948,30 +2664,18 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             }],
         }
 
-        req = self.client.post(items_endpoint,
-                               payload,
-                               format='json')
-        self.code(req, 500)
-        self.message(req,
-                     '"choices" is shorter than 2.',
-                     True)
-        self.delete_item(auth, bank_endpoint)
+        self.assertRaises(AppError,
+                          self.app.post,
+                          items_endpoint,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_edx_multi_choice_crud(self):
         """
         Test an instructor can create and respond to an edX multiple choice
         type question.
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -2986,8 +2690,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 2
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -3001,13 +2703,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 "choiceId"  : answer
             }],
         }
-        req = self.client.post(items_endpoint,
-                               payload,
-                               format='json')
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
-        item = self.load(req)
+        item = self.json(req)
         item_id = unquote(item['id'])
-        item_details_endpoint = bank_endpoint + 'items/' + item_id + '/'
+        item_details_endpoint = '{0}/items/{1}'.format(self.url,
+                                                       item_id)
 
         expected_answers = item['answers'][0]['choiceIds']
 
@@ -3016,36 +2719,33 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         # first attach the item to an assessment
         # and create an offering.
         # Use the offering_id to create the taken
-        assessments_endpoint = bank_endpoint + 'assessments/'
+        assessments_endpoint = '{0}/assessments'.format(self.url)
         assessment_name = 'a really hard assessment'
         assessment_desc = 'meant to differentiate students'
         payload = {
             "name": assessment_name,
             "description": assessment_desc
         }
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessments_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessments_endpoint, payload, format='json')
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         assessment_id = unquote(json.loads(req.body)['id'])
 
-        assessment_detail_endpoint = assessments_endpoint + assessment_id + '/'
-        assessment_offering_endpoint = assessment_detail_endpoint + 'assessmentsoffered/'
-        assessment_items_endpoint = assessment_detail_endpoint + 'items/'
+        assessment_detail_endpoint = assessments_endpoint + '/' + assessment_id
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        assessment_items_endpoint = assessment_detail_endpoint + '/items'
 
         # POST should create the linkage
         payload = {
             'itemIds' : [item_id]
         }
-        link_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_items_endpoint)
-        self.sign_client(link_post_sig)
-        req = self.client.post(assessment_items_endpoint, payload, format='json')
+        req = self.app.post(assessment_items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
 
         # Use POST to create an offering
-        offering_post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_endpoint)
-        self.sign_client(offering_post_sig)
-
         payload = {
             "startTime" : {
                 "day"   : 1,
@@ -3056,39 +2756,39 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 "days"  : 2
             }
         }
-
-        self.sign_client(offering_post_sig)
-        req = self.client.post(assessment_offering_endpoint, payload, format='json')
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
         offering_id = unquote(offering['id'])
 
-        assessment_offering_detail_endpoint = bank_endpoint + 'assessmentsoffered/' + offering_id + '/'
+        assessment_offering_detail_endpoint = '{0}/assessmentsoffered/{1}'.format(self.url,
+                                                                                  offering_id)
 
         # Can POST to create a new taken
-        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + 'assessmentstaken/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', assessment_offering_takens_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(assessment_offering_takens_endpoint)
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
         self.ok(req)
         taken = json.loads(req.body)
         taken_id = unquote(taken['id'])
 
         # Instructor can now take the assessment
-        taken_endpoint = bank_endpoint + 'assessmentstaken/' + taken_id + '/'
+        taken_endpoint = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                           taken_id)
 
         # Only GET of this endpoint is supported
-        taken_questions_endpoint = taken_endpoint + 'questions/'
+        taken_questions_endpoint = taken_endpoint + '/questions'
         # Submitting a non-list response is okay, if it is right, because
         # service will listify it
         bad_response = {
             'choiceIds': expected_answers[0]
         }
-        taken_question_details_endpoint = taken_questions_endpoint + item_id + '/'
-        taken_submit_endpoint = taken_question_details_endpoint + 'submit/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', taken_submit_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(taken_submit_endpoint, bad_response)
+        taken_question_details_endpoint = taken_questions_endpoint + '/' + item_id
+        taken_submit_endpoint = taken_question_details_endpoint + '/submit'
+        req = self.app.post(taken_submit_endpoint,
+                            params=json.dumps(bad_response),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_submission(req, _expected_result=True)
 
@@ -3096,27 +2796,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         response = {
             'choiceIds': expected_answers
         }
-        req = self.client.post(taken_submit_endpoint, response, format='json')
+        req = self.app.post(taken_submit_endpoint,
+                            params=json.dumps(response),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_submission(req, _expected_result=True)
 
-        self.delete_item(auth, taken_endpoint)
-        self.delete_item(auth, assessment_offering_detail_endpoint)
-        self.delete_item(auth, assessment_detail_endpoint)
-        self.delete_item(auth, item_details_endpoint)
-        self.delete_item(auth, bank_endpoint)
-
     def test_edx_multi_choice_missing_parameters(self):
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -3131,8 +2818,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 2
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -3154,29 +2839,18 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 del test_payload['answers'][0][param]
             else:
                 del test_payload['question'][param]
-            req = self.client.post(items_endpoint,
-                                   test_payload,
-                                   format='json')
-            self.code(req, 500)
-            self.message(req,
-                         '"' + param + '" required in input parameters but not provided.',
-                         True)
-        self.delete_item(auth, bank_endpoint)
+
+            self.assertRaises(AppError,
+                              self.app.post,
+                              items_endpoint,
+                              params=json.dumps(test_payload),
+                              headers={'content-type': 'application/json'})
 
     def test_edx_multi_choice_with_named_choices(self):
         """
         Test an instructor can create named choices with a dict
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -3194,8 +2868,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
         answer = 2
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name"          : item_name,
             "description"   : item_desc,
@@ -3209,16 +2881,10 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 "choiceId"  : answer
             }],
         }
-        req = self.client.post(items_endpoint,
-                               payload,
-                               format='json')
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
-
-        item = self.load(req)
-        item_details_endpoint = items_endpoint + unquote(item['id']) + '/'
-
-        self.delete_item(auth, item_details_endpoint)
-        self.delete_item(auth, bank_endpoint)
 
     def test_items_crud(self):
         """
@@ -3235,55 +2901,35 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         POST does nothing. Error code 405.
         PUT lets user update the name or description
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', items_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(items_endpoint)
-        self.not_allowed(req, 'DELETE')
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          items_endpoint)
 
         # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', items_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(items_endpoint)
-        self.not_allowed(req, 'PUT')
+        self.assertRaises(AppError,
+                          self.app.put,
+                          items_endpoint)
 
         # GET for a Learner is unauthorized, should get 0 results back.
-        self.convert_user_to_bank_learner(bank_id)
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(items_endpoint)
-        self.no_results(req)
+        req = self.app.get(items_endpoint)
+        self.assertEqual(
+            len(self.json(req)),
+            1
+        )
 
-        # Use POST to create an item--right now user is Learner,
-        # so this should throw unauthorized
+        # Use POST to create an item
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name": item_name,
             "description": item_desc
         }
-        req = self.client.post(items_endpoint, payload, format='json')
-        self.unauthorized(req)
-
-        # Use POST to create an item--right now user is Instructor,
-        # so this should show up in GET
-        self.convert_user_to_bank_instructor(bank_id)
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(items_endpoint, payload, format='json')
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         item_id = unquote(json.loads(req.body)['id'])
         self.verify_text(req,
@@ -3291,131 +2937,81 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                          item_name,
                          item_desc)
 
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(items_endpoint)
+        req = self.app.get(items_endpoint)
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          item_name,
                          item_desc,
                          item_id)
-        self.verify_links(req, 'Item')
 
         # Now test PUT / GET / POST / DELETE on the new item
         # POST does nothing
-        item_detail_endpoint = items_endpoint + item_id + '/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', item_detail_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(item_detail_endpoint)
-        self.not_allowed(req, 'POST')
+        item_detail_endpoint = items_endpoint + '/' + item_id
+        self.assertRaises(AppError,
+                          self.app.post,
+                          item_detail_endpoint)
 
         # GET displays it, with self link
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
 
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          item_name,
                          item_desc)
-        self.verify_links(req, 'ItemDetails')
 
-        # GET should still not work for Learner
-        self.convert_user_to_bank_learner(bank_id)
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
-        self.code(req, 500)
-
-        # PUT should not work for a Learner, throw unauthorized
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_detail_endpoint)
-        self.sign_client(put_sig)
         new_item_name = 'a new item name'
         new_item_desc = 'to trick students'
         payload = {
             "name": new_item_name
         }
-        req = self.client.put(item_detail_endpoint, payload, format='json')
-        self.unauthorized(req)
-
-        # PUT should work now. Modifies the item, with the changes reflected in GET
-        self.convert_user_to_bank_instructor(bank_id)
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_detail_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(item_detail_endpoint, payload, format='json')
+        req = self.app.put(item_detail_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          new_item_name,
                          item_desc)
 
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          new_item_name,
                          item_desc)
-        self.verify_links(req, 'ItemDetails')
 
-        self.sign_client(put_sig)
         payload = {
             "description": new_item_desc
         }
-        req = self.client.put(item_detail_endpoint, payload, format='json')
+        req = self.app.put(item_detail_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          new_item_name,
                          new_item_desc)
 
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
         self.ok(req)
         self.verify_text(req,
                          'Item',
                          new_item_name,
                          new_item_desc)
-        self.verify_links(req, 'ItemDetails')
-
-        # trying to delete the bank as a DepartmentOfficer should
-        # throw an exception
-        self.convert_user_to_learner()
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', bank_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(bank_endpoint)
-        self.unauthorized(req)
-        self.convert_user_to_instructor()
 
         # trying to delete the bank with items should throw an error
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', bank_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(bank_endpoint)
-        self.not_empty(req)
-
-        self.delete_item(auth, item_detail_endpoint)
-        self.delete_item(auth, bank_endpoint)
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          self.url)
 
     def test_question_string_item_crud(self):
         """
         Test ability for user to POST a new question string and
         response string item
         """
-        auth = HTTPSignatureAuth(key_id=self.public_key,
-                                 secret=self.private_key,
-                                 algorithm='hmac-sha256',
-                                 headers=self.signature_headers)
-        name = 'atestbank'
-        desc = 'for testing purposes only'
-        bank_id = self.create_test_bank(auth, name, desc)
-        self.convert_user_to_bank_learner(bank_id)
-        bank_endpoint = self.endpoint + 'assessment/banks/' + bank_id + '/'
-        items_endpoint = bank_endpoint + 'items/'
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
+        items_endpoint = '{0}/items'.format(self.url)
 
         # Use POST to create an item--right now user is Learner,
         # so this should throw unauthorized
@@ -3425,8 +3021,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         question_type = 'question-record-type%3Ashort-text-answer%40ODL.MIT.EDU'
         answer_string = 'dessert'
         answer_type = 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU'
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
         payload = {
             "name": item_name,
             "description": item_desc,
@@ -3439,20 +3033,12 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 "responseString": answer_string
             }]
         }
-        req = self.client.post(items_endpoint, payload, format='json')
-        self.unauthorized(req)
-
-        # Learners cannot GET?
-        self.sign_client(get_sig)
-        req = self.client.get(items_endpoint)
-        self.no_results(req)
 
         # Use POST to create an item--right now user is Instructor,
         # so this should show up in GET
-        self.convert_user_to_bank_instructor(bank_id)
-        post_sig = calculate_signature(auth, self.headers, 'POST', items_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(items_endpoint, payload, format='json')
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         item = json.loads(req.body)
         item_id = unquote(item['id'])
@@ -3468,9 +3054,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                      [answer_string],
                                      [answer_type])
 
-        get_sig = calculate_signature(auth, self.headers, 'GET', items_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(items_endpoint)
+        req = self.app.get(items_endpoint)
         self.ok(req)
         self.verify_text(req,
                          'Item',
@@ -3483,20 +3067,17 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       [answer_string],
                                       [answer_type],
                                       item_id)
-        self.verify_links(req, 'Item')
 
         # Now test PUT / GET / POST / DELETE on the new item
         # POST does nothing
-        item_detail_endpoint = items_endpoint + item_id + '/'
-        post_sig = calculate_signature(auth, self.headers, 'POST', item_detail_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(item_detail_endpoint)
-        self.not_allowed(req, 'POST')
+        item_detail_endpoint = items_endpoint + '/' + item_id
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          item_detail_endpoint)
 
         # GET displays it, with self link
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
         self.ok(req)
         self.verify_text(req,
                          'Item',
@@ -3507,14 +3088,6 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       question_type,
                                       [answer_string],
                                       [answer_type])
-        self.verify_links(req, 'ItemDetails')
-
-        # GET of an item should not work for Learner
-        self.convert_user_to_bank_learner(bank_id)
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
-        self.code(req, 500)
 
         # PUT should work for Instructor.
         # Can modify the question and answers, reflected in GET
@@ -3528,29 +3101,23 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 'type': question_type
             }
         }
-        self.convert_user_to_bank_instructor(bank_id)
-
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_detail_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(item_detail_endpoint, payload, format='json')
+        req = self.app.put(item_detail_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_questions_answers(req,
                                       new_question_string,
                                       question_type,
                                       [answer_string],
                                       [answer_type])
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
         self.ok(req)
         self.verify_questions_answers(req,
                                       new_question_string,
                                       question_type,
                                       [answer_string],
                                       [answer_type])
-        self.verify_links(req, 'ItemDetails')
 
-        self.sign_client(put_sig)
         payload = {
             'answers': [{
                 'id' : answer_id,
@@ -3558,7 +3125,9 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                 'type': answer_type
             }]
         }
-        req = self.client.put(item_detail_endpoint, payload, format='json')
+        req = self.app.put(item_detail_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_questions_answers(req,
                                       new_question_string,
@@ -3566,166 +3135,13 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       [new_answer_string],
                                       [answer_type])
 
-        self.sign_client(get_sig)
-        req = self.client.get(item_detail_endpoint)
+        req = self.app.get(item_detail_endpoint)
         self.ok(req)
         self.verify_questions_answers(req,
                                       new_question_string,
                                       question_type,
                                       [new_answer_string],
                                       [answer_type])
-        self.verify_links(req, 'ItemDetails')
-
-        # Verify that GET, PUT to question/ endpoint works
-        item_question_endpoint = item_detail_endpoint + 'question/'
-        # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', item_question_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(item_question_endpoint)
-        self.not_allowed(req, 'DELETE')
-
-        # POST to this root url also returns a 405
-        post_sig = calculate_signature(auth, self.headers, 'POST', item_question_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(item_question_endpoint)
-        self.not_allowed(req, 'POST')
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_question_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_question_endpoint)
-        self.ok(req)
-        self.verify_question(req, new_question_string, question_type)
-
-        newer_question_string = 'yet another new question?'
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_question_endpoint)
-        self.sign_client(put_sig)
-        payload = {
-            "id"             : question_id,
-            "questionString" : newer_question_string,
-            "type"           : question_type
-        }
-        req = self.client.put(item_question_endpoint, payload, format='json')
-
-        self.sign_client(get_sig)
-        req = self.client.get(item_question_endpoint)
-        self.ok(req)
-        self.verify_question(req, newer_question_string, question_type)
-
-        # Verify that GET, POST (answers/) and
-        # GET, DELETE, PUT to answers/<id> endpoint work
-        # Verify that invalid answer_id returns "Answer not found."
-        item_answers_endpoint = item_detail_endpoint + 'answers/'
-
-        # Check that DELETE returns error code 405--we don't support this
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', item_answers_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(item_answers_endpoint)
-        self.not_allowed(req, 'DELETE')
-
-        # PUT to this root url also returns a 405
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_answers_endpoint)
-        self.sign_client(put_sig)
-        req = self.client.put(item_answers_endpoint)
-        self.not_allowed(req, 'PUT')
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_answers_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_answers_endpoint)
-        self.ok(req)
-        self.verify_answers(req, [new_answer_string], [answer_type])
-
-        second_answer_string = "a second answer"
-        payload = [{
-            "responseString"    : second_answer_string,
-            "type"              : answer_type
-        }]
-        post_sig = calculate_signature(auth, self.headers, 'POST', item_answers_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(item_answers_endpoint, payload, format='json')
-        self.ok(req)
-        self.verify_answers(req,
-                            [new_answer_string, second_answer_string],
-                            [answer_type, answer_type])
-
-        self.sign_client(get_sig)
-        req = self.client.get(item_answers_endpoint)
-        self.ok(req)
-        self.verify_answers(req,
-                            [new_answer_string, second_answer_string],
-                            [answer_type, answer_type])
-
-        fake_item_answer_detail_endpont = item_answers_endpoint + 'fakeid/'
-        get_sig = calculate_signature(auth, self.headers, 'GET', fake_item_answer_detail_endpont)
-        self.sign_client(get_sig)
-        req = self.client.get(fake_item_answer_detail_endpont)
-        self.answer_not_found(req)
-
-        item_answer_detail_endpoint = item_answers_endpoint + unquote(answer_id) + '/'
-        # Check that POST returns error code 405--we don't support this
-        post_sig = calculate_signature(auth, self.headers, 'POST', item_answer_detail_endpoint)
-        self.sign_client(post_sig)
-        req = self.client.post(item_answer_detail_endpoint)
-        self.not_allowed(req, 'POST')
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_answer_detail_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_answer_detail_endpoint)
-        self.ok(req)
-        self.verify_answers(req, [new_answer_string], [answer_type])
-
-        put_sig = calculate_signature(auth, self.headers, 'PUT', item_answer_detail_endpoint)
-        self.sign_client(put_sig)
-        newer_answer_string = 'yes, another one'
-        payload = {
-            "responseString"    : newer_answer_string,
-            "type"              : answer_type
-        }
-        req = self.client.put(item_answer_detail_endpoint, payload, format='json')
-        self.ok(req)
-        self.verify_answers(req, [newer_answer_string], [answer_type])
-
-        self.sign_client(get_sig)
-        req = self.client.get(item_answer_detail_endpoint)
-        self.ok(req)
-        self.verify_answers(req, [newer_answer_string], [answer_type])
-
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', item_answer_detail_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(item_answer_detail_endpoint)
-        self.ok(req)
-
-        get_sig = calculate_signature(auth, self.headers, 'GET', item_answers_endpoint)
-        self.sign_client(get_sig)
-        req = self.client.get(item_answers_endpoint)
-        self.ok(req)
-        self.verify_answers(req,
-                            [second_answer_string],
-                            [answer_type])
-        # self.verify_data_length(req, 1)
-        self.assertEqual(
-            self.load(req)['data']['count'],
-            1
-        )
-
-
-        # trying to delete the bank as a DepartmentOfficer should
-        # throw an exception
-        self.convert_user_to_learner()
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', bank_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(bank_endpoint)
-        self.unauthorized(req)
-        self.convert_user_to_instructor()
-
-        # trying to delete the bank with items should throw an error
-        del_sig = calculate_signature(auth, self.headers, 'DELETE', bank_endpoint)
-        self.sign_client(del_sig)
-        req = self.client.delete(bank_endpoint)
-        self.not_empty(req)
-
-        self.delete_item(auth, item_detail_endpoint)
-        self.delete_item(auth, bank_endpoint)
-
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
