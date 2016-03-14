@@ -4,6 +4,8 @@ import web
 import assessment
 import logging_
 
+from waitress import serve
+
 web.config.debug = False
 
 urls = (
@@ -27,4 +29,4 @@ def is_test():
         return os.environ['WEBPY_ENV'] == 'test'
 
 if (not is_test()) and __name__ == "__main__":
-    app.run()
+    serve(app.wsgifunc(), port=8091)
