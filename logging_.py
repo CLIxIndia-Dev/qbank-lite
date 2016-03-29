@@ -38,6 +38,7 @@ class LogDetails(utilities.BaseClass):
 
     Example (note the use of double quotes!!):
        PUT {"name" : "a new log"}
+
     """
     @utilities.format_response
     def DELETE(self, log_id):
