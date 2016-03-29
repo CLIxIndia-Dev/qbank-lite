@@ -8,10 +8,6 @@ from waitress import serve
 
 web.config.debug = False
 
-web.config.handler_parameters = {
-    'file_dir': 'C:\CLIx\qbank\sessions'
-}
-
 urls = (
     '/api/v1/assessment', assessment.app_assessment,
     '/api/v1/logging', logging_.app_logging,

@@ -1203,7 +1203,7 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
 
 app_assessment = web.application(urls, locals())
 session = utilities.activate_managers(web.session.Session(app_assessment,
-                                      web.session.DiskStore('sessions'),
+                                      web.session.DiskStore('C:\CLIx\qbank\sessions'),
                                       initializer={
                                           'am': None,
                                           'logm': None
