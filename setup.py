@@ -6,4 +6,5 @@ setup(console=['main.py'],
             "py2exe": {
                 "packages": ["dlkit", "records"]
             }
-    })
+      },
+      version='0.0.3')
