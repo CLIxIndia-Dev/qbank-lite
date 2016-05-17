@@ -5,3 +5,5 @@ xosid/
 builders/
 sessions/
 test_datastore/
+dist/
+*.zip
