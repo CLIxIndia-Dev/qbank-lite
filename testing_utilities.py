@@ -16,17 +16,25 @@ import dlkit_edx.configs
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
-TEST_DATA_STORE = ABS_PATH + '/test_datastore'
+TEST_DATA_STORE = ABS_PATH + '/qbank-lite/test_datastore'
 
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
 def configure_dlkit():
-    dlkit_edx.configs.FILESYSTEM_1 = {
-        'id': 'filesystem_configuration_1',
-        'displayName': 'Filesystem Configuration',
-        'description': 'Configuration for Filesystem Implementation',
+    dlkit_edx.configs.FILESYSTEM_ADAPTER_1 = {
+        'id': 'filesystem_adapter_configuration_1',
+        'displayName': 'Filesystem Adapter Configuration',
+        'description': 'Configuration for Filesystem Adapter',
         'parameters': {
-            'implKey': impl_key_dict('filesystem'),
+            'implKey': impl_key_dict('filesystem_adapter'),
+            'repositoryProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Repository Provider Implementation',
+                'description': 'Implementation for repository service provider',
+                'values': [
+                    {'value': 'FILESYSTEM_1', 'priority': 1}
+                ]
+            },
             'dataStorePath': {
                 'syntax': 'STRING',
                 'displayName': 'Path to local filesystem datastore',
@@ -35,6 +43,15 @@ def configure_dlkit():
                     {'value': TEST_DATA_STORE, 'priority': 1}
                 ]
             },
+        }
+    }
+
+    dlkit_edx.configs.FILESYSTEM_1 = {
+        'id': 'filesystem_configuration_1',
+        'displayName': 'Filesystem Configuration',
+        'description': 'Configuration for Filesystem Implementation',
+        'parameters': {
+            'implKey': impl_key_dict('filesystem'),
             'recordsRegistry': {
                 'syntax': 'STRING',
                 'displayName': 'Python path to the extension records registry file',
@@ -43,7 +60,32 @@ def configure_dlkit():
                     {'value': 'records.registry', 'priority': 1}
                 ]
             },
-        }
+            'repositoryProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Repository Provider Implementation',
+                'description': 'Implementation for repository service provider',
+                'values': [
+                    {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
+                ]
+            },
+            'assetContentRecordTypeForFiles': {
+                'syntax': 'TYPE',
+                'displayName': 'Asset Content Type for Files',
+                'description': 'Asset Content Type for Records that store Files on local disk',
+                'values': [
+                    {'value': dlkit_edx.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+                ]
+            },
+            'dataStorePath': {
+                'syntax': 'STRING',
+                'displayName': 'Path to local filesystem datastore',
+                'description': 'Filesystem path for setting the MongoClient host.',
+                'values': [
+                    {'value': TEST_DATA_STORE, 'priority': 1}  # Mac
+                ]
+            },
+        },
+
     }
 
 configure_dlkit()
@@ -58,9 +100,17 @@ def create_test_bank():
     form.description = 'for testing with'
     return am.create_bank(form)
 
+def create_test_repository():
+    rm = get_managers()['rm']
+    form = rm.get_repository_form_for_create([])
+    form.display_name = 'a repository'
+    form.description = 'for testing with'
+    return rm.create_repository(form)
+
 def get_managers():
     managers = [('am', 'ASSESSMENT'),
-                ('logm', 'LOGGING')]
+                ('logm', 'LOGGING'),
+                ('rm', 'REPOSITORY')]
     results = {}
     for manager in managers:
         nickname = manager[0]
@@ -103,6 +153,7 @@ class BaseTestCase(TestCase):
         self.assertEqual(_req.status, 200)
 
     def setUp(self):
+        set_trace()
         configure_dlkit()
         middleware = []
         self.app = TestApp(app.wsgifunc(*middleware))

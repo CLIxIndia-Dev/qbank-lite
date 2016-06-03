@@ -52,7 +52,8 @@ def activate_managers(session):
     Create initial managers and store them in the session
     """
     managers = [('am', 'ASSESSMENT'),
-                ('logm', 'LOGGING')]
+                ('logm', 'LOGGING'),
+                ('rm', 'REPOSITORY')]
 
     for manager in managers:
         nickname = manager[0]

@@ -263,8 +263,9 @@ class LogEntryDetails(utilities.BaseClass):
 
 app_logging = web.application(urls, locals())
 session = utilities.activate_managers(web.session.Session(app_logging,
-                                      web.session.DiskStore('C:\CLIx\qbank\sessions'),
+                                      web.session.DiskStore('sessions'),
                                       initializer={
                                           'am': None,
-                                          'logm': None
+                                          'logm': None,
+                                          'rm': None
                                       }))

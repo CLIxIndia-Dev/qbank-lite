@@ -3,6 +3,7 @@ import web
 
 import assessment
 import logging_
+import repository
 
 from waitress import serve
 
@@ -11,6 +12,7 @@ web.config.debug = False
 urls = (
     '/api/v1/assessment', assessment.app_assessment,
     '/api/v1/logging', logging_.app_logging,
+    '/api/v1/repository', repository.app_repository,
     '/(.*)', 'index'
 )
 
