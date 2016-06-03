@@ -1,4 +1,5 @@
 import os
+import sys
 import web
 
 import assessment
@@ -6,6 +7,13 @@ import logging_
 import repository
 
 from waitress import serve
+
+# http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
+if getattr(sys, 'frozen', False):
+    ABS_PATH = sys._MEIPASS
+else:
+    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+    ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
 web.config.debug = False
 
@@ -25,7 +33,8 @@ class index:
 
 class video_test:
     def GET(self):
-        yield open('static/index.html', 'r').read()
+        test_file = '{0}/static/index.html'.format(ABS_PATH)
+        yield open(test_file, 'r').read()
 
 ################################################
 # INITIALIZER
