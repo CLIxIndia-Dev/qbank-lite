@@ -5,9 +5,10 @@ import web
 from bs4 import BeautifulSoup
 
 from dlkit_edx.errors import *
-from dlkit_edx.primordium import Type
+from dlkit_edx.primordium import Type, DataInputStream
 from records.registry import ANSWER_GENUS_TYPES,\
-    ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES
+    ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
+    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES
 
 import assessment_utilities as autils
 import utilities
@@ -16,6 +17,8 @@ ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYP
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
+QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
+QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
 
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
@@ -237,61 +240,81 @@ class ItemsList(utilities.BaseClass):
                 utilities.verify_keys_present(self.data(), ['bankId'])
                 bank_id = self.data()['bankId']
 
-            expected = ['name', 'description']
-            utilities.verify_keys_present(self.data(), expected)
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-            new_item = autils.create_new_item(bank, self.data())
-            # create questions and answers if they are part of the
-            # input data. There must be a better way to figure out
-            # which attributes I should set, given the
-            # question type?
-            if 'question' in self.data():
-                question = self.data()['question']
+            try:
+                x = web.input(qtiFile={})
+                bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+                qti_file = DataInputStream(x['qtiFile'].file)
+                qti_xml = qti_file.read()
+                soup = BeautifulSoup(qti_xml, 'xml')
 
-                if isinstance(question, basestring):
-                    question = json.loads(question)
+                form = bank.get_item_form_for_create([])
+                form.display_name = soup.assessmentItem['title']
+                form.description = 'QTI AssessmentItem'
+                new_item = bank.create_item(form)
 
-                if 'rerandomize' in self.data() and 'rerandomize' not in question:
-                    question['rerandomize'] = self.data()['rerandomize']
+                q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
+                q_form.load_from_qti_item(qti_xml)
+                bank.create_question(q_form)
 
-                q_type = Type(question['type'])
-                qfc = bank.get_question_form_for_create(item_id=new_item.ident,
-                                                        question_record_types=[q_type])
-                qfc = autils.update_question_form(question, qfc, create=True)
+                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                a_form.load_from_qti_item(qti_xml)
+                bank.create_answer(a_form)
+            except AttributeError:  #'dict' object has no attribute 'file'
+                expected = ['name', 'description']
+                utilities.verify_keys_present(self.data(), expected)
+                bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+                new_item = autils.create_new_item(bank, self.data())
+                # create questions and answers if they are part of the
+                # input data. There must be a better way to figure out
+                # which attributes I should set, given the
+                # question type?
+                if 'question' in self.data():
+                    question = self.data()['question']
 
-                if 'genus' in question:
-                    qfc.genus_type = Type(question['genus'])
+                    if isinstance(question, basestring):
+                        question = json.loads(question)
 
-                if ('fileIds' in new_item.object_map and
-                        len(new_item.object_map['fileIds'].keys()) > 0):
-                    # add these files to the question, too
-                    file_ids = new_item.object_map['fileIds']
-                    qfc = autils.add_file_ids_to_form(qfc, file_ids)
+                    if 'rerandomize' in self.data() and 'rerandomize' not in question:
+                        question['rerandomize'] = self.data()['rerandomize']
 
-                new_question = bank.create_question(qfc)
+                    q_type = Type(question['type'])
+                    qfc = bank.get_question_form_for_create(item_id=new_item.ident,
+                                                            question_record_types=[q_type])
+                    qfc = autils.update_question_form(question, qfc, create=True)
 
-            if 'answers' in self.data():
-                answers = self.data()['answers']
-                if isinstance(answers, basestring):
-                    answers = json.loads(answers)
-                for answer in answers:
-                    a_types = autils.get_answer_records(answer)
+                    if 'genus' in question:
+                        qfc.genus_type = Type(question['genus'])
 
-                    afc = bank.get_answer_form_for_create(new_item.ident,
-                                                          a_types)
+                    if ('fileIds' in new_item.object_map and
+                            len(new_item.object_map['fileIds'].keys()) > 0):
+                        # add these files to the question, too
+                        file_ids = new_item.object_map['fileIds']
+                        qfc = autils.add_file_ids_to_form(qfc, file_ids)
 
-                    if 'multi-choice' in answer['type']:
-                        # because multiple choice answers need to match to
-                        # the actual MC3 ChoiceIds, NOT the index passed
-                        # in by the consumer.
-                        if not new_question:
-                            raise NullArgument('Question')
-                        afc = autils.update_answer_form(answer, afc, new_question)
-                    else:
-                        afc = autils.update_answer_form(answer, afc)
+                    new_question = bank.create_question(qfc)
 
-                    afc = autils.set_answer_form_genus_and_feedback(answer, afc)
-                    new_answer = bank.create_answer(afc)
+                if 'answers' in self.data():
+                    answers = self.data()['answers']
+                    if isinstance(answers, basestring):
+                        answers = json.loads(answers)
+                    for answer in answers:
+                        a_types = autils.get_answer_records(answer)
+
+                        afc = bank.get_answer_form_for_create(new_item.ident,
+                                                              a_types)
+
+                        if 'multi-choice' in answer['type']:
+                            # because multiple choice answers need to match to
+                            # the actual MC3 ChoiceIds, NOT the index passed
+                            # in by the consumer.
+                            if not new_question:
+                                raise NullArgument('Question')
+                            afc = autils.update_answer_form(answer, afc, new_question)
+                        else:
+                            afc = autils.update_answer_form(answer, afc)
+
+                        afc = autils.set_answer_form_genus_and_feedback(answer, afc)
+                        new_answer = bank.create_answer(afc)
 
             full_item = bank.get_item(new_item.ident)
             return_data = utilities.convert_dl_object(full_item)
