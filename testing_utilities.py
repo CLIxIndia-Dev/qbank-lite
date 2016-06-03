@@ -153,7 +153,6 @@ class BaseTestCase(TestCase):
         self.assertEqual(_req.status, 200)
 
     def setUp(self):
-        set_trace()
         configure_dlkit()
         middleware = []
         self.app = TestApp(app.wsgifunc(*middleware))

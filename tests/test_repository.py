@@ -54,7 +54,6 @@ class AssetContentTests(BaseRepositoryTestCase):
         Start from the smallest groupId because need to
         remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
         """
-        set_trace()
         super(AssetContentTests, self).tearDown()
 
     def test_can_get_asset_content_file(self):
