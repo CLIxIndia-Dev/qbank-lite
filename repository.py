@@ -1,3 +1,4 @@
+import mimetypes
 import os
 import web
 
@@ -90,11 +91,14 @@ class AssetContentDetails(utilities.BaseClass):
             repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
             asset = repository.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-            web.header('Content-Length', os.path.getsize(asset_content.get_url()))
-            filename = asset_content.get_url().split('/')[-1]
+            asset_url = asset_content.get_url()
+
+            web.header('Content-Type', mimetypes.guess_type(asset_url))
+            web.header('Content-Length', os.path.getsize(asset_url))
+            filename = asset_url.split('/')[-1]
             web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
 
-            with open(asset_content.get_url(), 'r') as ac_file:
+            with open(asset_url, 'r') as ac_file:
                 yield ac_file.read()
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
