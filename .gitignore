@@ -8,3 +8,4 @@ test_datastore/
 dist/
 *.zip
 build/
+CLIx/

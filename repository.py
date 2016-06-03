@@ -1,8 +1,5 @@
-import re
-import json
+import os
 import web
-
-from bs4 import BeautifulSoup
 
 from dlkit_edx.errors import *
 
@@ -87,15 +84,18 @@ class AssetContentDetails(utilities.BaseClass):
     GET
 
     """
-    @utilities.format_response
+    @utilities.allow_cors
     def GET(self, repository_id, asset_id, content_id):
         try:
             repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
             asset = repository.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-            web.header('Transfer-Encoding', 'chunked')
+            web.header('Content-Length', os.path.getsize(asset_content.get_url()))
+            filename = asset_content.get_url().split('/')[-1]
+            web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
 
-            yield asset_content.get_data().read()
+            with open(asset_content.get_url(), 'r') as ac_file:
+                yield ac_file.read()
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
