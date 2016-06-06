@@ -1,0 +1,11 @@
+To bundle this app, use pyinstaller.
+
+First, copy one of the main.spec files, depending on if you want a single package or not.
+
+
+$ cp main.spec.<<<<>>>> main.spec
+$ pyinstaller main.spec
+
+
+Modify to fit your needs, but make sure all the imports and data files
+included in these spec files is part of your build.
