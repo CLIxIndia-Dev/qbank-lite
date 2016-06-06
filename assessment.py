@@ -220,6 +220,7 @@ class ItemsList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id=None):
         try:
+            # TODO: add ?qti flag?
             if bank_id is None:
                 raise PermissionDenied
 
@@ -246,6 +247,8 @@ class ItemsList(utilities.BaseClass):
                 qti_file = DataInputStream(x['qtiFile'].file)
                 qti_xml = qti_file.read()
                 soup = BeautifulSoup(qti_xml, 'xml')
+
+                # TODO: handle media files...
 
                 form = bank.get_item_form_for_create([])
                 form.display_name = soup.assessmentItem['title']
