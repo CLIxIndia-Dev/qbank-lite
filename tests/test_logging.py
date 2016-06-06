@@ -370,7 +370,6 @@ class LogEntryCrUDTests(BaseLoggingTestCase):
     def test_can_update_log_entry(self):
         self.num_entries(0)
         entry = self.setup_entry(self.log.ident, "foo")
-
         url = '{0}/{1}'.format(self.url,
                                str(entry.ident))
 
