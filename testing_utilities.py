@@ -14,9 +14,9 @@ from dlkit_edx.utilities import impl_key_dict
 import dlkit_edx.configs
 
 
-PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
-TEST_DATA_STORE = ABS_PATH + '/qbank-lite/test_datastore'
+# PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+# ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
+TEST_DATA_STORE = 'test_datastore'
 
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
