@@ -1,11 +1,19 @@
 import mimetypes
 import os
+import sys
 import web
 
 from dlkit_edx.errors import *
 
 import repository_utilities as rutils
 import utilities
+
+
+if getattr(sys, 'frozen', False):
+    ABS_PATH = sys._MEIPASS
+else:
+    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+    ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
 
 urls = (
@@ -92,6 +100,10 @@ class AssetContentDetails(utilities.BaseClass):
             asset = repository.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
             asset_url = asset_content.get_url()
+
+            # the asset_url is relative, so add in the path
+            asset_url = '{0}/{1}'.format(ABS_PATH,
+                                         asset_url)
 
             web.header('Content-Type', mimetypes.guess_type(asset_url))
             web.header('Content-Length', os.path.getsize(asset_url))
