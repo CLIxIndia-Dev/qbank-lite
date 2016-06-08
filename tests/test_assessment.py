@@ -1,4 +1,7 @@
 import json
+import os
+
+from bs4 import BeautifulSoup
 
 from copy import deepcopy
 
@@ -10,7 +13,8 @@ from paste.fixture import AppError
 
 from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
-    ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES
+    ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
+    QUESTION_GENUS_TYPES
 
 from testing_utilities import BaseTestCase, get_managers, create_test_bank
 from urllib import unquote, quote
@@ -22,8 +26,19 @@ NUMERIC_RESPONSE_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx
 NUMERIC_RESPONSE_ANSWER_RECORD_TYPE = Type(**ANSWER_RECORD_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-response-edx'])
 
+QTI_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
+QTI_ITEM_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
+QTI_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
+
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
+
+
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
 
 class BaseAssessmentTestCase(BaseTestCase):
@@ -3332,3 +3347,158 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             'No feedback available.'
         )
 
+
+class QTIEndpointTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_offered
+
+    def create_item(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_item_form_for_create([QTI_ITEM_RECORD])
+        form.display_name = 'a test item!'
+        form.description = 'for testing with'
+        form.load_from_qti_item(self._test_xml)
+        new_item = bank.create_item(form)
+
+        form = bank.get_question_form_for_create(item_id=new_item.ident,
+                                                 question_record_types=[QTI_QUESTION_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_question(form)
+
+        form = bank.get_answer_form_for_create(item_id=new_item.ident,
+                                               answer_record_types=[QTI_ANSWER_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_answer(form)
+
+        return bank.get_item(new_item.ident)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered
+
+    def setUp(self):
+        super(QTIEndpointTests, self).setUp()
+
+        self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'r')
+        self._test_xml = BeautifulSoup(self._test_file.read(), 'lxml-xml').prettify()
+
+        self._item = self.create_item(self._bank.ident)
+        self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(QTIEndpointTests, self).tearDown()
+
+        self._test_file.close()
+
+    def test_can_get_item_qti_with_answers(self):
+        url = '{0}/items/{1}/qti'.format(self.url,
+                                         unquote(str(self._item.ident)))
+        req = self.app.get(url)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml')
+        item = qti_xml.assessmentItem
+        self.assertTrue(item.itemBody.choiceInteraction)
+        self.assertTrue(item.responseDeclaration)
+        self.assertTrue(item.responseProcessing)
+
+    def test_can_upload_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(QTI_ANSWER_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+    def test_with_taken_can_get_question_qti_without_answers(self):
+        url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.url,
+                                                              unquote(str(self._taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+
+        data = self.json(req)[0]
+
+        self.assertEqual(
+            data['genusTypeId'],
+            str(QTI_QUESTION_GENUS)
+        )
+
+        self.assertNotIn('question', data)
+        self.assertNotIn('answers', data)
+
+        qti = BeautifulSoup(data['qti'], 'lxml-xml').assessmentItem
+        self.assertTrue(qti.itemBody.choiceInteraction)
+        self.assertFalse(qti.responseDeclaration)
+        self.assertFalse(qti.responseProcessing)
+
+    def test_with_taken_can_get_individual_question_qti(self):
+        url = '{0}/assessmentstaken/{1}/questions/{2}/qti'.format(self.url,
+                                                                  unquote(str(self._taken.ident)),
+                                                                  unquote(str(self._item.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+
+        qti = BeautifulSoup(req.body, 'lxml-xml')
+
+        self.assertTrue(qti.itemBody.choiceInteraction)
+        self.assertFalse(qti.responseDeclaration)
+        self.assertFalse(qti.responseProcessing)
+
+    def test_with_all_items_can_include_qti_flag(self):
+        url = '{0}/items?qti'.format(self.url)
+        req = self.app.get(url)
+        data = self.json(req)
+        qti_xml = BeautifulSoup(data[0]['qti'], 'lxml-xml')
+        item = qti_xml.assessmentItem
+        self.assertTrue(item.itemBody.choiceInteraction)
+        self.assertTrue(item.responseDeclaration)
+        self.assertTrue(item.responseProcessing)

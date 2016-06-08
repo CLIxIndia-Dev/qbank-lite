@@ -46,6 +46,23 @@ def format_response(func):
             return results
     return wrapper
 
+def format_xml_response(func):
+    """set json header and convert response to json string"""
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        results = func(self, *args)
+        web.header('Content-type', 'application/xml')
+        web.header("Access-Control-Allow-Origin", "*")
+        web.header("Access-Control-Allow-Credentials", "true")
+        web.header("Access-Control-Allow-Headers", "Content-Type")
+        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
+        web.header("Access-Control-Max-Age", "1728000")
+        if isinstance(results, dict):
+            return json.dumps(results)
+        else:
+            return results
+    return wrapper
+
 def allow_cors(func):
     """set cors headers"""
     @functools.wraps(func)

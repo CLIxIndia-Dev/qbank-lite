@@ -8,7 +8,7 @@ from dlkit_edx.errors import *
 from dlkit_edx.primordium import Type, DataInputStream
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
-    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES
+    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES
 
 import assessment_utilities as autils
 import utilities
@@ -18,11 +18,13 @@ COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
+QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
 
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
     "/banks/(.*)/assessmentsoffered/(.*)", "AssessmentOfferedDetails",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/qti", "AssessmentTakenQuestionQTIDetails",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/status", "AssessmentTakenQuestionStatus",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/submit", "AssessmentTakenQuestionSubmit",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)", "AssessmentTakenQuestionDetails",
@@ -34,6 +36,7 @@ urls = (
     "/banks/(.*)/assessments/(.*)/items", "AssessmentItemsList",
     "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
     "/banks/(.*)/assessments", "AssessmentsList",
+    "/banks/(.*)/items/(.*)/qti", "ItemQTIDetails",
     "/banks/(.*)/items/(.*)", "ItemDetails",
     "/banks/(.*)/items", "ItemsList",
     "/banks/(.*)", "AssessmentBankDetails",
@@ -44,7 +47,7 @@ urls = (
 class AssessmentBanksList(utilities.BaseClass):
     """
     List all available assessment banks.
-    api/v2/assessment/banks/
+    api/v1/assessment/banks/
 
     POST allows you to create a new assessment bank, requires two parameters:
       * name
@@ -90,7 +93,7 @@ class AssessmentBanksList(utilities.BaseClass):
 class AssessmentBankDetails(utilities.BaseClass):
     """
     Shows details for a specific assessment bank.
-    api/v2/assessment/banks/<bank_id>/
+    api/v1/assessment/banks/<bank_id>/
 
     GET, PUT, DELETE
     PUT will update the assessment bank. Only changed attributes need to be sent.
@@ -135,7 +138,7 @@ class AssessmentBankDetails(utilities.BaseClass):
 class AssessmentsList(utilities.BaseClass):
     """
     Get a list of all assessments in the specified bank
-    api/v2/assessment/banks/<bank_id>/assessments/
+    api/v1/assessment/banks/<bank_id>/assessments/
 
     GET, POST
     POST creates a new assessment
@@ -206,7 +209,7 @@ class ItemsList(utilities.BaseClass):
     """
     Return list of items in the given assessment bank. Make sure to embed
     the question and answers in the JSON.
-    api/v2/assessment/banks/<bank_id>/items/
+    api/v1/assessment/banks/<bank_id>/items/
 
     GET, POST
     POST creates a new item
@@ -220,15 +223,23 @@ class ItemsList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id=None):
         try:
-            # TODO: add ?qti flag?
             if bank_id is None:
                 raise PermissionDenied
 
             assessment_bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-
             items = assessment_bank.get_items()
 
-            data = utilities.extract_items(items)
+            if 'qti' in web.input():
+                data = []
+                for item in items:
+                    item_map = item.object_map
+                    item_map.update({
+                        'qti': item.get_qti_xml()
+                    })
+                    data.append(item_map)
+                data = json.dumps(data)
+            else:
+                data = utilities.extract_items(items)
 
             return data
         except PermissionDenied as ex:
@@ -250,9 +261,10 @@ class ItemsList(utilities.BaseClass):
 
                 # TODO: handle media files...
 
-                form = bank.get_item_form_for_create([])
+                form = bank.get_item_form_for_create([QTI_ITEM])
                 form.display_name = soup.assessmentItem['title']
                 form.description = 'QTI AssessmentItem'
+                form.load_from_qti_item(qti_xml)
                 new_item = bank.create_item(form)
 
                 q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
@@ -340,7 +352,7 @@ class ItemsList(utilities.BaseClass):
 class AssessmentDetails(utilities.BaseClass):
     """
     Get assessment details for the given bank
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/
 
     GET, PUT, DELETE
     PUT to modify an existing assessment. Include only the changed parameters.
@@ -392,7 +404,7 @@ class AssessmentItemsList(utilities.BaseClass):
     """
     Return list of items in the given assessment bank. Make sure to embed
     the question and answers in the JSON.
-    api/v2/assessment/banks/<bank_id>/items/
+    api/v1/assessment/banks/<bank_id>/items/
 
     GET, POST
     POST creates a new item
@@ -503,11 +515,10 @@ class AssessmentItemsList(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
-
 class ItemDetails(utilities.BaseClass):
     """
     Get item details for the given bank
-    api/v2/assessment/banks/<bank_id>/items/<item_id>/
+    api/v1/assessment/banks/<bank_id>/items/<item_id>/
 
     GET, PUT, DELETE
     PUT to modify an existing item. Include only the changed parameters.
@@ -641,12 +652,32 @@ class ItemDetails(utilities.BaseClass):
             return return_data
         except (PermissionDenied, Unsupported, InvalidArgument, NotFound) as ex:
             utilities.handle_exceptions(ex)
+            
+
+class ItemQTIDetails(utilities.BaseClass):
+    """
+    Get QTI version of an item
+    api/v1/assessment/banks/<bank_id>/items/<item_id>/qti
+
+    GET
+    """
+    @utilities.format_xml_response
+    def GET(self, bank_id, sub_id):
+        try:
+            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+
+            item = bank.get_item(utilities.clean_id(sub_id))
+
+            return item.get_qti_xml()
+        except (PermissionDenied, NotFound) as ex:
+            utilities.handle_exceptions(ex)
+
 
 
 class AssessmentItemsList(utilities.BaseClass):
     """
     Get or link items in an assessment
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/items/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items/
 
     GET, POST
     GET to view currently linked items
@@ -742,7 +773,7 @@ class AssessmentItemsList(utilities.BaseClass):
 class AssessmentItemDetails(utilities.BaseClass):
     """
     Get item details for the given assessment
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/items/<item_id>/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items/<item_id>/
 
     GET, DELETE
     GET to view the item
@@ -761,7 +792,7 @@ class AssessmentItemDetails(utilities.BaseClass):
 class AssessmentsOffered(utilities.BaseClass):
     """
     Get or create offerings of an assessment
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentsoffered/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentsoffered/
 
     GET, POST
     GET to view current offerings
@@ -813,8 +844,8 @@ class AssessmentsOffered(utilities.BaseClass):
 class AssessmentOfferedDetails(utilities.BaseClass):
     """
     Get, edit, or delete offerings of an assessment
-    api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/assessments_offered/<offered_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessments_offered/<offered_id>/
 
     GET, PUT, DELETE
     GET to view a specific offering
@@ -882,8 +913,8 @@ class AssessmentsTaken(utilities.BaseClass):
     """
     Get or link takens of an assessment. Input can be from an offering or from an assessment --
     so will have to take that into account in the views.
-    api/v2/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentstaken/
-    api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/assessmentstaken/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentstaken/
+    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/assessmentstaken/
 
     POST can only happen from an offering (need the offering ID to create a taken)
     GET, POST
@@ -967,7 +998,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
     """
     Get a single taken instance of an assessment. Not used for much
     except to point you towards the /take endpoint...
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/
 
     GET, DELETE
     GET to view a specific taken
@@ -999,7 +1030,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
 class FinishAssessmentTaken(utilities.BaseClass):
     """
     "finish" the assessment to indicate that student has ended his/her attempt
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/finish/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/finish/
 
     POST empty data
     """
@@ -1022,7 +1053,9 @@ class AssessmentTakenQuestions(utilities.BaseClass):
     """
     Returns all of the questions for a given assessment taken.
     Assumes that only one section per assessment.
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/
+
+    Can add ?qti to get the QTI version of all questions (if available)
 
     GET only
     """
@@ -1032,13 +1065,24 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             questions = bank.get_questions(first_section.ident)
-            data = utilities.extract_items(questions)
 
-            if 'files' in self.data():
-                for question in data['data']['results']:
-                    if 'fileIds' in question:
-                        question['files'] = bank.get_question(first_section.ident,
-                                                              utilities.clean_id(question['id'])).get_files()
+            if 'qti' in web.input():
+                data = []
+                for question in questions:
+                    question_map = question.object_map
+                    question_map.update({
+                        'qti': question.get_qti_xml()
+                    })
+                    data.append(question_map)
+                data = json.dumps(data)
+            else:
+                data = utilities.extract_items(questions)
+
+            # if 'files' in self.data():
+            #     for question in data['data']['results']:
+            #         if 'fileIds' in question:
+            #             question['files'] = bank.get_question(first_section.ident,
+            #                                                   utilities.clean_id(question['id'])).get_files()
 
             return data
         except (PermissionDenied, IllegalState, NotFound) as ex:
@@ -1048,7 +1092,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
 class AssessmentTakenQuestionDetails(utilities.BaseClass):
     """
     Returns the specified question
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/
 
     GET only
     """
@@ -1073,11 +1117,33 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
+class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
+    """
+    Returns the specified question in QTI XML format
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/qti
+
+    GET only
+    """
+    @utilities.format_xml_response
+    def GET(self, bank_id, taken_id, question_id):
+        try:
+            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
+            question = bank.get_question(first_section.ident,
+                                         utilities.clean_id(question_id))
+            data = question.get_qti_xml()
+            # if 'fileIds' in data:
+            #     data['files'] = question.get_files()
+            return data
+        except (PermissionDenied, IllegalState, NotFound) as ex:
+            utilities.handle_exceptions(ex)
+
+
 class AssessmentTakenQuestionStatus(utilities.BaseClass):
     """
     Gets the current status of a question in a taken -- responded to or not, correct or incorrect
     response (if applicable)
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/status/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/status/
 
     GET only
 
@@ -1107,7 +1173,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     Submits a student response for the specified question
     Returns correct or not
     Does NOTHING to flag if the section is done or not...
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/submit/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/submit/
 
     POST only
 
@@ -1200,7 +1266,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 class AssessmentTakenQuestionSurrender(utilities.BaseClass):
     """
     Returns the answer if a student gives up and wants to just see the answer
-    api/v2/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/surrender/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/surrender/
 
     POST only, no data
 
