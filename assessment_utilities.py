@@ -226,6 +226,9 @@ def get_choice_files(files):
     # return {k:v for k,v in files.iteritems() if k.startswith('choice')}
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
+def get_media_path(session, bank):
+    repo = session._initializer['rm'].get_repository(bank.ident)
+    return '/api/v1/repository/repositories/{0}/assets'.format(str(repo.ident))
 
 def get_object_bank(manager, object_id, object_type='item', bank_id=None):
     """Get the object's bank even without the bankId"""

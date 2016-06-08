@@ -1,8 +1,11 @@
 import re
 import json
 import web
+import zipfile
 
 from bs4 import BeautifulSoup
+
+from cStringIO import StringIO
 
 from dlkit_edx.errors import *
 from dlkit_edx.primordium import Type, DataInputStream
@@ -20,6 +23,7 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+
 
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
@@ -171,6 +175,7 @@ class AssessmentsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id):
         try:
+            # TODO: create a QTI record and version of this...
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
             form = bank.get_assessment_form_for_create([])
 
@@ -231,10 +236,12 @@ class ItemsList(utilities.BaseClass):
 
             if 'qti' in web.input():
                 data = []
+
                 for item in items:
                     item_map = item.object_map
                     item_map.update({
-                        'qti': item.get_qti_xml()
+                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                                           assessment_bank))
                     })
                     data.append(item_map)
                 data = json.dumps(data)
@@ -255,25 +262,54 @@ class ItemsList(utilities.BaseClass):
             try:
                 x = web.input(qtiFile={})
                 bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-                qti_file = DataInputStream(x['qtiFile'].file)
-                qti_xml = qti_file.read()
-                soup = BeautifulSoup(qti_xml, 'xml')
 
-                # TODO: handle media files...
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    media_files = {}
+                    qti_file = None
 
-                form = bank.get_item_form_for_create([QTI_ITEM])
-                form.display_name = soup.assessmentItem['title']
-                form.description = 'QTI AssessmentItem'
-                form.load_from_qti_item(qti_xml)
-                new_item = bank.create_item(form)
+                    for zip_file_name in qti_zip.namelist():
+                        if 'media/' in zip_file_name and zip_file_name != 'media/':
+                            # this method must match what is in the QTI QuestionFormRecord
+                            file_name = zip_file_name.replace('media/', '').replace('.', '_')
+                            file_obj = DataInputStream(StringIO(qti_zip.open(zip_file_name).read()))
+                            file_obj.name = zip_file_name
+                            media_files[file_name] = file_obj
 
-                q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-                q_form.load_from_qti_item(qti_xml)
-                bank.create_question(q_form)
+                        elif zip_file_name == 'imsmanifest.xml':
+                            pass
+                        elif '.xml' in zip_file_name:
+                            # should be the actual item XML at this point
+                            qti_file = qti_zip.open(zip_file_name)
 
-                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                a_form.load_from_qti_item(qti_xml)
-                bank.create_answer(a_form)
+                    qti_xml = qti_file.read()
+                    soup = BeautifulSoup(qti_xml, 'xml')
+
+                    # TODO: add in alias checking to see if this item exists already
+                    # if so, create a new item and provenance it...remove the alias
+                    # on the previous item.
+
+                    form = bank.get_item_form_for_create([QTI_ITEM])
+                    form.display_name = soup.assessmentItem['title']
+                    form.description = 'QTI AssessmentItem'
+                    form.load_from_qti_item(qti_xml)
+
+                    new_item = bank.create_item(form)
+
+                    # ID Alias with the QTI ID from Onyx
+                    bank.alias_item(new_item.ident,
+                                    utilities.construct_qti_id(soup.assessmentItem['identifier']))
+
+                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
+
+                    if len(media_files) > 0:
+                        q_form.load_from_qti_item(qti_xml, media_files=media_files)
+                    else:
+                        q_form.load_from_qti_item(qti_xml)
+                    bank.create_question(q_form)
+
+                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                    a_form.load_from_qti_item(qti_xml)
+                    bank.create_answer(a_form)
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']
                 utilities.verify_keys_present(self.data(), expected)
@@ -667,8 +703,8 @@ class ItemQTIDetails(utilities.BaseClass):
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
 
             item = bank.get_item(utilities.clean_id(sub_id))
-
-            return item.get_qti_xml()
+            return item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                               bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1071,7 +1107,8 @@ class AssessmentTakenQuestions(utilities.BaseClass):
                 for question in questions:
                     question_map = question.object_map
                     question_map.update({
-                        'qti': question.get_qti_xml()
+                        'qti': question.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                                               bank))
                     })
                     data.append(question_map)
                 data = json.dumps(data)
@@ -1131,7 +1168,8 @@ class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
-            data = question.get_qti_xml()
+            data = question.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                                   bank))
             # if 'fileIds' in data:
             #     data['files'] = question.get_files()
             return data

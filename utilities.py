@@ -106,6 +106,11 @@ def clean_id(_id):
     else:
         return Id(_id)
 
+def construct_qti_id(qti_id, namespace='assessment.Item'):
+    return Id(identifier=qti_id,
+              namespace=namespace,
+              authority='ONYX.COM')
+
 def convert_dl_object(obj):
     """
     convert a DLKit object into a "real" json-able object

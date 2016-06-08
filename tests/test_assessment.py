@@ -3411,6 +3411,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'r')
         self._test_xml = BeautifulSoup(self._test_file.read(), 'lxml-xml').prettify()
 
+        self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
+
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
@@ -3420,6 +3422,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         super(QTIEndpointTests, self).tearDown()
 
         self._test_file.close()
+        self._test_file2.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -3502,3 +3505,59 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertTrue(item.itemBody.choiceInteraction)
         self.assertTrue(item.responseDeclaration)
         self.assertTrue(item.responseProcessing)
+
+    def test_media_images_get_uploaded_and_assigned(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile2', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(QTI_ANSWER_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        self.assertIn('fileIds', item['question'])
+        self.assertEqual(
+            len(item['question']['fileIds']),
+            2
+        )
+        file_1 = item['question']['fileIds'].keys()[0]
+        self.assertIn('assetContentId',
+                      item['question']['fileIds'][file_1])
+
+    def test_media_file_names_are_replaced_with_url_on_qti_get(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile2', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        expected_string_start = '/api/v1/repository/repositories/'
+        self.assertIn(expected_string_start,
+                      qti.itemBody.choiceInteraction.simpleChoice.p.img['src'])
+        self.assertIn(expected_string_start,
+                      qti.itemBody.choiceInteraction.contents[5].p.img['src'])
