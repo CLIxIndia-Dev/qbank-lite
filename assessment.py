@@ -177,33 +177,76 @@ class AssessmentsList(utilities.BaseClass):
         try:
             # TODO: create a QTI record and version of this...
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-            form = bank.get_assessment_form_for_create([])
 
-            form = utilities.set_form_basics(form, self.data())
+            try:
+                x = web.input(qtiFile={})
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    qti_file = None
 
-            new_assessment = bank.create_assessment(form)
+                    for zip_file_name in qti_zip.namelist():
+                        if zip_file_name == 'imsmanifest.xml':
+                            pass
+                        elif '.xml' in zip_file_name:
+                            # should be the actual item XML at this point
+                            qti_file = qti_zip.open(zip_file_name)
 
-            # if item IDs are included in the assessment, append them.
-            if 'itemIds' in self.data():
-                if isinstance(self.data()['itemIds'], basestring):
-                    items = json.loads(self.data()['itemIds'])
-                else:
-                    items = self.data()['itemIds']
+                    qti_xml = qti_file.read()
+                    soup = BeautifulSoup(qti_xml, 'xml')
 
-                if not isinstance(items, list):
-                    try:
-                        utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
-                        items = [items]
-                    except:
-                        raise InvalidArgument
+                    # TODO: add in alias checking to see if this assessment exists already
+                    # if so, create a new assessment and provenance it...remove the alias
+                    # on the previous assessment.
 
-                for item_id in items:
-                    try:
-                        bank.add_item(new_assessment.ident, utilities.clean_id(item_id))
-                    except:
-                        raise NotFound()
+                    form = bank.get_assessment_form_for_create([QTI_ITEM])
+                    form.display_name = soup.assessmentItem['title']
+                    form.description = 'QTI AssessmentItem'
+                    form.load_from_qti_item(qti_xml)
 
-            full_assessment = bank.get_assessment(new_assessment.ident)
+                    new_item = bank.create_item(form)
+
+                    # ID Alias with the QTI ID from Onyx
+                    bank.alias_item(new_item.ident,
+                                    utilities.construct_qti_id(soup.assessmentItem['identifier']))
+
+                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
+
+                    if len(media_files) > 0:
+                        q_form.load_from_qti_item(qti_xml, media_files=media_files)
+                    else:
+                        q_form.load_from_qti_item(qti_xml)
+                    bank.create_question(q_form)
+
+                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                    a_form.load_from_qti_item(qti_xml)
+                    bank.create_answer(a_form)
+            except AttributeError:  #'dict' object has no attribute 'file'
+                form = bank.get_assessment_form_for_create([])
+
+                form = utilities.set_form_basics(form, self.data())
+
+                new_assessment = bank.create_assessment(form)
+
+                # if item IDs are included in the assessment, append them.
+                if 'itemIds' in self.data():
+                    if isinstance(self.data()['itemIds'], basestring):
+                        items = json.loads(self.data()['itemIds'])
+                    else:
+                        items = self.data()['itemIds']
+
+                    if not isinstance(items, list):
+                        try:
+                            utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
+                            items = [items]
+                        except:
+                            raise InvalidArgument
+
+                    for item_id in items:
+                        try:
+                            bank.add_item(new_assessment.ident, utilities.clean_id(item_id))
+                        except:
+                            raise NotFound()
+
+                full_assessment = bank.get_assessment(new_assessment.ident)
             data = utilities.convert_dl_object(full_assessment)
             return data
         except (PermissionDenied, NotFound, InvalidArgument) as ex:
@@ -436,121 +479,6 @@ class AssessmentDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
-class AssessmentItemsList(utilities.BaseClass):
-    """
-    Return list of items in the given assessment bank. Make sure to embed
-    the question and answers in the JSON.
-    api/v1/assessment/banks/<bank_id>/items/
-
-    GET, POST
-    POST creates a new item
-
-    Note that for RESTful calls, you need to set the request header
-    'content-type' to 'application/json'
-
-    Example (note the use of double quotes!!):
-       This UI: {"name" : "an assessment item","description" : "this is a hard quiz problem","question":{"type":"question-record-type%3Aresponse-string%40ODL.MIT.EDU","questionString":"Where am I?"},"answers":[{"type":"answer-record-type%3Aresponse-string%40ODL.MIT.EDU","responseString":"Here"}]}
-    """
-    @utilities.format_response
-    def GET(self, bank_id=None, assessment_id=None):
-        try:
-            if bank_id is None and assessment_id is None:
-                raise PermissionDenied
-
-            assessment_bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-
-            if assessment_id is None:
-                items = assessment_bank.get_items()
-            else:
-                items = assessment_bank.get_assessment_items(utilities.clean_id(assessment_id))
-
-            data = utilities.extract_items(items)
-
-            return data
-        except PermissionDenied as ex:
-            utilities.handle_exceptions(ex)
-
-    @utilities.format_response
-    def POST(self, bank_id=None, assessment_id=None):
-        try:
-            if bank_id is None:
-                utilities.verify_keys_present(self.data(), ['bankId'])
-                bank_id = self.data()['bankId']
-
-            expected = ['name', 'description']
-            utilities.verify_keys_present(self.data(), expected)
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
-            new_item = autils.create_new_item(bank, self.data())
-            # create questions and answers if they are part of the
-            # input data. There must be a better way to figure out
-            # which attributes I should set, given the
-            # question type?
-            if 'question' in self.data():
-                question = self.data()['question']
-
-                if isinstance(question, basestring):
-                    question = json.loads(question)
-
-                if 'rerandomize' in self.data() and 'rerandomize' not in question:
-                    question['rerandomize'] = self.data()['rerandomize']
-
-                q_type = Type(question['type'])
-                qfc = bank.get_question_form_for_create(item_id=new_item.ident,
-                                                        question_record_types=[q_type])
-                qfc = autils.update_question_form(question, qfc, create=True)
-
-                if 'genus' in question:
-                    qfc.genus_type = Type(question['genus'])
-
-                if ('fileIds' in new_item.object_map and
-                        len(new_item.object_map['fileIds'].keys()) > 0):
-                    # add these files to the question, too
-                    file_ids = new_item.object_map['fileIds']
-                    qfc = autils.add_file_ids_to_form(qfc, file_ids)
-
-                new_question = bank.create_question(qfc)
-
-            if 'answers' in self.data():
-                answers = self.data()['answers']
-                if isinstance(answers, basestring):
-                    answers = json.loads(answers)
-                for answer in answers:
-                    a_types = autils.get_answer_records(answer)
-
-                    afc = bank.get_answer_form_for_create(new_item.ident,
-                                                          a_types)
-
-                    if 'multi-choice' in answer['type']:
-                        # because multiple choice answers need to match to
-                        # the actual MC3 ChoiceIds, NOT the index passed
-                        # in by the consumer.
-                        if not new_question:
-                            raise NullArgument('Question')
-                        afc = autils.update_answer_form(answer, afc, new_question)
-                    else:
-                        afc = autils.update_answer_form(answer, afc)
-
-                    afc = autils.set_answer_form_genus_and_feedback(answer, afc)
-                    new_answer = bank.create_answer(afc)
-
-            full_item = bank.get_item(new_item.ident)
-            return_data = utilities.convert_dl_object(full_item)
-
-            # for convenience, also return the wrong answers
-            try:
-                wrong_answers = full_item.get_wrong_answers()
-                return_data = json.loads(return_data)
-                for wa in wrong_answers:
-                    return_data['answers'].append(wa.object_map)
-                return_data = json.dumps(return_data)
-            except AttributeError:
-                pass
-            return return_data
-        except (KeyError, PermissionDenied, Unsupported,
-                InvalidArgument, NullArgument) as ex:
-            utilities.handle_exceptions(ex)
-
-
 class ItemDetails(utilities.BaseClass):
     """
     Get item details for the given bank
@@ -688,7 +616,7 @@ class ItemDetails(utilities.BaseClass):
             return return_data
         except (PermissionDenied, Unsupported, InvalidArgument, NotFound) as ex:
             utilities.handle_exceptions(ex)
-            
+
 
 class ItemQTIDetails(utilities.BaseClass):
     """
@@ -730,9 +658,22 @@ class AssessmentItemsList(utilities.BaseClass):
         try:
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
-            data = utilities.extract_items(items)
 
-            if 'files' in self.data():
+            if 'qti' in web.input():
+                data = []
+
+                for item in items:
+                    item_map = item.object_map
+                    item_map.update({
+                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                                           bank))
+                    })
+                    data.append(item_map)
+                data = json.dumps(data)
+            else:
+                data = utilities.extract_items(items)
+
+            if 'files' in web.input():
                 for item in data['data']['results']:
                     dlkit_item = bank.get_item(utilities.clean_id(item['id']))
 

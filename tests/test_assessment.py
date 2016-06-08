@@ -3561,3 +3561,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                       qti.itemBody.choiceInteraction.simpleChoice.p.img['src'])
         self.assertIn(expected_string_start,
                       qti.itemBody.choiceInteraction.contents[5].p.img['src'])
+
+    def test_can_get_qti_items_in_assessment(self):
+        self.fail('finish writing the test')
+
+    def test_can_upload_qti_assessment_and_link_items(self):
+        self.fail('finish writing the test')
