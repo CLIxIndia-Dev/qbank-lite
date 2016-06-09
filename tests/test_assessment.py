@@ -3366,7 +3366,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
         new_offered = bank.create_assessment_offered(form)
 
-        return new_offered
+        return new_assessment, new_offered
 
     def create_item(self, bank_id):
         if isinstance(bank_id, basestring):
@@ -3399,11 +3399,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         bank = get_managers()['am'].get_bank(bank_id)
 
-        new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
 
         form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
         taken = bank.create_assessment_taken(form)
-        return taken, new_offered
+        return taken, new_offered, new_assessment
 
     def setUp(self):
         super(QTIEndpointTests, self).setUp()
@@ -3414,7 +3414,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
-        self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3438,7 +3438,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         url = '{0}/items'.format(self.url)
         self._test_file.seek(0)
         req = self.app.post(url,
-                            upload_files=[('qtiFile', 'testFile', self._test_file.read())])
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
         self.ok(req)
         item = self.json(req)
 
@@ -3563,7 +3563,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                       qti.itemBody.choiceInteraction.contents[5].p.img['src'])
 
     def test_can_get_qti_items_in_assessment(self):
-        self.fail('finish writing the test')
+        url = '{0}/assessments/{1}/items?qti'.format(self.url,
+                                                     unquote(str(self._assessment.ident)))
+        req = self.app.get(url)
+        data = self.json(req)[0]
 
-    def test_can_upload_qti_assessment_and_link_items(self):
-        self.fail('finish writing the test')
+        self.assertIn('qti', data)
+        qti_xml = BeautifulSoup(data['qti'], 'lxml-xml')
+
+        item = qti_xml.assessmentItem
+        self.assertTrue(item.itemBody.choiceInteraction)
+        self.assertTrue(item.responseDeclaration)
+        self.assertTrue(item.responseProcessing)
