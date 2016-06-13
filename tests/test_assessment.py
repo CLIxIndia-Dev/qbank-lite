@@ -3436,7 +3436,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
     def test_can_upload_qti_file(self):
         url = '{0}/items'.format(self.url)
-        self._test_file.seek(0)
+        self._test_file2.seek(0)
         req = self.app.post(url,
                             upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
         self.ok(req)
@@ -3575,3 +3575,22 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertTrue(item.itemBody.choiceInteraction)
         self.assertTrue(item.responseDeclaration)
         self.assertTrue(item.responseProcessing)
+
+    def test_uploading_same_qti_item_id_sets_provenance(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item2 = self.json(req)
+
+        self.assertNotEqual(item['id'], item2['id'])
+        self.assertEqual(item['provenanceId'], '')
+        self.assertEqual(item2['provenanceId'], item['id'])
+

@@ -4,6 +4,7 @@ import web
 import zipfile
 
 from bs4 import BeautifulSoup
+from bson.errors import InvalidId
 
 from cStringIO import StringIO
 
@@ -19,6 +20,7 @@ import utilities
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
@@ -328,19 +330,28 @@ class ItemsList(utilities.BaseClass):
                     soup = BeautifulSoup(qti_xml, 'xml')
 
                     # TODO: add in alias checking to see if this item exists already
-                    # if so, create a new item and provenance it...remove the alias
-                    # on the previous item.
+                    # if so, create a new item and provenance it...
+                    original_qti_id = utilities.construct_qti_id(soup.assessmentItem['identifier'])
+                    try:
+                        parent_item = bank.get_item(original_qti_id)
+                        add_provenance_parent = True
+                    except (NotFound, InvalidId):
+                        parent_item = None
+                        add_provenance_parent = False
 
-                    form = bank.get_item_form_for_create([QTI_ITEM])
+                    form = bank.get_item_form_for_create([QTI_ITEM, PROVENANCE_ITEM_RECORD])
                     form.display_name = soup.assessmentItem['title']
                     form.description = 'QTI AssessmentItem'
                     form.load_from_qti_item(qti_xml)
+
+                    if add_provenance_parent:
+                        form.set_provenance(str(parent_item.ident))
 
                     new_item = bank.create_item(form)
 
                     # ID Alias with the QTI ID from Onyx
                     bank.alias_item(new_item.ident,
-                                    utilities.construct_qti_id(soup.assessmentItem['identifier']))
+                                    original_qti_id)
 
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
 

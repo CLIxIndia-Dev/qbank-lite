@@ -10,7 +10,7 @@ from waitress import serve
 
 # http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
 if getattr(sys, 'frozen', False):
-    ABS_PATH = sys._MEIPASS
+    ABS_PATH = os.path.dirname(sys.argv[0])
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
@@ -22,10 +22,15 @@ urls = (
     '/api/v1/logging', logging_.app_logging,
     '/api/v1/repository', repository.app_repository,
     '/test', 'video_test',
+    '/datastore_path', 'bootloader_storage_path',
     '/(.*)', 'index'
 )
 
 app = web.application(urls, locals())
+
+class bootloader_storage_path:
+    def GET(self):
+        return ABS_PATH
 
 class index:
     def GET(self, path):
