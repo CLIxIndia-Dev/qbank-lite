@@ -307,11 +307,26 @@ class ItemsList(utilities.BaseClass):
             try:
                 x = web.input(qtiFile={})
                 bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+                # get each set of files individually, because
+                # we are doing this in memory, so the file pointer changes
+                # once we read in a file
+                # https://docs.python.org/2/library/zipfile.html
+                keywords = []
+                media_files = {}
+                qti_file = None
 
+                # get manifest keywords first
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
-                    media_files = {}
-                    qti_file = None
+                    for zip_file_name in qti_zip.namelist():
+                        if zip_file_name == 'imsmanifest.xml':
+                            manifest = qti_zip.open(zip_file_name)
+                            manifest_xml = manifest.read()
+                            manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
+                            for keyword in manifest_soup.resources.resource.metadata.general.keyword:
+                                keywords.append(keyword.string)
 
+                # now get media files
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
                     for zip_file_name in qti_zip.namelist():
                         if 'media/' in zip_file_name and zip_file_name != 'media/':
                             # this method must match what is in the QTI QuestionFormRecord
@@ -320,16 +335,18 @@ class ItemsList(utilities.BaseClass):
                             file_obj.name = zip_file_name
                             media_files[file_name] = file_obj
 
-                        elif zip_file_name == 'imsmanifest.xml':
-                            pass
-                        elif '.xml' in zip_file_name:
-                            # should be the actual item XML at this point
+                # now deal with the question xml
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    for zip_file_name in qti_zip.namelist():
+                        if ('.xml' in zip_file_name and
+                                'media/' not in zip_file_name and
+                                zip_file_name != 'imsmanifest.xml'):
                             qti_file = qti_zip.open(zip_file_name)
 
                     qti_xml = qti_file.read()
                     soup = BeautifulSoup(qti_xml, 'xml')
 
-                    # TODO: add in alias checking to see if this item exists already
+                    # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
                     original_qti_id = utilities.construct_qti_id(soup.assessmentItem['identifier'])
                     try:
@@ -342,7 +359,8 @@ class ItemsList(utilities.BaseClass):
                     form = bank.get_item_form_for_create([QTI_ITEM, PROVENANCE_ITEM_RECORD])
                     form.display_name = soup.assessmentItem['title']
                     form.description = 'QTI AssessmentItem'
-                    form.load_from_qti_item(qti_xml)
+                    form.load_from_qti_item(qti_xml,
+                                            keywords=keywords)
 
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
@@ -356,13 +374,17 @@ class ItemsList(utilities.BaseClass):
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
 
                     if len(media_files) > 0:
-                        q_form.load_from_qti_item(qti_xml, media_files=media_files)
+                        q_form.load_from_qti_item(qti_xml,
+                                                  media_files=media_files,
+                                                  keywords=keywords)
                     else:
-                        q_form.load_from_qti_item(qti_xml)
+                        q_form.load_from_qti_item(qti_xml,
+                                                  keywords=keywords)
                     bank.create_question(q_form)
 
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                    a_form.load_from_qti_item(qti_xml)
+                    a_form.load_from_qti_item(qti_xml,
+                                              keywords=keywords)
                     bank.create_answer(a_form)
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']

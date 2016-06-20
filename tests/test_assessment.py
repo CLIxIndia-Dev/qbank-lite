@@ -26,11 +26,14 @@ NUMERIC_RESPONSE_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx
 NUMERIC_RESPONSE_ANSWER_RECORD_TYPE = Type(**ANSWER_RECORD_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-response-edx'])
 
-QTI_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
-QTI_ITEM_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
-QTI_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
@@ -3412,6 +3415,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_xml = BeautifulSoup(self._test_file.read(), 'lxml-xml').prettify()
 
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
+        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -3423,6 +3427,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self._test_file.close()
         self._test_file2.close()
+        self._audio_recording_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -3434,7 +3439,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertTrue(item.responseDeclaration)
         self.assertTrue(item.responseProcessing)
 
-    def test_can_upload_qti_file(self):
+    def test_can_upload_qti_choice_interaction_file(self):
         url = '{0}/items'.format(self.url)
         self._test_file2.seek(0)
         req = self.app.post(url,
@@ -3444,23 +3449,68 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['genusTypeId'],
-            str(QTI_ITEM_GENUS)
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertEqual(
             item['question']['genusTypeId'],
-            str(QTI_QUESTION_GENUS)
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(QTI_ANSWER_GENUS)
+            str(QTI_ANSWER_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
         )
+
+    def test_can_upload_qti_upload_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._audio_recording_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+    def test_audio_file_in_question_gets_saved(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile2', self._audio_recording_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        expected_string_start = '/api/v1/repository/repositories/'
+        self.assertIn(expected_string_start,
+                      qti.itemBody.contents[1].object['data'])
 
     def test_with_taken_can_get_question_qti_without_answers(self):
         url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.url,
@@ -3472,7 +3522,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             data['genusTypeId'],
-            str(QTI_QUESTION_GENUS)
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertNotIn('question', data)
@@ -3516,17 +3566,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['genusTypeId'],
-            str(QTI_ITEM_GENUS)
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertEqual(
             item['question']['genusTypeId'],
-            str(QTI_QUESTION_GENUS)
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(QTI_ANSWER_GENUS)
+            str(QTI_ANSWER_CHOICE_INTERACTION_GENUS)
         )
 
         self.assertNotEqual(
