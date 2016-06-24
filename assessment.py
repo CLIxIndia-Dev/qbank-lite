@@ -303,7 +303,6 @@ class ItemsList(utilities.BaseClass):
             if bank_id is None:
                 utilities.verify_keys_present(self.data(), ['bankId'])
                 bank_id = self.data()['bankId']
-
             try:
                 x = web.input(qtiFile={})
                 bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
