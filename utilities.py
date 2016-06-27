@@ -28,6 +28,24 @@ class BaseClass:
         except (ValueError, TypeError):
             return {}
 
+def format_response_mit_type(func):
+    """wrap original response in a {"format": "MIT-CLIx-OEA", "data": "<foo>"} object
+    ASSUMES that this is wrapped around format_response, like
+
+      @utilities.format_response
+      @utilities.format_response_mit_type
+      def GET(self, bank_id, taken_id):
+
+    """
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        results = func(self, *args)
+
+        return {
+            "format": "MIT-CLIx-OEA",
+            "data": json.loads(results)  # return an object
+        }
+    return wrapper
 
 def format_response(func):
     """set json header and convert response to json string"""

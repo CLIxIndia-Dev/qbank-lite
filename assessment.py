@@ -1069,6 +1069,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
     GET only
     """
     @utilities.format_response
+    @utilities.format_response_mit_type
     def GET(self, bank_id, taken_id):
         try:
             bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))

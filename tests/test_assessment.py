@@ -2282,7 +2282,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
         req = self.app.get(taken_questions_endpoint)
         self.ok(req)
-        questions = json.loads(req.body)
+        questions = json.loads(req.body)['data']
         question = questions[0]
 
         question_submit_endpoint = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -2344,6 +2344,29 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         # checking on the question status now should return a responded, right
         req = self.app.get(question_status_endpoint)
         self.responded(req, True)
+
+    def test_mit_format_tag_included(self):
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        # Instructor can now take the assessment
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
+
+        # Only GET of this endpoint is supported
+        taken_questions_endpoint = taken_endpoint + '/questions'
+
+        req = self.app.get(taken_questions_endpoint)
+        self.ok(req)
+        data = json.loads(req.body)
+        self.assertIn('data', data)
+        self.assertIn('format', data)
+        self.assertEqual(data['format'], 'MIT-CLIx-OEA')
 
 
 class BasicServiceTests(BaseAssessmentTestCase):
