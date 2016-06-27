@@ -2,9 +2,11 @@ import json
 import os
 import re
 
+from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
 from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
+from dlkit_edx.proxy_example import TestRequest
 
 from inflection import underscore
 
@@ -216,6 +218,18 @@ def get_answer_records(answer):
     else:
         a_types = [a_type]
     return a_types
+
+def get_assessment_manager(session, env):
+    if 'HTTP_X_API_PROXY' in env:
+        condition = PROXY_SESSION.get_proxy_condition()
+        dummy_request = TestRequest(username=env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                    authenticated=True)
+        condition.set_http_request(dummy_request)
+        proxy = PROXY_SESSION.get_proxy(condition)
+        return RUNTIME.get_service_manager('ASSESSMENT',
+                                           proxy=proxy)
+    else:
+        return session._initializer['am']
 
 def get_choice_files(files):
     """

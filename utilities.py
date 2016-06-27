@@ -94,7 +94,7 @@ def allow_cors(func):
         return results
     return wrapper
 
-def activate_managers(session):
+def activate_managers(session, username='student@tiss.edu'):
     """
     Create initial managers and store them in the session
     """
@@ -105,13 +105,13 @@ def activate_managers(session):
     for manager in managers:
         nickname = manager[0]
         service_name = manager[1]
-        if not hasattr(session, nickname):
-            condition = PROXY_SESSION.get_proxy_condition()
-            dummy_request = TestRequest(username='student@tiss.edu', authenticated=True)
-            condition.set_http_request(dummy_request)
-            proxy = PROXY_SESSION.get_proxy(condition)
-            session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
-                                                                         proxy=proxy)
+
+        condition = PROXY_SESSION.get_proxy_condition()
+        dummy_request = TestRequest(username=username, authenticated=True)
+        condition.set_http_request(dummy_request)
+        proxy = PROXY_SESSION.get_proxy(condition)
+        session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
+                                                                     proxy=proxy)
     return session
 
 def clean_id(_id):

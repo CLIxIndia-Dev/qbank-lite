@@ -2368,6 +2368,89 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.assertIn('format', data)
         self.assertEqual(data['format'], 'MIT-CLIx-OEA')
 
+    def test_can_set_username_in_header(self):
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+        test_student = 'foobar'
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+        self.assertIn(test_student, taken['takingAgentId'])
+
+        # Student can now take the assessment
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
+
+        # Only GET of this endpoint is supported
+        taken_questions_endpoint = taken_endpoint + '/questions'
+
+        req = self.app.get(taken_questions_endpoint,
+                           headers={
+                               'x-api-proxy': test_student
+                           })
+        self.ok(req)
+        questions = json.loads(req.body)['data']
+        question = questions[0]
+
+        question_submit_endpoint = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                                          taken_id,
+                                                                                          unquote(question['id']))
+
+        item_definition = self.item_payload()
+
+        self.verify_question(question,
+                             item_definition['question']['questionString'],
+                             item_definition['question']['type'])
+
+        wrong_choice = question['choices'][1]['id']
+        # Can submit a wrong response
+        wrong_response = {
+            "choiceIds": [wrong_choice]
+        }
+
+        req = self.app.post(question_submit_endpoint,
+                            params=json.dumps(wrong_response),
+                            headers={
+                                'content-type': 'application/json',
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        self.verify_submission(req, _expected_result=False)
+
+        question_status_endpoint = '{0}/assessmentstaken/{1}/questions/{2}/status'.format(self.url,
+                                                                                          taken_id,
+                                                                                          unquote(question['id']))
+
+        # checking on the question status now should return a responded but wrong
+        req = self.app.get(question_status_endpoint)
+        self.responded(req, False)
+
+        # can resubmit using the specific ID
+        right_choice = question['choices'][0]['id']
+        right_response = {
+            "choiceIds": [right_choice]
+        }
+        req = self.app.post(question_submit_endpoint,
+                            params=json.dumps(right_response),
+                            headers={
+                                'content-type': 'application/json',
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        self.verify_submission(req, _expected_result=True)
+
+        # checking on the question status now should return a responded, right
+        req = self.app.get(question_status_endpoint)
+        self.responded(req, True)
+
+        req = self.app.get(taken_endpoint)
+        data = self.json(req)
+        self.assertIn(test_student, data['takingAgentId'])
+
 
 class BasicServiceTests(BaseAssessmentTestCase):
     """Test the views for getting the basic service calls
@@ -2582,12 +2665,12 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                                                 unquote(str(taken.ident)))
         req = self.app.get(taken_url)
         self.ok(req)
-        data = self.json(req)
+        data = self.json(req)['data']
         order_1 = data[0]['choices']
 
         req2 = self.app.get(taken_url)
         self.ok(req)
-        data2 = self.json(req2)
+        data2 = self.json(req2)['data']
         order_2 = data2[0]['choices']
 
         try:
@@ -2600,7 +2683,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             # assume the probability of two matches in a row is slight.
             req3 = self.app.get(taken_url)
             self.ok(req)
-            data3 = self.json(req3)
+            data3 = self.json(req3)['data']
             order_3 = data3[0]['choices']
             self.assertNotEqual(
                 order_1,
@@ -3541,7 +3624,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         req = self.app.get(url)
         self.ok(req)
 
-        data = self.json(req)[0]
+        data = self.json(req)['data'][0]
 
         self.assertEqual(
             data['genusTypeId'],

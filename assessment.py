@@ -939,7 +939,8 @@ class AssessmentsTaken(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
 
             # use canSearch assessment takens as proxy for learner vs. instructor
             # learners should ideally only see their takens...not everyone else's
@@ -967,10 +968,11 @@ class AssessmentsTaken(utilities.BaseClass):
             # Kind of hokey, but need to get the sub_id type from a string...
             if 'assessment.AssessmentOffered' not in sub_id:
                 raise Unsupported()
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
 
             # first check if a taken exists for the user / offering
-            user_id = session._initializer['am'].effective_agent_id
+            user_id = am.effective_agent_id
             takens = bank.get_assessments_taken_for_taker_and_assessment_offered(user_id,
                                                                                  utilities.clean_id(sub_id))
 
@@ -1019,7 +1021,8 @@ class AssessmentTakenDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, taken_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_taken(utilities.clean_id(taken_id))
             return web.Accepted()
         except (PermissionDenied, NotFound) as ex:
@@ -1028,7 +1031,8 @@ class AssessmentTakenDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
             return data
@@ -1046,7 +1050,8 @@ class FinishAssessmentTaken(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             # "finish" the assessment section
             # bank.finished_assessment_section(first_section.ident)
             bank.finish_assessment(utilities.clean_id(taken_id))
@@ -1072,7 +1077,8 @@ class AssessmentTakenQuestions(utilities.BaseClass):
     @utilities.format_response_mit_type
     def GET(self, bank_id, taken_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             questions = bank.get_questions(first_section.ident)
 
@@ -1110,7 +1116,8 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
@@ -1138,7 +1145,8 @@ class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
     @utilities.format_xml_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
@@ -1167,7 +1175,8 @@ class AssessmentTakenQuestionStatus(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
@@ -1200,7 +1209,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id, question_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
@@ -1287,7 +1297,8 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
     """
     def POST(self, bank_id, taken_id, question_id):
         try:
-            bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            am = autils.get_assessment_manager(session, web.ctx.env)
+            bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
