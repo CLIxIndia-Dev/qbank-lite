@@ -2482,6 +2482,341 @@ class DragAndDropTests(BaseAssessmentTestCase):
         super(DragAndDropTests, self).tearDown()
 
 
+class HierarchyTests(BaseAssessmentTestCase):
+    def add_root_bank(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        am = get_managers()['am']
+        am.add_root_bank(bank_id)
+
+    def num_banks(self, val):
+        am = get_managers()['am']
+        self.assertEqual(
+            am.banks.available(),
+            val
+        )
+
+    def query_node_hierarchy(self, bank_id, query_type='ancestors', value=1, expected_ids=()):
+        query_url = '{0}/hierarchies/nodes/{1}?{2}={3}'.format(self.url,
+                                                               unquote(str(bank_id)),
+                                                               query_type,
+                                                               value)
+        req = self.app.get(query_url)
+        self.ok(req)
+        data = self.json(req)
+        if query_type == 'ancestors':
+            key = 'parentNodes'
+        else:
+            key = 'childNodes'
+        self.assertEqual(
+            len(data[key]),
+            len(expected_ids)
+        )
+        if len(expected_ids) > 0:
+            self.assertEqual(
+                data[key][0]['id'],
+                expected_ids[0]
+            )
+
+    def setUp(self):
+        super(HierarchyTests, self).setUp()
+
+    def tearDown(self):
+        """
+        Remove the test user from all groups in Membership
+        Start from the smallest groupId because need to
+        remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
+        """
+        super(HierarchyTests, self).tearDown()
+
+    def test_can_add_root_bank_to_hierarchy(self):
+        self.num_banks(1)
+        url = self.url + '/hierarchies/roots'
+
+        payload = {
+            'id'    : str(self._bank.ident)
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+
+        self.code(req, 201)
+        self.num_banks(1)
+
+    def test_can_remove_root_bank_from_hierarchy(self):
+        self.num_banks(1)
+        self.add_root_bank(self._bank.ident)
+        url = self.url + '/hierarchies/roots/' + unquote(str(self._bank.ident))
+        req = self.app.delete(url)
+        self.code(req, 202)
+        self.num_banks(1)
+
+    def test_removing_non_root_bank_from_hierarchy_throws_exception(self):
+        self.num_banks(1)
+        second_bank = create_test_bank()
+        self.num_banks(2)
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/roots/' + unquote(str(second_bank.ident))
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          url)
+
+        self.num_banks(2)
+
+    def test_can_get_root_bank_list(self):
+        self.add_root_bank(self._bank.ident)
+        url = self.url + '/hierarchies/roots'
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data),
+            1
+        )
+
+        self.assertEqual(
+            unquote(data[0]['id']),
+            unquote(str(self._bank.ident))
+        )
+
+    def test_can_get_root_bank_details(self):
+        self.add_root_bank(self._bank.ident)
+        url = self.url + '/hierarchies/roots/' + unquote(str(self._bank.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            unquote(data['id']),
+            unquote(str(self._bank.ident))
+        )
+
+    def test_getting_details_for_non_root_bank_throws_exception(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/roots/' + unquote(str(second_bank.ident))
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
+
+    def test_can_get_children_banks(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data),
+            1
+        )
+        self.assertEqual(
+            unquote(data[0]['id']),
+            unquote(str(second_bank.ident))
+        )
+
+    def test_trying_to_add_child_to_non_root_bank_works(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(self._bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data),
+            1
+        )
+        self.assertEqual(
+            unquote(data[0]['id']),
+            unquote(str(self._bank.ident))
+        )
+
+    def test_trying_to_add_non_existent_child_to_node_throws_exception(self):
+        self.add_root_bank(self._bank.ident)
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : ['fake.MoreFake%3A1234567890abcdefabcdef12%40MIT']
+        }
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+    def test_child_id_required_to_add_child_bank(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'oops'   : str(second_bank.ident)
+        }
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
+
+    def test_can_add_child_bank_to_node(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+    def test_can_remove_child_from_node(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data),
+            1
+        )
+
+        payload = {
+            'ids': []
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data),
+            0
+        )
+
+    def test_can_get_ancestor_and_descendant_levels(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        self.query_node_hierarchy(second_bank.ident, 'ancestors', 1, [str(self._bank.ident)])
+        self.query_node_hierarchy(self._bank.ident, 'ancestors', 1, [])
+        self.query_node_hierarchy(second_bank.ident, 'descendants', 1, [])
+        self.query_node_hierarchy(self._bank.ident, 'descendants', 1, [str(second_bank.ident)])
+
+    def test_can_query_hierarchy_nodes_with_descendants(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        third_bank = create_test_bank()
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(third_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children?descendants=2'
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)[0]
+        self.assertTrue(len(data['childNodes']) == 1)
+        self.assertTrue(data['id'] == str(second_bank.ident))
+        self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
+
+
 class MultipleChoiceTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):

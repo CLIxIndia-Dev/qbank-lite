@@ -142,7 +142,13 @@ def convert_dl_object(obj):
 def extract_items(item_list):
     try:
         if item_list.available() > 0:
-            return json.dumps([i.object_map for i in item_list])
+            # so we don't list the items because it's a generator
+            orig_list = list(item_list)
+            try:
+                return json.dumps([i.object_map for i in orig_list])
+            except AttributeError:
+                # Hierarchy Nodes do not have .object_map
+                return json.dumps([i.get_node_map() for i in orig_list])
         else:
             return json.dumps([])
     except AttributeError:

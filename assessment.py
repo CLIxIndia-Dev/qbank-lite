@@ -46,7 +46,11 @@ urls = (
     "/banks/(.*)/items/(.*)", "ItemDetails",
     "/banks/(.*)/items", "ItemsList",
     "/banks/(.*)", "AssessmentBankDetails",
-    "/banks", "AssessmentBanksList"
+    "/banks", "AssessmentBanksList",
+    "/hierarchies/roots/(.*)", "AssessmentHierarchiesRootDetails",
+    "/hierarchies/roots", "AssessmentHierarchiesRootsList",
+    "/hierarchies/nodes/(.*)/children", "AssessmentHierarchiesNodeChildrenList",
+    "/hierarchies/nodes/(.*)", "AssessmentHierarchiesNodeDetails"
 )
 
 
@@ -508,6 +512,187 @@ class AssessmentDetails(utilities.BaseClass):
 
             return data
         except (PermissionDenied, InvalidArgument) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
+    """
+    List the children for a root bank.
+    api/v1/assessment/hierarchies/nodes/<bank_id>/children/
+
+    POST allows you to update the children list (bulk update)
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+      {"id": "assessment.Bank:54f9e39833bb7293e9da5b44@oki-dev.MIT.EDU"}
+
+    """
+    @utilities.format_response
+    def GET(self, bank_id):
+        """
+        List children of a node
+        """
+        try:
+            if 'descendants' in web.input():
+                descendant_levels = int(web.input()['descendants'])
+            else:
+                descendant_levels = 1
+            nodes = session._initializer['am'].get_bank_nodes(utilities.clean_id(bank_id),
+                                                              0, descendant_levels, False)
+            data = utilities.extract_items(nodes.get_child_bank_nodes())
+            return data
+        except PermissionDenied as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def POST(self, bank_id):
+        """
+        """
+        try:
+            utilities.verify_keys_present(self.data(), 'ids')
+
+            # first remove current child banks, if present
+            try:
+                session._initializer['am'].remove_child_banks(utilities.clean_id(bank_id))
+            except NotFound:
+                pass
+
+            if not isinstance(self.data()['ids'], list):
+                self.data()['ids'] = [self.data()['ids']]
+            for child_id in self.data()['ids']:
+                child_bank = session._initializer['am'].get_bank(utilities.clean_id(child_id))
+                session._initializer['am'].add_child_bank(utilities.clean_id(bank_id),
+                                                          child_bank.ident)
+            return web.Created()
+        except (PermissionDenied, NotFound, KeyError) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
+    """
+    List the bank details for a node bank.
+    api/v1/assessment/hierarchies/nodes/<bank_id>/
+
+    GET only. Can provide ?ancestors and ?descendants values to
+              get nodes up and down the hierarchy.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+    """
+    @utilities.format_response
+    def GET(self, bank_id):
+        """
+        List details of a node bank
+        """
+        try:
+            if 'ancestors' in web.input():
+                ancestor_levels = int(web.input()['ancestors'])
+            else:
+                ancestor_levels = 0
+            if 'descendants' in web.input():
+                descendant_levels = int(web.input()['descendants'])
+            else:
+                descendant_levels = 0
+            include_siblings = False
+
+            node_data = session._initializer['am'].get_bank_nodes(utilities.clean_id(bank_id),
+                                                                  ancestor_levels,
+                                                                  descendant_levels,
+                                                                  include_siblings)
+
+            data = node_data.get_object_node_map()
+            return data
+        except PermissionDenied as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentHierarchiesRootsList(utilities.BaseClass):
+    """
+    List all available assessment hierarchy root nodes.
+    api/v1/assessment/hierarchies/roots/
+
+    POST allows you to add an existing bank as a root bank in
+    the hierarchy.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+      {"id": "assessment.Bank:54f9e39833bb7293e9da5b44@oki-dev.MIT.EDU"}
+    """
+    @utilities.format_response
+    def GET(self):
+        """
+        List all available root assessment banks
+        """
+        try:
+            root_banks = session._initializer['am'].get_root_banks()
+            banks = utilities.extract_items(root_banks)
+            return banks
+        except PermissionDenied as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def POST(self):
+        """
+        Add a bank as a root to the hierarchy
+
+        """
+        try:
+            utilities.verify_keys_present(self.data(), ['id'])
+            try:
+                session._initializer['am'].get_bank(utilities.clean_id(self.data()['id']))
+            except:
+                raise InvalidArgument()
+
+            session._initializer['am'].add_root_bank(utilities.clean_id(self.data()['id']))
+            return web.Created()
+        except (PermissionDenied, InvalidArgument) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentHierarchiesRootDetails(utilities.BaseClass):
+    """
+    List the bank details for a root bank. Allow you to remove it as a root
+    api/v1/assessment/hierarchies/roots/<bank_id>/
+
+    DELETE allows you to remove a root bank.
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+    """
+    @utilities.format_response
+    def DELETE(self, bank_id):
+        """
+        Remove bank as root bank
+        """
+        try:
+            root_bank_ids = session._initializer['am'].get_root_bank_ids()
+            if utilities.clean_id(bank_id) in root_bank_ids:
+                session._initializer['am'].remove_root_bank(utilities.clean_id(bank_id))
+            else:
+                raise IllegalState('That bank is not a root.')
+            return web.Accepted()
+        except (PermissionDenied, IllegalState) as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def GET(self, bank_id):
+        """
+        List details of a root bank
+        """
+        try:
+            root_bank_ids = session._initializer['am'].get_root_bank_ids()
+            if utilities.clean_id(bank_id) in root_bank_ids:
+                bank = session._initializer['am'].get_bank(utilities.clean_id(bank_id))
+            else:
+                raise IllegalState('That bank is not a root.')
+
+            data = bank.object_map
+            return data
+        except (PermissionDenied, IllegalState) as ex:
             utilities.handle_exceptions(ex)
 
 
