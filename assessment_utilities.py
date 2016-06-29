@@ -314,7 +314,16 @@ def get_response_submissions(response):
     return submission
 
 def is_multiple_choice(response):
-    return any(mc in response['type'] for mc in ['multi-choice-ortho', 'multi-choice-edx'])
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['multi-choice-ortho',
+                              'multi-choice-edx',
+                              'multi-choice-with-files-and-feedback'])
+    else:
+        return any(mc in response['type'] for mc in ['multi-choice-ortho',
+                                                     'multi-choice-edx',
+                                                     'multi-choice-with-files-and-feedback'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
@@ -688,8 +697,7 @@ def update_response_form(response, form):
             form.set_face_values(front_face_value=values['frontFaceValue'],
                                  side_face_value=values['sideFaceValue'],
                                  top_face_value=values['topFaceValue'])
-    elif (response['type'] == 'answer-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU' or
-          response['type'] == 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'):
+    elif is_multiple_choice(response):
         try:
             response['choiceIds'] = response.getlist('choiceIds')
         except Exception:

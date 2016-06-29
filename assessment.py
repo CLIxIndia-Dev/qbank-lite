@@ -18,6 +18,7 @@ import assessment_utilities as autils
 import utilities
 
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
+CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
@@ -25,6 +26,7 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 
 
 urls = (
@@ -325,8 +327,9 @@ class ItemsList(utilities.BaseClass):
                             manifest = qti_zip.open(zip_file_name)
                             manifest_xml = manifest.read()
                             manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
-                            for keyword in manifest_soup.resources.resource.metadata.general.keyword:
-                                keywords.append(keyword.string)
+                            if manifest_soup.resources.resource.metadata.general.keyword:
+                                for keyword in manifest_soup.resources.resource.metadata.general.keyword:
+                                    keywords.append(keyword.string)
 
                 # now get media files
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
@@ -359,7 +362,9 @@ class ItemsList(utilities.BaseClass):
                         parent_item = None
                         add_provenance_parent = False
 
-                    form = bank.get_item_form_for_create([QTI_ITEM, PROVENANCE_ITEM_RECORD])
+                    form = bank.get_item_form_for_create([QTI_ITEM,
+                                                          PROVENANCE_ITEM_RECORD,
+                                                          WRONG_ANSWER_ITEM])
                     form.display_name = soup.assessmentItem['title']
                     form.description = 'QTI AssessmentItem'
                     form.load_from_qti_item(qti_xml,
@@ -383,12 +388,33 @@ class ItemsList(utilities.BaseClass):
                     else:
                         q_form.load_from_qti_item(qti_xml,
                                                   keywords=keywords)
-                    bank.create_question(q_form)
+                    question = bank.create_question(q_form)
 
+                    if str(new_item.genus_type) == str(CHOICE_INTERACTION_GENUS):
+                        choices = question.get_choices()
+                    else:
+                        choices = None
+
+                    # correct answer
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                     a_form.load_from_qti_item(qti_xml,
-                                              keywords=keywords)
-                    bank.create_answer(a_form)
+                                              keywords=keywords,
+                                              correct=True,
+                                              feedback_choice_id='correct')
+                    answer = bank.create_answer(a_form)
+
+                    # now let's do the incorrect answers with feedback, if available
+                    if choices is not None:
+                        right_answer = answer.object_map['choiceIds'][0]
+                        wrong_answers = [c for c in choices if c['id'] != right_answer]
+                        for wrong_answer in wrong_answers:
+                            a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                            a_form.load_from_qti_item(qti_xml,
+                                                      keywords=keywords,
+                                                      correct=False,
+                                                      feedback_choice_id=wrong_answer['id'])
+
+                            bank.create_answer(a_form)
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']
                 utilities.verify_keys_present(self.data(), expected)
