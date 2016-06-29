@@ -1450,35 +1450,35 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 'correct': correct,
                 'feedback': feedback
             }
-            if correct:
-                # update with item solution, if available
-                try:
-                    taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
-                    feedback = taken.get_solution_for_question(
-                        utilities.clean_id(question_id))['explanation']
-                    return_data.update({
-                        'feedback': feedback
-                    })
-                except (IllegalState, TypeError, AttributeError):
-                    pass
-            else:
+            # update with item solution, if available
+            try:
+                taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
+                feedback = taken.get_solution_for_question(
+                    utilities.clean_id(question_id))['explanation']
+                return_data.update({
+                    'feedback': feedback
+                })
+            except (IllegalState, TypeError, AttributeError):
                 # update with answer feedback, if available
                 # for now, just support this for multiple choice questions...
                 if autils.is_multiple_choice(local_data_map):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
-                    wrong_answers = [a for a in answers
-                                     if a.genus_type == Type(**ANSWER_GENUS_TYPES['wrong-answer'])]
                     feedback_strings = []
                     confused_los = []
-                    for wrong_answer in wrong_answers:
-                        if wrong_answer.get_choice_ids()[0] in submissions:
+                    for answer in answers:
+                        if answer.get_choice_ids()[0] in submissions:
                             try:
-                                feedback_strings.append(wrong_answer.feedback)
+                                if any('qti' in answer_record
+                                       for answer_record in answer.object_map['recordTypeIds']):
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(session,
+                                                                                                                          bank)))
+                                else:
+                                    feedback_strings.append(answer.feedback)
                             except KeyError:
                                 pass
                             try:
-                                confused_los += wrong_answer.confused_learning_objective_ids
+                                confused_los += answer.confused_learning_objective_ids
                             except KeyError:
                                 pass
                     if len(feedback_strings) > 0:
