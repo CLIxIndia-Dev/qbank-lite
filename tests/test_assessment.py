@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import json
 import os
 
@@ -3861,6 +3863,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -3873,6 +3876,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file.close()
         self._test_file2.close()
         self._audio_recording_test_file.close()
+        self._mc_feedback_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4089,3 +4093,54 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(item['provenanceId'], '')
         self.assertEqual(item2['provenanceId'], item['id'])
 
+    def test_feedback_gets_set_on_qti_mc_upload(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_feedback_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(len(item['answers']), 4)
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        for i in range(1, 4):
+            self.assertEqual(
+                item['answers'][i]['genusTypeId'],
+                str(WRONG_ANSWER_GENUS)
+            )
+
+        expected_matches = ((u'<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches. </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
+                            ("<p>Listen again and answer.</p>", "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f"),
+                            ("<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>", "id8e65e4e1-e891-4c30-a35c-5cc43df18710"),
+                            ("<p>Zo has hurt himself.</p>", "ida1986000-f320-4346-b289-7310974afd1a"))
+
+        for index, match in enumerate(expected_matches):
+            self.assertEqual(
+                item['answers'][index]['choiceIds'][0],
+                match[1]
+            )
+
+            self.assertEqual(
+                item['answers'][index]['texts']['feedback'],
+                match[0]
+            )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
