@@ -26,6 +26,10 @@ NUMERIC_RESPONSE_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx
 NUMERIC_RESPONSE_ANSWER_RECORD_TYPE = Type(**ANSWER_RECORD_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-response-edx'])
 
+RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
+WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+
+
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -3900,7 +3904,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(QTI_ANSWER_CHOICE_INTERACTION_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertNotEqual(
@@ -3928,7 +3932,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertNotEqual(
@@ -4017,7 +4021,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(QTI_ANSWER_CHOICE_INTERACTION_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertNotEqual(
