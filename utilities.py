@@ -56,7 +56,7 @@ def format_response(func):
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
         web.header("Access-Control-Allow-Headers", "Content-Type")
-        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
+        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
             return json.dumps(results)
@@ -73,7 +73,7 @@ def format_xml_response(func):
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
         web.header("Access-Control-Allow-Headers", "Content-Type")
-        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
+        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
             return json.dumps(results)
@@ -89,7 +89,7 @@ def allow_cors(func):
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
         web.header("Access-Control-Allow-Headers", "Content-Type")
-        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
+        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         return results
     return wrapper

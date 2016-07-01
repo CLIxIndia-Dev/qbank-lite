@@ -37,7 +37,8 @@ class RepositoriesList(utilities.BaseClass):
         List all available repositories
         """
         try:
-            repositories = session._initializer['rm'].repositories
+            rm = rutils.get_repository_manager(session, web.ctx.env)
+            repositories = rm.repositories
             repositories = utilities.extract_items(repositories)
             return repositories
         except PermissionDenied as ex:
@@ -55,7 +56,8 @@ class RepositoryDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, repository_id):
         try:
-            repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
+            rm = rutils.get_repository_manager(session, web.ctx.env)
+            repository = rm.get_repository(utilities.clean_id(repository_id))
             repository = utilities.convert_dl_object(repository)
             return repository
         except (PermissionDenied, NotFound) as ex:
@@ -75,8 +77,8 @@ class AssetsList(utilities.BaseClass):
         try:
             if repository_id is None:
                 raise PermissionDenied
-
-            repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
+            rm = rutils.get_repository_manager(session, web.ctx.env)
+            repository = rm.get_repository(utilities.clean_id(repository_id))
             assets = repository.get_assets()
             data = utilities.extract_items(assets)
 
@@ -96,7 +98,8 @@ class AssetContentDetails(utilities.BaseClass):
     @utilities.allow_cors
     def GET(self, repository_id, asset_id, content_id):
         try:
-            repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
+            rm = rutils.get_repository_manager(session, web.ctx.env)
+            repository = rm.get_repository(utilities.clean_id(repository_id))
             asset = repository.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
             asset_url = asset_content.get_url()
@@ -127,7 +130,8 @@ class AssetDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, repository_id, asset_id):
         try:
-            repository = session._initializer['rm'].get_repository(utilities.clean_id(repository_id))
+            rm = rutils.get_repository_manager(session, web.ctx.env)
+            repository = rm.get_repository(utilities.clean_id(repository_id))
             data = utilities.convert_dl_object(repository.get_asset(utilities.clean_id(asset_id)))
             return data
         except (PermissionDenied, NotFound) as ex:
