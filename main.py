@@ -1,3 +1,5 @@
+#!/bin/sh
+
 import os
 import sys
 import web
