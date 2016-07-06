@@ -786,9 +786,11 @@ class ItemDetails(utilities.BaseClass):
 
             # for convenience, also return the wrong answers
             try:
+                data = json.loads(data)
                 wrong_answers = item.get_wrong_answers()
                 for wa in wrong_answers:
                     data['answers'].append(wa.object_map)
+                data = json.dumps(data)
             except AttributeError:
                 pass
 

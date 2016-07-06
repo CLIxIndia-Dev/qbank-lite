@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import web
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
@@ -241,8 +242,10 @@ def get_choice_files(files):
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
 def get_media_path(session, bank):
+    host_path = web.ctx.get('homedomain', '')
     repo = session._initializer['rm'].get_repository(bank.ident)
-    return '/api/v1/repository/repositories/{0}/assets'.format(str(repo.ident))
+    return '{0}/api/v1/repository/repositories/{1}/assets'.format(host_path,
+                                                                  str(repo.ident))
 
 def get_object_bank(manager, object_id, object_type='item', bank_id=None):
     """Get the object's bank even without the bankId"""
