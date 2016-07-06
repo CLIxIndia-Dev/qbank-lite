@@ -44,7 +44,7 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, log_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             logm.delete_log(utilities.clean_id(log_id))
 
             return web.Accepted()
@@ -57,7 +57,7 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             log = logm.get_log(utilities.clean_id(log_id))
             log = utilities.convert_dl_object(log)
 
@@ -68,7 +68,7 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, log_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             form = logm.get_log_form_for_update(utilities.clean_id(log_id))
 
             utilities.verify_at_least_one_key_present(self.data(), ['name', 'description'])
@@ -120,7 +120,7 @@ class LogsList(utilities.BaseClass):
         List all available logs
         """
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             logs = logm.logs
             logs = utilities.extract_items(logs)
             return logs
@@ -134,7 +134,7 @@ class LogsList(utilities.BaseClass):
 
         """
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             if 'bankId' not in self.data():
                 utilities.verify_keys_present(self.data(), ['name', 'description'])
                 form = logm.get_log_form_for_create([])
@@ -174,7 +174,7 @@ class LogEntriesList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             log = logm.get_log(utilities.clean_id(log_id))
             entries = log.get_log_entries()
 
@@ -188,7 +188,7 @@ class LogEntriesList(utilities.BaseClass):
     def POST(self, log_id):
         try:
             utilities.verify_keys_present(self.data(), ['data'])
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
 
             log = logm.get_log(utilities.clean_id(log_id))
             form = log.get_log_entry_form_for_create([TEXT_BLOB_RECORD_TYPE])
@@ -225,7 +225,7 @@ class LogEntryDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, log_id, entry_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             log = logm.get_log(utilities.clean_id(log_id))
             log.delete_log_entry(utilities.clean_id(entry_id))
 
@@ -236,7 +236,7 @@ class LogEntryDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id, entry_id):
         try:
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
             log = logm.get_log(utilities.clean_id(log_id))
             entry = log.get_log_entry(utilities.clean_id(entry_id))
             entry_map = entry.object_map
@@ -250,7 +250,7 @@ class LogEntryDetails(utilities.BaseClass):
         try:
             utilities.verify_at_least_one_key_present(self.data(),
                                                       ['data'])
-            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm = logutils.get_logging_manager()
 
             log = logm.get_log(utilities.clean_id(log_id))
 
@@ -273,10 +273,10 @@ class LogEntryDetails(utilities.BaseClass):
 
 
 app_logging = web.application(urls, locals())
-session = utilities.activate_managers(web.session.Session(app_logging,
-                                      web.session.DiskStore('sessions'),
-                                      initializer={
-                                          'am': None,
-                                          'logm': None,
-                                          'rm': None
-                                      }))
+# session = utilities.activate_managers(web.session.Session(app_logging,
+#                                       web.session.DiskStore('sessions'),
+#                                       initializer={
+#                                           'am': None,
+#                                           'logm': None,
+#                                           'rm': None
+#                                       }))

@@ -37,7 +37,7 @@ class RepositoriesList(utilities.BaseClass):
         List all available repositories
         """
         try:
-            rm = rutils.get_repository_manager(session, web.ctx.env)
+            rm = rutils.get_repository_manager()
             repositories = rm.repositories
             repositories = utilities.extract_items(repositories)
             return repositories
@@ -56,7 +56,7 @@ class RepositoryDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, repository_id):
         try:
-            rm = rutils.get_repository_manager(session, web.ctx.env)
+            rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository = utilities.convert_dl_object(repository)
             return repository
@@ -77,7 +77,7 @@ class AssetsList(utilities.BaseClass):
         try:
             if repository_id is None:
                 raise PermissionDenied
-            rm = rutils.get_repository_manager(session, web.ctx.env)
+            rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             assets = repository.get_assets()
             data = utilities.extract_items(assets)
@@ -98,7 +98,7 @@ class AssetContentDetails(utilities.BaseClass):
     @utilities.allow_cors
     def GET(self, repository_id, asset_id, content_id):
         try:
-            rm = rutils.get_repository_manager(session, web.ctx.env)
+            rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             asset = repository.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
@@ -130,7 +130,7 @@ class AssetDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, repository_id, asset_id):
         try:
-            rm = rutils.get_repository_manager(session, web.ctx.env)
+            rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             data = utilities.convert_dl_object(repository.get_asset(utilities.clean_id(asset_id)))
             return data
@@ -138,10 +138,10 @@ class AssetDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 app_repository = web.application(urls, locals())
-session = utilities.activate_managers(web.session.Session(app_repository,
-                                      web.session.DiskStore('sessions'),
-                                      initializer={
-                                          'am': None,
-                                          'logm': None,
-                                          'rm': None
-                                      }))
+# session = utilities.activate_managers(web.session.Session(app_repository,
+#                                       web.session.DiskStore('sessions'),
+#                                       initializer={
+#                                           'am': None,
+#                                           'logm': None,
+#                                           'rm': None
+#                                       }))
