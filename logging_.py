@@ -11,6 +11,7 @@ from pymongo.errors import InvalidId
 
 from records.registry import LOG_ENTRY_RECORD_TYPES
 
+import logging_utilities as logutils
 import utilities
 
 
@@ -43,7 +44,8 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, log_id):
         try:
-            session._initializer['logm'].delete_log(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logm.delete_log(utilities.clean_id(log_id))
 
             return web.Accepted()
         except (PermissionDenied, NotFound, InvalidId) as ex:
@@ -55,7 +57,8 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id):
         try:
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            log = logm.get_log(utilities.clean_id(log_id))
             log = utilities.convert_dl_object(log)
 
             return log
@@ -65,7 +68,8 @@ class LogDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, log_id):
         try:
-            form = session._initializer['logm'].get_log_form_for_update(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            form = logm.get_log_form_for_update(utilities.clean_id(log_id))
 
             utilities.verify_at_least_one_key_present(self.data(), ['name', 'description'])
 
@@ -75,7 +79,7 @@ class LogDetails(utilities.BaseClass):
             if 'description' in self.data():
                 form.description = self.data()['description']
 
-            updated_log = session._initializer['logm'].update_log(form)
+            updated_log = logm.update_log(form)
             updated_log = utilities.convert_dl_object(updated_log)
 
             return updated_log
@@ -116,7 +120,8 @@ class LogsList(utilities.BaseClass):
         List all available logs
         """
         try:
-            logs = session._initializer['logm'].logs
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            logs = logm.logs
             logs = utilities.extract_items(logs)
             return logs
         except PermissionDenied as ex:
@@ -129,14 +134,15 @@ class LogsList(utilities.BaseClass):
 
         """
         try:
+            logm = logutils.get_logging_manager(session, web.ctx.env)
             if 'bankId' not in self.data():
                 utilities.verify_keys_present(self.data(), ['name', 'description'])
-                form = session._initializer['logm'].get_log_form_for_create([])
-                finalize_method = session._initializer['logm'].create_log
+                form = logm.get_log_form_for_create([])
+                finalize_method = logm.create_log
             else:
-                log = session._initializer['logm'].get_log(Id(self.data()['bankId']))
-                form = session._initializer['logm'].get_log_form_for_update(log.ident)
-                finalize_method = session._initializer['logm'].update_log
+                log = logm.get_log(Id(self.data()['bankId']))
+                form = logm.get_log_form_for_update(log.ident)
+                finalize_method = logm.update_log
 
             if 'name' in self.data():
                 form.display_name = self.data()['name']
@@ -168,7 +174,8 @@ class LogEntriesList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id):
         try:
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            log = logm.get_log(utilities.clean_id(log_id))
             entries = log.get_log_entries()
 
             data = utilities.extract_items(entries)
@@ -181,8 +188,9 @@ class LogEntriesList(utilities.BaseClass):
     def POST(self, log_id):
         try:
             utilities.verify_keys_present(self.data(), ['data'])
+            logm = logutils.get_logging_manager(session, web.ctx.env)
 
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            log = logm.get_log(utilities.clean_id(log_id))
             form = log.get_log_entry_form_for_create([TEXT_BLOB_RECORD_TYPE])
 
             if isinstance(self.data()['data'], dict):
@@ -217,7 +225,8 @@ class LogEntryDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, log_id, entry_id):
         try:
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            log = logm.get_log(utilities.clean_id(log_id))
             log.delete_log_entry(utilities.clean_id(entry_id))
 
             return web.Accepted()
@@ -227,7 +236,8 @@ class LogEntryDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, log_id, entry_id):
         try:
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            logm = logutils.get_logging_manager(session, web.ctx.env)
+            log = logm.get_log(utilities.clean_id(log_id))
             entry = log.get_log_entry(utilities.clean_id(entry_id))
             entry_map = entry.object_map
 
@@ -240,8 +250,9 @@ class LogEntryDetails(utilities.BaseClass):
         try:
             utilities.verify_at_least_one_key_present(self.data(),
                                                       ['data'])
+            logm = logutils.get_logging_manager(session, web.ctx.env)
 
-            log = session._initializer['logm'].get_log(utilities.clean_id(log_id))
+            log = logm.get_log(utilities.clean_id(log_id))
 
             form = log.get_log_entry_form_for_update(utilities.clean_id(entry_id))
 
