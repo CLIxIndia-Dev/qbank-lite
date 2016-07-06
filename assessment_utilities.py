@@ -17,6 +17,7 @@ from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
 
 from urllib import quote
 
+import repository_utilities as rutils
 import utilities
 
 EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
@@ -220,17 +221,14 @@ def get_answer_records(answer):
         a_types = [a_type]
     return a_types
 
-def get_assessment_manager(session, env):
-    if 'HTTP_X_API_PROXY' in env:
-        condition = PROXY_SESSION.get_proxy_condition()
-        dummy_request = TestRequest(username=env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
-                                    authenticated=True)
-        condition.set_http_request(dummy_request)
-        proxy = PROXY_SESSION.get_proxy(condition)
-        return RUNTIME.get_service_manager('ASSESSMENT',
-                                           proxy=proxy)
-    else:
-        return session._initializer['am']
+def get_assessment_manager():
+    condition = PROXY_SESSION.get_proxy_condition()
+    dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                authenticated=True)
+    condition.set_http_request(dummy_request)
+    proxy = PROXY_SESSION.get_proxy(condition)
+    return RUNTIME.get_service_manager('ASSESSMENT',
+                                       proxy=proxy)
 
 def get_choice_files(files):
     """
@@ -241,9 +239,10 @@ def get_choice_files(files):
     # return {k:v for k,v in files.iteritems() if k.startswith('choice')}
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
-def get_media_path(session, bank):
+def get_media_path(bank):
     host_path = web.ctx.get('homedomain', '')
-    repo = session._initializer['rm'].get_repository(bank.ident)
+    rm = rutils.get_repository_manager()
+    repo = rm.get_repository(bank.ident)
     return '{0}/api/v1/repository/repositories/{1}/assets'.format(host_path,
                                                                   str(repo.ident))
 
