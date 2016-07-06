@@ -321,11 +321,13 @@ def is_multiple_choice(response):
                    for r in response['type']
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
-                              'multi-choice-with-files-and-feedback'])
+                              'multi-choice-with-files-and-feedback',
+                              'qti-choice-interaction'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
-                                                     'multi-choice-with-files-and-feedback'])
+                                                     'multi-choice-with-files-and-feedback',
+                                                     'qti-choice-interaction'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
