@@ -105,8 +105,8 @@ class AssetContentDetails(utilities.BaseClass):
             asset_url = asset_content.get_url()
 
             # the asset_url is relative, so add in the path
-            asset_url = '{0}/{1}'.format(ABS_PATH,
-                                         asset_url)
+            #asset_url = '{0}/{1}'.format(ABS_PATH,
+            #                             asset_url)
 
             web.header('Content-Type', mimetypes.guess_type(asset_url))
             web.header('Content-Length', os.path.getsize(asset_url))
