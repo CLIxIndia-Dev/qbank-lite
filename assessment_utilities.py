@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import web
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
@@ -16,6 +17,7 @@ from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
 
 from urllib import quote
 
+import repository_utilities as rutils
 import utilities
 
 EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
@@ -219,17 +221,14 @@ def get_answer_records(answer):
         a_types = [a_type]
     return a_types
 
-def get_assessment_manager(session, env):
-    if 'HTTP_X_API_PROXY' in env:
-        condition = PROXY_SESSION.get_proxy_condition()
-        dummy_request = TestRequest(username=env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
-                                    authenticated=True)
-        condition.set_http_request(dummy_request)
-        proxy = PROXY_SESSION.get_proxy(condition)
-        return RUNTIME.get_service_manager('ASSESSMENT',
-                                           proxy=proxy)
-    else:
-        return session._initializer['am']
+def get_assessment_manager():
+    condition = PROXY_SESSION.get_proxy_condition()
+    dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                authenticated=True)
+    condition.set_http_request(dummy_request)
+    proxy = PROXY_SESSION.get_proxy(condition)
+    return RUNTIME.get_service_manager('ASSESSMENT',
+                                       proxy=proxy)
 
 def get_choice_files(files):
     """
@@ -240,9 +239,12 @@ def get_choice_files(files):
     # return {k:v for k,v in files.iteritems() if k.startswith('choice')}
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
-def get_media_path(session, bank):
-    repo = session._initializer['rm'].get_repository(bank.ident)
-    return '/api/v1/repository/repositories/{0}/assets'.format(str(repo.ident))
+def get_media_path(bank):
+    host_path = web.ctx.get('homedomain', '')
+    rm = rutils.get_repository_manager()
+    repo = rm.get_repository(bank.ident)
+    return '{0}/api/v1/repository/repositories/{1}/assets'.format(host_path,
+                                                                  str(repo.ident))
 
 def get_object_bank(manager, object_id, object_type='item', bank_id=None):
     """Get the object's bank even without the bankId"""
@@ -319,11 +321,13 @@ def is_multiple_choice(response):
                    for r in response['type']
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
-                              'multi-choice-with-files-and-feedback'])
+                              'multi-choice-with-files-and-feedback',
+                              'qti-choice-interaction'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
-                                                     'multi-choice-with-files-and-feedback'])
+                                                     'multi-choice-with-files-and-feedback',
+                                                     'qti-choice-interaction'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or

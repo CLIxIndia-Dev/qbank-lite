@@ -12,12 +12,12 @@ from dlkit_edx.proxy_example import TestRequest
 
 
 class BaseClass:
-    def OPTIONS(self):
+    def OPTIONS(self, *args, **kwargs):
         # https://www.youtube.com/watch?v=gZelOtYjYv8
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type")
-        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT")
+        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
+        web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         return
 
@@ -55,7 +55,7 @@ def format_response(func):
         web.header('Content-type', 'application/json')
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type")
+        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
@@ -72,7 +72,7 @@ def format_xml_response(func):
         web.header('Content-type', 'application/xml')
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type")
+        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
@@ -88,7 +88,7 @@ def allow_cors(func):
         results = func(self, *args)
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type")
+        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         return results

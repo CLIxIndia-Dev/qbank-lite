@@ -78,7 +78,7 @@ class AssessmentBanksList(utilities.BaseClass):
         """
         try:
 
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             assessment_banks = am.banks
             banks = utilities.extract_items(assessment_banks)
             return banks
@@ -93,7 +93,7 @@ class AssessmentBanksList(utilities.BaseClass):
 
         """
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             form = am.get_bank_form_for_create([])
 
             form = utilities.set_form_basics(form, self.data())
@@ -123,7 +123,7 @@ class AssessmentBankDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             data = am.delete_bank(utilities.clean_id(bank_id))
             return web.Accepted()
         except (PermissionDenied, IllegalState) as ex:
@@ -132,7 +132,7 @@ class AssessmentBankDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
             bank = utilities.convert_dl_object(assessment_bank)
             return bank
@@ -142,7 +142,7 @@ class AssessmentBankDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, bank_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             form = am.get_bank_form_for_update(utilities.clean_id(bank_id))
 
             form = utilities.set_form_basics(form, self.data())
@@ -178,7 +178,7 @@ class AssessmentsList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
             assessments = assessment_bank.get_assessments()
 
@@ -190,7 +190,7 @@ class AssessmentsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             # TODO: create a QTI record and version of this...
             bank = am.get_bank(utilities.clean_id(bank_id))
 
@@ -289,7 +289,7 @@ class ItemsList(utilities.BaseClass):
         try:
             if bank_id is None:
                 raise PermissionDenied
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
             items = assessment_bank.get_items()
 
@@ -299,8 +299,7 @@ class ItemsList(utilities.BaseClass):
                 for item in items:
                     item_map = item.object_map
                     item_map.update({
-                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                                           assessment_bank))
+                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
                     })
                     data.append(item_map)
                 data = json.dumps(data)
@@ -314,7 +313,7 @@ class ItemsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id=None, assessment_id=None):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             if bank_id is None:
                 utilities.verify_keys_present(self.data(), ['bankId'])
                 bank_id = self.data()['bankId']
@@ -517,7 +516,7 @@ class AssessmentDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment(utilities.clean_id(sub_id))
             return web.Accepted()
@@ -527,7 +526,7 @@ class AssessmentDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = utilities.convert_dl_object(bank.get_assessment(utilities.clean_id(sub_id)))
             return data
@@ -537,7 +536,7 @@ class AssessmentDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             form = bank.get_assessment_form_for_update(utilities.clean_id(sub_id))
 
@@ -573,7 +572,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
         List children of a node
         """
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             if 'descendants' in web.input():
                 descendant_levels = int(web.input()['descendants'])
             else:
@@ -591,7 +590,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
         """
         try:
             utilities.verify_keys_present(self.data(), 'ids')
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
 
             # first remove current child banks, if present
             try:
@@ -637,7 +636,7 @@ class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
                 descendant_levels = 0
             include_siblings = False
 
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             node_data = am.get_bank_nodes(utilities.clean_id(bank_id),
                                                                   ancestor_levels,
                                                                   descendant_levels,
@@ -669,7 +668,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
         List all available root assessment banks
         """
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             root_banks = am.get_root_banks()
             banks = utilities.extract_items(root_banks)
             return banks
@@ -684,7 +683,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
         """
         try:
             utilities.verify_keys_present(self.data(), ['id'])
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             try:
                 am.get_bank(utilities.clean_id(self.data()['id']))
             except:
@@ -712,7 +711,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
         Remove bank as root bank
         """
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             root_bank_ids = am.get_root_bank_ids()
             if utilities.clean_id(bank_id) in root_bank_ids:
                 am.remove_root_bank(utilities.clean_id(bank_id))
@@ -728,7 +727,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
         List details of a root bank
         """
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             root_bank_ids = am.get_root_bank_ids()
             if utilities.clean_id(bank_id) in root_bank_ids:
                 bank = am.get_bank(utilities.clean_id(bank_id))
@@ -759,7 +758,7 @@ class ItemDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_item(utilities.clean_id(sub_id))
             return web.Accepted()
@@ -773,7 +772,7 @@ class ItemDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             item = bank.get_item(utilities.clean_id(sub_id))
@@ -786,9 +785,11 @@ class ItemDetails(utilities.BaseClass):
 
             # for convenience, also return the wrong answers
             try:
+                data = json.loads(data)
                 wrong_answers = item.get_wrong_answers()
                 for wa in wrong_answers:
                     data['answers'].append(wa.object_map)
+                data = json.dumps(data)
             except AttributeError:
                 pass
 
@@ -799,7 +800,7 @@ class ItemDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             local_data_map = self.data()
 
@@ -893,12 +894,11 @@ class ItemQTIDetails(utilities.BaseClass):
     @utilities.format_xml_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             item = bank.get_item(utilities.clean_id(sub_id))
-            return item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                               bank))
+            return item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
@@ -922,7 +922,7 @@ class AssessmentItemsList(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
 
@@ -932,8 +932,7 @@ class AssessmentItemsList(utilities.BaseClass):
                 for item in items:
                     item_map = item.object_map
                     item_map.update({
-                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                                           bank))
+                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
                     })
                     data.append(item_map)
                 data = json.dumps(data)
@@ -955,7 +954,7 @@ class AssessmentItemsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             local_data_map = self.data()
             if 'itemIds' in local_data_map:
@@ -985,7 +984,7 @@ class AssessmentItemsList(utilities.BaseClass):
     def PUT(self, bank_id, sub_id):
         """Use put to support full-replacement of the item list"""
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             local_data_map = self.data()
             if 'itemIds' in local_data_map:
@@ -1028,7 +1027,7 @@ class AssessmentItemDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, sub_id, item_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.remove_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
             return web.Accepted()
@@ -1054,7 +1053,7 @@ class AssessmentsOffered(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             offerings = bank.get_assessments_offered_for_assessment(utilities.clean_id(sub_id))
             data = utilities.extract_items(offerings)
@@ -1066,7 +1065,7 @@ class AssessmentsOffered(utilities.BaseClass):
     def POST(self, bank_id, sub_id):
         # Cannot create offerings if no items attached to assessment
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             autils.check_assessment_has_items(bank, utilities.clean_id(sub_id))
 
@@ -1110,7 +1109,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, offering_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_offered(utilities.clean_id(offering_id))
             return web.Accepted()
@@ -1124,7 +1123,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, offering_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             offering = bank.get_assessment_offered(utilities.clean_id(offering_id))
@@ -1136,7 +1135,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, bank_id, offering_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             if isinstance(self.data(), list):
@@ -1182,7 +1181,7 @@ class AssessmentsTaken(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             # use canSearch assessment takens as proxy for learner vs. instructor
@@ -1211,7 +1210,7 @@ class AssessmentsTaken(utilities.BaseClass):
             # Kind of hokey, but need to get the sub_id type from a string...
             if 'assessment.AssessmentOffered' not in sub_id:
                 raise Unsupported()
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
 
             # first check if a taken exists for the user / offering
@@ -1264,7 +1263,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
     @utilities.format_response
     def DELETE(self, bank_id, taken_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_taken(utilities.clean_id(taken_id))
             return web.Accepted()
@@ -1274,7 +1273,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
@@ -1293,7 +1292,7 @@ class FinishAssessmentTaken(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             # "finish" the assessment section
             # bank.finished_assessment_section(first_section.ident)
@@ -1320,7 +1319,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
     @utilities.format_response_mit_type
     def GET(self, bank_id, taken_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             questions = bank.get_questions(first_section.ident)
@@ -1330,8 +1329,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
                 for question in questions:
                     question_map = question.object_map
                     question_map.update({
-                        'qti': question.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                                               bank))
+                        'qti': question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
                     })
                     data.append(question_map)
                 data = json.dumps(data)
@@ -1359,7 +1357,7 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
@@ -1388,13 +1386,12 @@ class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
     @utilities.format_xml_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
-            data = question.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                                   bank))
+            data = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
             # if 'fileIds' in data:
             #     data['files'] = question.get_files()
             return data
@@ -1418,7 +1415,7 @@ class AssessmentTakenQuestionStatus(utilities.BaseClass):
     @utilities.format_response
     def GET(self, bank_id, taken_id, question_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
@@ -1452,7 +1449,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id, question_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
@@ -1503,8 +1500,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(session,
-                                                                                                                          bank)))
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
                                     feedback_strings.append(answer.feedback)
                             except (KeyError, AttributeError):
@@ -1540,7 +1536,7 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
     """
     def POST(self, bank_id, taken_id, question_id):
         try:
-            am = autils.get_assessment_manager(session, web.ctx.env)
+            am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
@@ -1560,10 +1556,10 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 app_assessment = web.application(urls, locals())
-session = utilities.activate_managers(web.session.Session(app_assessment,
-                                      web.session.DiskStore('sessions'),
-                                      initializer={
-                                          'am': None,
-                                          'logm': None,
-                                          'rm': None
-                                      }))
+# session = utilities.activate_managers(web.session.Session(app_assessment,
+#                                       web.session.DiskStore('sessions'),
+#                                       initializer={
+#                                           'am': None,
+#                                           'logm': None,
+#                                           'rm': None
+#                                       }))
