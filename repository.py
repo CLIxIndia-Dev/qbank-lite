@@ -9,6 +9,8 @@ import repository_utilities as rutils
 import utilities
 
 
+# TODO: Fix so assets don't require the repository ID
+
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.argv[0])
 else:
