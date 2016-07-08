@@ -101,8 +101,9 @@ class AssetContentDetails(utilities.BaseClass):
     def GET(self, repository_id, asset_id, content_id):
         try:
             rm = rutils.get_repository_manager()
-            repository = rm.get_repository(utilities.clean_id(repository_id))
-            asset = repository.get_asset(utilities.clean_id(asset_id))
+            als = rm.get_asset_lookup_session()
+            als.use_federated_repository_view()
+            asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
             asset_url = asset_content.get_url()
 
@@ -133,8 +134,9 @@ class AssetDetails(utilities.BaseClass):
     def GET(self, repository_id, asset_id):
         try:
             rm = rutils.get_repository_manager()
-            repository = rm.get_repository(utilities.clean_id(repository_id))
-            data = utilities.convert_dl_object(repository.get_asset(utilities.clean_id(asset_id)))
+            als = rm.get_asset_lookup_session()
+            als.use_federated_repository_view()
+            data = utilities.convert_dl_object(als.get_asset(utilities.clean_id(asset_id)))
             return data
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
