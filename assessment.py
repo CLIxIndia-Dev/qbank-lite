@@ -527,8 +527,9 @@ class AssessmentDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
-            data = utilities.convert_dl_object(bank.get_assessment(utilities.clean_id(sub_id)))
+            als = am.get_assessment_lookup_session()
+            als.use_federated_bank_view()
+            data = utilities.convert_dl_object(als.get_assessment(utilities.clean_id(sub_id)))
             return data
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
@@ -773,9 +774,10 @@ class ItemDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            ils = am.get_item_lookup_session()
+            ils.use_federated_bank_view()
 
-            item = bank.get_item(utilities.clean_id(sub_id))
+            item = ils.get_item(utilities.clean_id(sub_id))
             data = utilities.convert_dl_object(item)
 
             # if 'fileIds' in data:
@@ -895,10 +897,13 @@ class ItemQTIDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            ils = am.get_item_lookup_session()
+            ils.use_federated_bank_view()
 
-            item = bank.get_item(utilities.clean_id(sub_id))
-            return item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+            item = ils.get_item(utilities.clean_id(sub_id))
+
+            item_bank = am.get_bank(utilities.clean_id(item.object_map['bankId']))
+            return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1124,9 +1129,10 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     def GET(self, bank_id, offering_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            aols = am.get_assessment_offered_lookup_session()
+            aols.use_federated_bank_view()
 
-            offering = bank.get_assessment_offered(utilities.clean_id(offering_id))
+            offering = aols.get_assessment_offered(utilities.clean_id(offering_id))
             data = utilities.convert_dl_object(offering)
             return data
         except (PermissionDenied, NotFound) as ex:
@@ -1274,8 +1280,9 @@ class AssessmentTakenDetails(utilities.BaseClass):
     def GET(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
-            taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
+            atls = am.get_assessment_taken_lookup_session()
+            atls.use_federated_bank_view()
+            taken = atls.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
             return data
         except (PermissionDenied, NotFound) as ex:
@@ -1293,10 +1300,10 @@ class FinishAssessmentTaken(utilities.BaseClass):
     def POST(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            assessment_session = am.get_assessment_session()
             # "finish" the assessment section
             # bank.finished_assessment_section(first_section.ident)
-            bank.finish_assessment(utilities.clean_id(taken_id))
+            assessment_session.finish_assessment(utilities.clean_id(taken_id))
             data = {
                 'success': True
             }

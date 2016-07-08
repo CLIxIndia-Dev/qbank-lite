@@ -237,8 +237,9 @@ class LogEntryDetails(utilities.BaseClass):
     def GET(self, log_id, entry_id):
         try:
             logm = logutils.get_logging_manager()
-            log = logm.get_log(utilities.clean_id(log_id))
-            entry = log.get_log_entry(utilities.clean_id(entry_id))
+            lels = logm.get_log_entry_lookup_session()
+            lels.use_federated_log_view()
+            entry = lels.get_log_entry(utilities.clean_id(entry_id))
             entry_map = entry.object_map
 
             return entry_map
