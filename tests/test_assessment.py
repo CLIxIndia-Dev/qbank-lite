@@ -4144,3 +4144,94 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['id'],
             str(self._item.ident)
         )
+
+
+class FileUploadTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_assessment, new_offered
+
+    def create_item(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_item_form_for_create([QTI_ITEM_RECORD])
+        form.display_name = 'a test item!'
+        form.description = 'for testing with'
+        form.load_from_qti_item(self._test_xml)
+        new_item = bank.create_item(form)
+
+        form = bank.get_question_form_for_create(item_id=new_item.ident,
+                                                 question_record_types=[QTI_QUESTION_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_question(form)
+
+        form = bank.get_answer_form_for_create(item_id=new_item.ident,
+                                               answer_record_types=[QTI_ANSWER_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_answer(form)
+
+        return bank.get_item(new_item.ident)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered, new_assessment
+
+    def setUp(self):
+        super(FileUploadTests, self).setUp()
+
+        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
+        self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(FileUploadTests, self).tearDown()
+
+        self._audio_response_file.close()
+        self._audio_recording_test_file.close()
+
+    def test_can_send_audio_file_response_for_audio_rt(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._audio_recording_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._audio_response_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'submissionFile', self._audio_response_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+

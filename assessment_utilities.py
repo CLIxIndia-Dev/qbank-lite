@@ -315,6 +315,16 @@ def get_response_submissions(response):
         raise Unsupported
     return submission
 
+def is_file_submission(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['files-submission',
+                              'qti-upload-interaction-audio'])
+    else:
+        return any(mc in response['type'] for mc in ['files-submission',
+                                                     'qti-upload-interaction-audio'])
+
 def is_multiple_choice(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -712,9 +722,14 @@ def update_response_form(response, form):
         else:
             form.add_choice_id(response['choiceIds'])
             # raise InvalidArgument('ChoiceIds should be a list.')
-    elif response['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
+    elif is_file_submission(response):
         for file_label, file_data in response['files'].iteritems():
-            form.add_file(DataInputStream(file_data), file_label)
+            try:
+                form.add_file(DataInputStream(file_data), file_label)
+            except AttributeError:
+                form.set_file(asset_data=DataInputStream(file_data),
+                              asset_name=file_label)
+                break
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
         if 'decimalValue' in response:
             form.set_decimal_value(float(response['decimalValue']))
@@ -728,7 +743,7 @@ def validate_response(response, answers):
     correct = False
     # for longer submissions / multi-answer questions, need to make
     # sure that all of them match...
-    if response['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
+    if is_file_submission(response):
         return True  # always say True because the file was accepted
 
     submission = get_response_submissions(response)

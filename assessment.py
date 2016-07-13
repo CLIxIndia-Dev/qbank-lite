@@ -1457,6 +1457,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id, question_id):
         try:
+            x = web.input(submission={})
+
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
@@ -1467,9 +1469,20 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             local_data_map = self.data()
             if 'type' not in local_data_map:
                 # kind of a hack
-                local_data_map['type'] = question.object_map['recordTypeIds'][0]
-                local_data_map['type'] = local_data_map['type'].replace('question-record-type',
-                                                                        'answer-record-type')
+                question_map = question.object_map['genusTypeId']
+                if question_map != 'GenusType%3ADEFAULT%40DLKIT.MIT.EDU':
+                    local_data_map['type'] = question.object_map['genusTypeId']
+                    local_data_map['type'] = local_data_map['type'].replace('question-type',
+                                                                            'answer-type')
+                else:
+                    local_data_map['type'] = question.object_map['recordTypeIds'][0]
+                    local_data_map['type'] = local_data_map['type'].replace('question-record-type',
+                                                                            'answer-record-type')
+            try:
+                local_data_map['files'] = {'submission': x['submission'].file}
+            except AttributeError:
+                pass
+
             update_form = autils.update_response_form(local_data_map, response_form)
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
