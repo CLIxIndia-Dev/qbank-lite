@@ -335,9 +335,10 @@ class ItemsList(utilities.BaseClass):
                             manifest = qti_zip.open(zip_file_name)
                             manifest_xml = manifest.read()
                             manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
-                            if manifest_soup.resources.resource.metadata.general.keyword:
-                                for keyword in manifest_soup.resources.resource.metadata.general.keyword:
-                                    keywords.append(keyword.string)
+                            if manifest_soup.resources.resource.metadata.general.description:
+                                for keyword in manifest_soup.resources.resource.metadata.general.description:
+                                    if '[type]' in keyword.string:
+                                        keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', ''))
 
                 # now get media files
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
