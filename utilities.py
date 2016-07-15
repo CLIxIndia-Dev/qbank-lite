@@ -6,7 +6,8 @@ import web
 from urllib import quote
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
+from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
+    OperationFailed
 from dlkit_edx.primordium import Id, Type
 from dlkit_edx.proxy_example import TestRequest
 
@@ -145,12 +146,15 @@ def extract_items(item_list):
     try:
         if item_list.available() > 0:
             # so we don't list the items because it's a generator
-            orig_list = list(item_list)
             try:
-                return json.dumps([i.object_map for i in orig_list])
-            except AttributeError:
-                # Hierarchy Nodes do not have .object_map
-                return json.dumps([i.get_node_map() for i in orig_list])
+                orig_list = list(item_list)
+                try:
+                    return json.dumps([i.object_map for i in orig_list])
+                except AttributeError:
+                    # Hierarchy Nodes do not have .object_map
+                    return json.dumps([i.get_node_map() for i in orig_list])
+            except OperationFailed:
+                return json.dumps([i.object_map for i in item_list])
         else:
             return json.dumps([])
     except AttributeError:
