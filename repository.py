@@ -3,6 +3,8 @@ import os
 import sys
 import web
 
+from bson.errors import InvalidId
+
 from dlkit_edx.errors import *
 
 import repository_utilities as rutils
@@ -43,7 +45,7 @@ class RepositoriesList(utilities.BaseClass):
             repositories = rm.repositories
             repositories = utilities.extract_items(repositories)
             return repositories
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -62,7 +64,7 @@ class RepositoryDetails(utilities.BaseClass):
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository = utilities.convert_dl_object(repository)
             return repository
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -85,7 +87,7 @@ class AssetsList(utilities.BaseClass):
             data = utilities.extract_items(assets)
 
             return data
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -118,7 +120,7 @@ class AssetContentDetails(utilities.BaseClass):
 
             with open(asset_url, 'r') as ac_file:
                 yield ac_file.read()
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -138,7 +140,7 @@ class AssetDetails(utilities.BaseClass):
             als.use_federated_repository_view()
             data = utilities.convert_dl_object(als.get_asset(utilities.clean_id(asset_id)))
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 app_repository = web.application(urls, locals())

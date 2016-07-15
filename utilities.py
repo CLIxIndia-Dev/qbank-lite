@@ -6,7 +6,8 @@ import web
 from urllib import quote
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
+from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
+    OperationFailed
 from dlkit_edx.primordium import Id, Type
 from dlkit_edx.proxy_example import TestRequest
 
@@ -145,12 +146,15 @@ def extract_items(item_list):
     try:
         if item_list.available() > 0:
             # so we don't list the items because it's a generator
-            orig_list = list(item_list)
             try:
-                return json.dumps([i.object_map for i in orig_list])
-            except AttributeError:
-                # Hierarchy Nodes do not have .object_map
-                return json.dumps([i.get_node_map() for i in orig_list])
+                orig_list = list(item_list)
+                try:
+                    return json.dumps([i.object_map for i in orig_list])
+                except AttributeError:
+                    # Hierarchy Nodes do not have .object_map
+                    return json.dumps([i.get_node_map() for i in orig_list])
+            except OperationFailed:
+                return json.dumps([i.object_map for i in item_list])
         else:
             return json.dumps([])
     except AttributeError:
@@ -164,11 +168,11 @@ def handle_exceptions(ex):
         web.message = 'Permission Denied'
         raise web.Forbidden()
     elif isinstance(ex, IllegalState):
-        web.message = 'IllegalState {}'.format(ex)
-        raise web.NotAcceptable()
+        web.message = 'IllegalState {}'.format(str(ex))
+        raise web.NotFound(message=str(ex))
     else:
         web.message = 'Bad request {}'.format(ex)
-        raise web.NotAcceptable()
+        raise web.NotFound()
 
 def set_form_basics(form, data):
     def _grab_first_match(keys):
