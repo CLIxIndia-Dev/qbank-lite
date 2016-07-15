@@ -4,6 +4,8 @@
 import json
 import web
 
+from bson.errors import InvalidId
+
 from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
 from dlkit_edx.primordium import Id, Type
 
@@ -152,7 +154,7 @@ class LogsList(utilities.BaseClass):
             new_log = utilities.convert_dl_object(finalize_method(form))
 
             return new_log
-        except (PermissionDenied, InvalidArgument, NotFound, KeyError) as ex:
+        except (PermissionDenied, InvalidArgument, NotFound, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -181,7 +183,7 @@ class LogEntriesList(utilities.BaseClass):
             data = utilities.extract_items(entries)
 
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -202,7 +204,7 @@ class LogEntriesList(utilities.BaseClass):
             entry = log.create_log_entry(form)
 
             return utilities.convert_dl_object(entry)
-        except (PermissionDenied, InvalidArgument, IllegalState, KeyError) as ex:
+        except (PermissionDenied, InvalidArgument, IllegalState, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 

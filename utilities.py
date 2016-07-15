@@ -168,11 +168,11 @@ def handle_exceptions(ex):
         web.message = 'Permission Denied'
         raise web.Forbidden()
     elif isinstance(ex, IllegalState):
-        web.message = 'IllegalState {}'.format(ex)
-        raise web.NotAcceptable()
+        web.message = 'IllegalState {}'.format(str(ex))
+        raise web.NotFound(message=str(ex))
     else:
         web.message = 'Bad request {}'.format(ex)
-        raise web.NotAcceptable()
+        raise web.NotFound()
 
 def set_form_basics(form, data):
     def _grab_first_match(keys):
