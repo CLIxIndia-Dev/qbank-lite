@@ -2997,6 +2997,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mw_sentence_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -3017,10 +3025,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
+
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
         super(MultipleChoiceTests, self).tearDown()
+
+        self._mw_sentence_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -3735,6 +3747,52 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       [new_answer_string],
                                       [answer_type])
 
+    def test_can_submit_right_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct Feedback goes here!', data['feedback'])
+        self.assertNotIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_can_submit_wrong_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',  # swapped the order
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',  # swapped the order
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4107,8 +4165,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            0
+            1
         )
+        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedback', item['answers'][1]['texts'])
 
         self.assertEqual(

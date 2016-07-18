@@ -333,12 +333,14 @@ def is_multiple_choice(response):
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
                               'multi-choice-with-files-and-feedback',
-                              'qti-choice-interaction'])
+                              'qti-choice-interaction',
+                              'qti-order-interaction-mw-sentence'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
-                                                     'qti-choice-interaction'])
+                                                     'qti-choice-interaction',
+                                                     'qti-order-interaction-mw-sentence'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
@@ -756,17 +758,14 @@ def validate_response(response, answers):
     if is_multiple_choice(response):
         right_answers = [a for a in answers
                          if is_right_answer(a)]
-        num_total = len(right_answers)
 
-        if num_total != len(submission):
-            pass
-        else:
+        for answer in right_answers:
             num_right = 0
-            for answer in right_answers:
-                if answer.get_choice_ids()[0] in submission:
+            # order matters, if multiple choiceIds present!
+            num_total = answer.get_choice_ids().available()
+            for index, choice_id in enumerate(answer.get_choice_ids()):
+                if str(choice_id) == submission[index]:
                     num_right += 1
-                else:
-                    break
             if num_right == num_total:
                 correct = True
     else:

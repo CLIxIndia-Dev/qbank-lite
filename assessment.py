@@ -1535,7 +1535,16 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     feedback_strings = []
                     confused_los = []
                     for answer in answers:
-                        if answer.get_choice_ids()[0] in submissions:
+                        correct_submissions = 0
+                        answer_choice_ids = list(answer.get_choice_ids())
+                        number_choices = len(answer_choice_ids)
+                        for index, choice_id in enumerate(answer_choice_ids):
+                            if str(choice_id) == submissions[index]:
+                                correct_submissions += 1
+
+                        if (correct_submissions == number_choices or  # is a wrong answer
+                                (not correct and len(answer_choice_ids) == 1 and
+                                 answer_choice_ids[0] == None)):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
