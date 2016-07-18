@@ -33,6 +33,7 @@ JSON_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['json'])
 LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
+N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 
 def add_file_ids_to_form(form, file_ids):
     """
@@ -381,7 +382,8 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
             # use our new Offered Record object, which lets us do
             # "can_review_whether_correct()" on the Taken.
             offering_form = bank.get_assessment_offered_form_for_create(assessment_id,
-                                                                        [REVIEWABLE_OFFERED])
+                                                                        [REVIEWABLE_OFFERED,
+                                                                         N_OF_M_OFFERED])
             execute = bank.create_assessment_offered
 
         if 'duration' in offering:
@@ -413,6 +415,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if 'maxAttempts' in offering:
             offering_form.set_max_attempts(offering['maxAttempts'])
+
+        if 'nOfM' in offering:
+            offering_form.set_n_of_m(int(offering['nOfM']))
 
         new_offering = execute(offering_form)
         return_data.append(new_offering)

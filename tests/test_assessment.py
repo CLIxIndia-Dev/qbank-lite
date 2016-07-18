@@ -2133,6 +2133,130 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
 
         self.assertTrue(taken['reviewWhetherCorrect'])
 
+    def test_can_set_n_of_m_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], 2)
+
+    def test_can_update_n_of_m_on_update(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], -1)
+
+        payload = {
+            "nOfM": 5
+        }
+
+        assessment_offering_details_endpoint = '{0}/{1}'.format(assessment_offering_endpoint,
+                                                                unquote(offering['id']))
+
+        req = self.app.put(assessment_offering_details_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], payload['nOfM'])
+
+    def test_can_see_n_of_m_when_getting_taken_questions(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertEquals(offered['nOfM'], 2)
+
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        # Instructor can now take the assessment
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
+
+        # Only GET of this endpoint is supported
+        taken_questions_endpoint = taken_endpoint + '/questions'
+
+        req = self.app.get(taken_questions_endpoint)
+        self.ok(req)
+        data = json.loads(req.body)
+        self.assertIn('nOfM', data)
+        self.assertEqual(data['nOfM'], payload['nOfM'])
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
