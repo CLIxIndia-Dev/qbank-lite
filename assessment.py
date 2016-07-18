@@ -341,7 +341,7 @@ class ItemsList(utilities.BaseClass):
                             if manifest_soup.resources.resource.metadata.general.description:
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
                                     if '[type]' in keyword.string:
-                                        keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', ''))
+                                        keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
 
                 # now get media files
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
