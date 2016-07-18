@@ -16,7 +16,7 @@ from paste.fixture import AppError
 from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
-    QUESTION_GENUS_TYPES
+    QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES
 
 from testing_utilities import BaseTestCase, get_managers, create_test_bank
 from urllib import unquote, quote
@@ -31,20 +31,23 @@ NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-re
 RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
-
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
+SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
@@ -58,7 +61,7 @@ class BaseAssessmentTestCase(BaseTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -2133,6 +2136,130 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
 
         self.assertTrue(taken['reviewWhetherCorrect'])
 
+    def test_can_set_n_of_m_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], 2)
+
+    def test_can_update_n_of_m_on_update(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], -1)
+
+        payload = {
+            "nOfM": 5
+        }
+
+        assessment_offering_details_endpoint = '{0}/{1}'.format(assessment_offering_endpoint,
+                                                                unquote(offering['id']))
+
+        req = self.app.put(assessment_offering_details_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], payload['nOfM'])
+
+    def test_can_see_n_of_m_when_getting_taken_questions(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertEquals(offered['nOfM'], 2)
+
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        # Instructor can now take the assessment
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
+
+        # Only GET of this endpoint is supported
+        taken_questions_endpoint = taken_endpoint + '/questions'
+
+        req = self.app.get(taken_questions_endpoint)
+        self.ok(req)
+        data = json.loads(req.body)
+        self.assertIn('nOfM', data)
+        self.assertEqual(data['nOfM'], payload['nOfM'])
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -2831,7 +2958,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -2870,6 +2997,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mw_sentence_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -2890,10 +3025,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
+
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
         super(MultipleChoiceTests, self).tearDown()
+
+        self._mw_sentence_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -3608,6 +3747,52 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       [new_answer_string],
                                       [answer_type])
 
+    def test_can_submit_right_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct Feedback goes here!', data['feedback'])
+        self.assertNotIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_can_submit_wrong_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',  # swapped the order
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',  # swapped the order
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -3617,7 +3802,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -3806,7 +3991,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -3864,6 +4049,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
         self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -3877,6 +4063,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2.close()
         self._audio_recording_test_file.close()
         self._mc_feedback_test_file.close()
+        self._mw_sentence_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -3938,6 +4125,64 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+    def test_can_upload_qti_order_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            5
+        )
+        self.assertIn('feedback', item['answers'][0]['texts'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][1]['choiceIds']),
+            1
+        )
+        self.assertIsNone(item['answers'][1]['choiceIds'][0])
+        self.assertIn('feedback', item['answers'][1]['texts'])
+
+        self.assertEqual(
+            len(item['question']['choices']),
+            5
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge']):
+                self.assertIn('"noun"', choice['text'])
+            elif 'on' in choice['text']:
+                self.assertIn('"prep"', choice['text'])
+            elif 'are' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -4154,7 +4399,7 @@ class FileUploadTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)

@@ -33,6 +33,7 @@ JSON_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['json'])
 LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
+N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 
 def add_file_ids_to_form(form, file_ids):
     """
@@ -332,12 +333,14 @@ def is_multiple_choice(response):
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
                               'multi-choice-with-files-and-feedback',
-                              'qti-choice-interaction'])
+                              'qti-choice-interaction',
+                              'qti-order-interaction-mw-sentence'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
-                                                     'qti-choice-interaction'])
+                                                     'qti-choice-interaction',
+                                                     'qti-order-interaction-mw-sentence'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
@@ -381,7 +384,8 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
             # use our new Offered Record object, which lets us do
             # "can_review_whether_correct()" on the Taken.
             offering_form = bank.get_assessment_offered_form_for_create(assessment_id,
-                                                                        [REVIEWABLE_OFFERED])
+                                                                        [REVIEWABLE_OFFERED,
+                                                                         N_OF_M_OFFERED])
             execute = bank.create_assessment_offered
 
         if 'duration' in offering:
@@ -413,6 +417,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if 'maxAttempts' in offering:
             offering_form.set_max_attempts(offering['maxAttempts'])
+
+        if 'nOfM' in offering:
+            offering_form.set_n_of_m(int(offering['nOfM']))
 
         new_offering = execute(offering_form)
         return_data.append(new_offering)
@@ -751,17 +758,14 @@ def validate_response(response, answers):
     if is_multiple_choice(response):
         right_answers = [a for a in answers
                          if is_right_answer(a)]
-        num_total = len(right_answers)
 
-        if num_total != len(submission):
-            pass
-        else:
+        for answer in right_answers:
             num_right = 0
-            for answer in right_answers:
-                if answer.get_choice_ids()[0] in submission:
+            # order matters, if multiple choiceIds present!
+            num_total = answer.get_choice_ids().available()
+            for index, choice_id in enumerate(answer.get_choice_ids()):
+                if str(choice_id) == submission[index]:
                     num_right += 1
-                else:
-                    break
             if num_right == num_total:
                 correct = True
     else:

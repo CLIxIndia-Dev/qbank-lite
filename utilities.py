@@ -42,12 +42,28 @@ def format_response_mit_type(func):
     """
     @functools.wraps(func)
     def wrapper(self, *args):
+        from assessment_utilities import get_assessment_manager
         results = func(self, *args)
 
-        return {
+        response = {
             "format": "MIT-CLIx-OEA",
             "data": json.loads(results)  # return an object
         }
+
+        # inject the offered N of M also, if available
+        if (len(args) == 2 and
+                args[0].startswith('assessment.Bank') and
+                args[1].startswith('assessment.AssessmentTaken')):
+            am = get_assessment_manager()
+            bank = am.get_bank(clean_id(args[0]))
+            taken = bank.get_assessment_taken(clean_id(args[1]))
+            offered = bank.get_assessment_offered(clean_id(taken.object_map['assessmentOfferedId']))
+            offered_map = offered.object_map
+            if 'nOfM' in offered_map:
+                response.update({
+                    'nOfM': offered_map['nOfM']
+                })
+        return response
     return wrapper
 
 def format_response(func):
