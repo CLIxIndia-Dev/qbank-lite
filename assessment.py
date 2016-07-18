@@ -12,7 +12,8 @@ from dlkit_edx.errors import *
 from dlkit_edx.primordium import Type, DataInputStream
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
-    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES
+    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
+    ASSESSMENT_RECORD_TYPES
 
 import assessment_utilities as autils
 import utilities
@@ -26,6 +27,7 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 
 
@@ -236,7 +238,7 @@ class AssessmentsList(utilities.BaseClass):
                     a_form.load_from_qti_item(qti_xml)
                     bank.create_answer(a_form)
             except AttributeError:  #'dict' object has no attribute 'file'
-                form = bank.get_assessment_form_for_create([])
+                form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
                 form = utilities.set_form_basics(form, self.data())
 

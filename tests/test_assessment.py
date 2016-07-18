@@ -16,7 +16,7 @@ from paste.fixture import AppError
 from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
-    QUESTION_GENUS_TYPES
+    QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES
 
 from testing_utilities import BaseTestCase, get_managers, create_test_bank
 from urllib import unquote, quote
@@ -31,7 +31,6 @@ NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-re
 RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
-
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -45,6 +44,7 @@ QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
+SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
@@ -58,7 +58,7 @@ class BaseAssessmentTestCase(BaseTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -2955,7 +2955,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -3741,7 +3741,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -3930,7 +3930,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -4278,7 +4278,7 @@ class FileUploadTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
