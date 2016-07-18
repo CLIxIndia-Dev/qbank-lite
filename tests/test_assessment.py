@@ -32,12 +32,15 @@ RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
@@ -3988,6 +3991,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
         self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4001,6 +4005,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2.close()
         self._audio_recording_test_file.close()
         self._mc_feedback_test_file.close()
+        self._mw_sentence_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4062,6 +4067,63 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+    def test_can_upload_qti_order_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            5
+        )
+        self.assertIn('feedback', item['answers'][0]['texts'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][1]['choiceIds']),
+            0
+        )
+        self.assertIn('feedback', item['answers'][1]['texts'])
+
+        self.assertEqual(
+            len(item['question']['choices']),
+            5
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge']):
+                self.assertIn('"noun"', choice['text'])
+            elif 'on' in choice['text']:
+                self.assertIn('"prep"', choice['text'])
+            elif 'are' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],

@@ -22,11 +22,12 @@ ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYP
 CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
-REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 
@@ -401,7 +402,8 @@ class ItemsList(utilities.BaseClass):
                                                   keywords=keywords)
                     question = bank.create_question(q_form)
 
-                    if str(new_item.genus_type) == str(CHOICE_INTERACTION_GENUS):
+                    if str(new_item.genus_type) in [str(CHOICE_INTERACTION_GENUS),
+                                                    str(ORDER_INTERACTION_MW_SENTENCE_GENUS)]:
                         choices = question.get_choices()
                     else:
                         choices = None
@@ -416,16 +418,30 @@ class ItemsList(utilities.BaseClass):
 
                     # now let's do the incorrect answers with feedback, if available
                     if choices is not None:
-                        right_answer = answer.object_map['choiceIds'][0]
-                        wrong_answers = [c for c in choices if c['id'] != right_answer]
-                        for wrong_answer in wrong_answers:
+                        # what if there are multiple right answer choices,
+                        #  i.e. movable words?
+                        right_answers = answer.object_map['choiceIds']
+                        wrong_answers = [c for c in choices if c['id'] not in right_answers]
+
+                        if len(wrong_answers) > 0:
+                            for wrong_answer in wrong_answers:
+                                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                a_form.load_from_qti_item(qti_xml,
+                                                          keywords=keywords,
+                                                          correct=False,
+                                                          feedback_choice_id=wrong_answer['id'])
+
+                                bank.create_answer(a_form)
+                        else:
+                            # create a generic one
                             a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                             a_form.load_from_qti_item(qti_xml,
                                                       keywords=keywords,
                                                       correct=False,
-                                                      feedback_choice_id=wrong_answer['id'])
+                                                      feedback_choice_id='incorrect')
 
                             bank.create_answer(a_form)
+
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']
                 utilities.verify_keys_present(self.data(), expected)
