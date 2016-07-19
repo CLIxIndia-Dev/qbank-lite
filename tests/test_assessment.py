@@ -3798,10 +3798,51 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
     def test_cannot_submit_too_many_choices_even_if_partially_correct(self):
-        self.fail('finish writing the test')
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c',
+                          'a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
     def test_submitting_too_few_answers_returns_incorrect(self):
-        self.fail('finish writing the test')
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):

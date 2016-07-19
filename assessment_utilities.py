@@ -768,15 +768,16 @@ def validate_response(response, answers):
         for answer in right_answers:
             num_right = 0
             num_total = answer.get_choice_ids().available()
-            for index, choice_id in enumerate(answer.get_choice_ids()):
-                if is_ordered_choice(response):
-                    if str(choice_id) == submission[index]:  # order matters
-                        num_right += 1
-                else:
-                    if str(choice_id) in submission:  # order doesn't matter
-                        num_right += 1
-            if num_right == num_total and len(submission) == num_total:
-                correct = True
+            if len(submission) == num_total:
+                for index, choice_id in enumerate(answer.get_choice_ids()):
+                    if is_ordered_choice(response):
+                        if str(choice_id) == submission[index]:  # order matters
+                            num_right += 1
+                    else:
+                        if str(choice_id) in submission:  # order doesn't matter
+                            num_right += 1
+                if num_right == num_total and len(submission) == num_total:
+                    correct = True
     else:
         for answer in answers:
             ans_type = answer.object_map['recordTypeIds'][0]
