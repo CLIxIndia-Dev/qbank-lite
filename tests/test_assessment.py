@@ -4197,6 +4197,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
+        item_details_url = '{0}?qti'.format(url)
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        data = self.json(req)
+        item = [i for i in data if i['id'] == item['id']][0]
+        self.assertIn('qti', item)
+        item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
+        expected_values = ['id51b2feca-d407-46d5-b548-d6645a021008',
+                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                           'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                           'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                           'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                           'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                           'id2cad48be-2782-4625-9669-dfcb2062bf3c']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
     def test_audio_file_in_question_gets_saved(self):
         url = '{0}/items'.format(self.url)
         self._audio_recording_test_file.seek(0)
