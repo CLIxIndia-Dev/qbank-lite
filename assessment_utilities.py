@@ -302,7 +302,7 @@ def get_question_status(bank, section, question_id):
 def get_response_submissions(response):
     if response['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
         submission = response['integerValues']
-    elif is_multiple_choice(response):
+    elif is_multiple_choice(response) or is_ordered_choice(response):
         if isinstance(response, dict):
             if isinstance(response['choiceIds'], list):
                 submission = response['choiceIds']
@@ -333,14 +333,20 @@ def is_multiple_choice(response):
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
                               'multi-choice-with-files-and-feedback',
-                              'qti-choice-interaction',
-                              'qti-order-interaction-mw-sentence'])
+                              'qti-choice-interaction'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
-                                                     'qti-choice-interaction',
-                                                     'qti-order-interaction-mw-sentence'])
+                                                     'qti-choice-interaction'])
+
+def is_ordered_choice(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-order-interaction-mw-sentence'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
@@ -718,7 +724,7 @@ def update_response_form(response, form):
             form.set_face_values(front_face_value=values['frontFaceValue'],
                                  side_face_value=values['sideFaceValue'],
                                  top_face_value=values['topFaceValue'])
-    elif is_multiple_choice(response):
+    elif is_multiple_choice(response) or is_ordered_choice(response):
         try:
             response['choiceIds'] = response.getlist('choiceIds')
         except Exception:
@@ -755,19 +761,23 @@ def validate_response(response, answers):
 
     submission = get_response_submissions(response)
 
-    if is_multiple_choice(response):
+    if is_multiple_choice(response) or is_ordered_choice(response):
         right_answers = [a for a in answers
                          if is_right_answer(a)]
 
         for answer in right_answers:
             num_right = 0
-            # order matters, if multiple choiceIds present!
             num_total = answer.get_choice_ids().available()
-            for index, choice_id in enumerate(answer.get_choice_ids()):
-                if str(choice_id) == submission[index]:
-                    num_right += 1
-            if num_right == num_total:
-                correct = True
+            if len(submission) == num_total:
+                for index, choice_id in enumerate(answer.get_choice_ids()):
+                    if is_ordered_choice(response):
+                        if str(choice_id) == submission[index]:  # order matters
+                            num_right += 1
+                    else:
+                        if str(choice_id) in submission:  # order doesn't matter
+                            num_right += 1
+                if num_right == num_total and len(submission) == num_total:
+                    correct = True
     else:
         for answer in answers:
             ans_type = answer.object_map['recordTypeIds'][0]

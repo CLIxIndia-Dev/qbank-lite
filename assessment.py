@@ -1550,7 +1550,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             except (IllegalState, TypeError, AttributeError):
                 # update with answer feedback, if available
                 # for now, just support this for multiple choice questions...
-                if autils.is_multiple_choice(local_data_map):
+                if (autils.is_multiple_choice(local_data_map) or
+                        autils.is_ordered_choice(local_data_map)):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
                     feedback_strings = []
@@ -1559,11 +1560,18 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         correct_submissions = 0
                         answer_choice_ids = list(answer.get_choice_ids())
                         number_choices = len(answer_choice_ids)
-                        for index, choice_id in enumerate(answer_choice_ids):
-                            if str(choice_id) == submissions[index]:
-                                correct_submissions += 1
+                        if len(submissions) == number_choices:
+                            for index, choice_id in enumerate(answer_choice_ids):
+                                if autils.is_multiple_choice(local_data_map):
+                                    if str(choice_id) in submissions:
+                                        correct_submissions += 1
+                                elif autils.is_ordered_choice(local_data_map):
+                                    if str(choice_id) == submissions[index]:
+                                        correct_submissions += 1
 
-                        if (correct_submissions == number_choices or  # is a wrong answer
+                        if ((correct_submissions == number_choices and
+                                len(submissions) == number_choices)
+                                or  # is a wrong answer
                                 (not correct and len(answer_choice_ids) == 1 and
                                  answer_choice_ids[0] == None)):
                             try:
