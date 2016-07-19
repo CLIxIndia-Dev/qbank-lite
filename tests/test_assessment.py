@@ -3025,7 +3025,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
-        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3755,10 +3755,12 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                                                      unquote(mc_item['id']))
         payload = {
             'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
-                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
-                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
                           'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
-                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c'],
             'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
@@ -3778,10 +3780,12 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                                                      unquote(mc_item['id']))
         payload = {
             'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
                           'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',  # swapped the order
-                          'id78ce22bf-559f-44a4-95ee-156f222ad510',  # swapped the order
-                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
-                          'id881a8e9c-844b-4394-be62-d28a5fda5296'],
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',  # swapped the order
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c'],
             'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
@@ -4049,7 +4053,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
         self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
-        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4064,6 +4069,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._audio_recording_test_file.close()
         self._mc_feedback_test_file.close()
         self._mw_sentence_test_file.close()
+        self._mw_sentence_missing_audio_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4177,12 +4183,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         for choice in item['question']['choices']:
             self.assertIn('<p class="', choice['text'])
-            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat', 'left']):
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
                 self.assertIn('"noun"', choice['text'])
-            elif any(p in choice['text'] for p in ['under', 'on']):
+            elif any(p in choice['text'] for p in ['on']):
                 self.assertIn('"prep"', choice['text'])
-            elif 'are' in choice['text']:
+            elif 'left' in choice['text']:
                 self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -4389,6 +4397,68 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['id'],
             str(self._item.ident)
         )
+
+    def test_missing_media_element_just_gets_filtered_out(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_missing_audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_missing_audio_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            7
+        )
+        self.assertIn('feedback', item['answers'][0]['texts'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][1]['choiceIds']),
+            1
+        )
+        self.assertIsNone(item['answers'][1]['choiceIds'][0])
+        self.assertIn('feedback', item['answers'][1]['texts'])
+
+        self.assertEqual(
+            len(item['question']['choices']),
+            7
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p in choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif 'left' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['text']['text'])
 
 
 class FileUploadTests(BaseAssessmentTestCase):
