@@ -4104,6 +4104,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
         self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
         self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4120,6 +4121,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sentence_test_file.close()
         self._mw_sentence_missing_audio_test_file.close()
         self._xml_after_audio_test_file.close()
+        self._mw_sandbox_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4597,6 +4599,18 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['text']['text'])
+
+    def test_learning_objectives_are_parsed_and_saved(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['learningObjectiveIds'],
+            ['learning.Objective%3AGrade 9.B2%40CLIX.TISS.EDU']
+        )
 
 
 class FileUploadTests(BaseAssessmentTestCase):
