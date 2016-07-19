@@ -4155,7 +4155,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][0]['choiceIds']),
-            5
+            7
         )
         self.assertIn('feedback', item['answers'][0]['texts'])
 
@@ -4172,14 +4172,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             len(item['question']['choices']),
-            5
+            7
         )
 
         for choice in item['question']['choices']:
             self.assertIn('<p class="', choice['text'])
-            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge']):
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat', 'left']):
                 self.assertIn('"noun"', choice['text'])
-            elif 'on' in choice['text']:
+            elif any(p in choice['text'] for p in ['under', 'on']):
                 self.assertIn('"prep"', choice['text'])
             elif 'are' in choice['text']:
                 self.assertIn('"verb"', choice['text'])
