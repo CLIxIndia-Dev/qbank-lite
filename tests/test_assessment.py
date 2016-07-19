@@ -3797,6 +3797,12 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertNotIn('Correct Feedback goes here!', data['feedback'])
         self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
+    def test_cannot_submit_too_many_choices_even_if_partially_correct(self):
+        self.fail('finish writing the test')
+
+    def test_submitting_too_few_answers_returns_incorrect(self):
+        self.fail('finish writing the test')
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
