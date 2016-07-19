@@ -244,7 +244,6 @@ class AssessmentsList(utilities.BaseClass):
                 form = utilities.set_form_basics(form, self.data())
 
                 new_assessment = bank.create_assessment(form)
-
                 # if item IDs are included in the assessment, append them.
                 if 'itemIds' in self.data():
                     if isinstance(self.data()['itemIds'], basestring):
@@ -556,13 +555,35 @@ class AssessmentDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, bank_id, sub_id):
         try:
+            local_data_map = self.data()
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             form = bank.get_assessment_form_for_update(utilities.clean_id(sub_id))
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, local_data_map)
 
             updated_assessment = bank.update_assessment(form)
+
+            if 'itemIds' in local_data_map:
+                # first clear out existing items
+                for item in bank.get_assessment_items(utilities.clean_id(sub_id)):
+                    bank.remove_item(utilities.clean_id(sub_id), item.ident)
+
+                # now add the new ones
+                if isinstance(local_data_map['itemIds'], basestring):
+                    items = json.loads(local_data_map['itemIds'])
+                else:
+                    items = local_data_map['itemIds']
+
+                if not isinstance(items, list):
+                    try:
+                        utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
+                        items = [items]
+                    except:
+                        raise InvalidArgument
+
+                for item_id in items:
+                    bank.add_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
 
             full_assessment = bank.get_assessment(updated_assessment.ident)
             data = utilities.convert_dl_object(full_assessment)
