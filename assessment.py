@@ -327,6 +327,7 @@ class ItemsList(utilities.BaseClass):
                 # once we read in a file
                 # https://docs.python.org/2/library/zipfile.html
                 keywords = []
+                learning_objective = None
                 media_files = {}
                 qti_file = None
 
@@ -341,6 +342,10 @@ class ItemsList(utilities.BaseClass):
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
                                     if '[type]' in keyword.string:
                                         keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                            if manifest_soup.resources.lom:
+                                for classification in manifest_soup.resources.lom.find_all('classification'):
+                                    if classification.purpose.value.string == 'target audience':
+                                        learning_objective = classification.taxonPath.taxon.entry.string.string
 
                 # now get media files
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
@@ -380,7 +385,8 @@ class ItemsList(utilities.BaseClass):
                     form.description = 'QTI AssessmentItem'
                     form.load_from_qti_item(qti_xml,
                                             keywords=keywords)
-
+                    if learning_objective is not None:
+                        form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
 
