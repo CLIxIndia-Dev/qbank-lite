@@ -3,7 +3,7 @@
 import json
 import os
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from copy import deepcopy
 
@@ -13,6 +13,7 @@ from nose.tools import *
 
 from paste.fixture import AppError
 
+from records.assessment.qti.basic import _stringify
 from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
@@ -4102,6 +4103,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
         self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
+        self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4117,6 +4119,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mc_feedback_test_file.close()
         self._mw_sentence_test_file.close()
         self._mw_sentence_missing_audio_test_file.close()
+        self._xml_after_audio_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4155,6 +4158,77 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['id'],
             str(self._item.ident)
         )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        item_body.choiceInteraction.extract()
+        string_children = [c for c in item_body.contents if c.string.strip() != ""]
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected_children = [c for c in expected.contents if c.string.strip() != ""]
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+    def test_xml_preserved(self):
+        def get_valid_contents(tag):
+            return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
+
+        url = '{0}/items'.format(self.url)
+        self._xml_after_audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._xml_after_audio_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        item_body.choiceInteraction.extract()
+        string_children = get_valid_contents(item_body)
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected_children = get_valid_contents(expected)
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            if isinstance(child, Tag):
+                child_contents = get_valid_contents(child)
+                expected_child_contents = get_valid_contents(expected_children[index])
+                for grandchild_index, grandchild in enumerate(child_contents):
+                    if isinstance(grandchild, Tag):
+                        for key, val in grandchild.attrs.iteritems():
+                            self.assertEqual(val,
+                                             expected_child_contents[grandchild_index].attrs[key])
+                    else:
+                        self.assertEqual(grandchild.string.strip(),
+                                         expected_child_contents[grandchild_index].string.strip())
+            else:
+                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
 
     def test_can_upload_qti_upload_interaction_file(self):
         url = '{0}/items'.format(self.url)
