@@ -34,14 +34,17 @@ WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
@@ -4611,6 +4614,79 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['learningObjectiveIds'],
             ['learning.Objective%3AGrade 9.B2%40CLIX.TISS.EDU']
         )
+
+    def test_can_upload_mw_sandbox_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            13
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            13
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n == choice['text'] for n in ['the bags', 'the bus',
+                                                 'the bridge', "Raju's",
+                                                 'the seat', 'the airport',
+                                                 'the city', 'the bicycle']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p == choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif any(v == choice['text'] for v in ['are', 'left', 'dropped']):
+                self.assertIn('"verb"', choice['text'])
+            elif any(av == choice['text'] for av in ['under', 'on top of']):
+                self.assertIn('"adverb"', choice['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        item_details_url = '{0}?qti'.format(url)
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        data = self.json(req)
+        item = [i for i in data if i['id'] == item['id']][0]
+        self.assertIn('qti', item)
+        item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
+        expected_values = ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
+                           'id969e920d-6d22-4d06-b4ac-40a821e350c6',
+                           'id820fae90-3794-40d1-bee0-daa36da223b3',
+                           'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
+                           'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
+                           'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
+                           'iddd689e9d-0cd0-478d-9d37-2856f866a757',
+                           'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
+                           'id41288bb9-e76e-4313-bf57-2101edfe3a76',
+                           'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
+                           'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
+                           'id472afb75-4aa9-4daa-a163-075798ee57ab',
+                           'id8c68713f-8e39-446b-a6c8-df25dfb8118e']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
 
 
 class FileUploadTests(BaseAssessmentTestCase):
