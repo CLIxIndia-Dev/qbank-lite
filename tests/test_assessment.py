@@ -4837,6 +4837,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             3
         )
 
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
@@ -4900,6 +4905,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['id'],
             str(self._item.ident)
         )
+
+        self.assertEqual(item['question']['maxStrings'], 300)
+        self.assertEqual(item['question']['expectedLength'], 100)
+        self.assertEqual(item['question']['expectedLines'], 5)
 
         # now verify the QTI XML matches the JSON format
         url = '{0}/{1}/qti'.format(url, unquote(item['id']))
