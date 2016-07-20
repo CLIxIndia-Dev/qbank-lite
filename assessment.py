@@ -23,6 +23,7 @@ CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -392,7 +393,6 @@ class ItemsList(utilities.BaseClass):
                         form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
-
                     new_item = bank.create_item(form)
 
                     # ID Alias with the QTI ID from Onyx
@@ -454,6 +454,15 @@ class ItemsList(utilities.BaseClass):
                                                       feedback_choice_id='incorrect')
 
                             bank.create_answer(a_form)
+                    elif str(new_item.genus_type) == str(INLINE_CHOICE_INTERACTION_GENUS):
+                        # create a generic one
+                        a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                        a_form.load_from_qti_item(qti_xml,
+                                                  keywords=keywords,
+                                                  correct=False,
+                                                  feedback_choice_id='incorrect')
+
+                        bank.create_answer(a_form)
 
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']
@@ -1599,6 +1608,9 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 confused_los += answer.confused_learning_objective_ids
                             except (KeyError, AttributeError):
                                 pass
+
+                            # only take the first feedback / confused LO for now
+                            break
                     if len(feedback_strings) > 0:
                         feedback = '; '.join(feedback_strings)
                         return_data.update({

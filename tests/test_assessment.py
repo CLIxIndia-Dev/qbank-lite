@@ -35,6 +35,7 @@ WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
 QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
@@ -42,6 +43,7 @@ QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
@@ -49,6 +51,7 @@ QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
@@ -3007,6 +3010,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mc_item_for_feedback_testing(self):
+        url = '{0}/items'.format(self.url)
+        self._number_of_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._number_of_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_mc_multi_select_item(self):
         url = '{0}/items'.format(self.url)
         self._mc_multi_select_test_file.seek(0)
@@ -3045,6 +3056,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3053,6 +3065,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         self._mw_sentence_test_file.close()
         self._mc_multi_select_test_file.close()
+        self._number_of_feedback_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -3968,6 +3981,27 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
         self.assertIn('Please try again!', data['feedback'])
 
+    def test_only_one_feedback_provided(self):
+        item = self.create_mc_item_for_feedback_testing()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'choiceIds': ['a'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Well done!', data['feedback'])
+        self.assertNotIn(';', data['feedback'])
+        self.assertIn('Listen carefully', data['feedback'])
+        self.assertEqual(data['feedback'].count('Listen carefully'), 1)
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4230,6 +4264,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4249,6 +4284,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sandbox_test_file.close()
         self._mc_multi_select_test_file.close()
         self._short_answer_test_file.close()
+        self._mw_fill_in_the_blank_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4945,6 +4981,90 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                                          expected_child_contents[grandchild_index].string.strip())
             else:
                 self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+    def test_can_upload_mw_fill_in_the_blank(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fill_in_the_blank_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+        self.assertIn('RESPONSE_2', item['question']['choices'])
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+        self.assertIn('RESPONSE_2', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1_1_1_1_1_1']
+        )
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_2']['choiceIds'],
+            ['[_1_1_1_1_1_1']
+        )
+
+        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('No, please listen to the story again.', item['answers'][1]['texts']['feedback'])
+
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        # SKIP for now .. super complicated for inlineChoice ...
+        # url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        # req = self.app.get(url)
+        # self.ok(req)
+        # qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        # item_body = qti_xml.itemBody
+        # item_body.extendedTextInteraction.extract()
+        # string_children = get_valid_contents(item_body)
+        # expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        # expected_children = get_valid_contents(expected)
+        # self.assertEqual(len(string_children), len(expected_children))
+        # for index, child in enumerate(string_children):
+        #     if isinstance(child, Tag):
+        #         child_contents = get_valid_contents(child)
+        #         expected_child_contents = get_valid_contents(expected_children[index])
+        #         for grandchild_index, grandchild in enumerate(child_contents):
+        #             if isinstance(grandchild, Tag):
+        #                 for key, val in grandchild.attrs.iteritems():
+        #                     self.assertEqual(val,
+        #                                      expected_child_contents[grandchild_index].attrs[key])
+        #             else:
+        #                 self.assertEqual(grandchild.string.strip(),
+        #                                  expected_child_contents[grandchild_index].string.strip())
+        #     else:
+        #         self.assertEqual(child.string.strip(), expected_children[index].string.strip())
 
 
 class FileUploadTests(BaseAssessmentTestCase):
