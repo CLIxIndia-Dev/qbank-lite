@@ -4379,6 +4379,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(RIGHT_ANSWER_GENUS)
         )
 
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<p>Answer submitted</p>'
+        )
+
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
@@ -4901,6 +4906,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(RIGHT_ANSWER_GENUS)
         )
 
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<p>Answer submitted</p>'
+        )
+
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
@@ -5025,6 +5035,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
@@ -5097,5 +5108,5 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertEqual(data['feedback'], 'No feedback available.')
+        self.assertIn('Answer submitted', data['feedback'])
 
