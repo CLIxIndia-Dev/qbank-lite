@@ -32,6 +32,7 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
 
 urls = (
@@ -1586,6 +1587,35 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 len(submissions) == number_choices)
                                 or  # is a wrong answer
                                 (not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
+                            try:
+                                if any('qti' in answer_record
+                                       for answer_record in answer.object_map['recordTypeIds']):
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                                else:
+                                    feedback_strings.append(answer.feedback)
+                            except (KeyError, AttributeError):
+                                pass
+                            try:
+                                confused_los += answer.confused_learning_objective_ids
+                            except (KeyError, AttributeError):
+                                pass
+                    if len(feedback_strings) > 0:
+                        feedback = '; '.join(feedback_strings)
+                        return_data.update({
+                            'feedback': feedback
+                        })
+                    if len(confused_los) > 0:
+                        return_data.update({
+                            'confusedLearningObjectiveIds': confused_los
+                        })
+                if (autils.is_file_submission(local_data_map) or
+                        autils.is_short_answer(local_data_map)):
+                    # right now assume one "correct" answer with generic feedback
+                    answers = bank.get_answers(first_section.ident, question.ident)
+                    feedback_strings = []
+                    confused_los = []
+                    for answer in answers:
+                        if (correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
