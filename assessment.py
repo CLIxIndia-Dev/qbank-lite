@@ -417,42 +417,39 @@ class ItemsList(utilities.BaseClass):
                         choices = None
 
                     # correct answer
-                    question_type = {
-                        'type': str(question.genus_type)
-                    }
-                    if not (autils.is_short_answer(question_type)):
-                        a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                        a_form.load_from_qti_item(qti_xml,
-                                                  keywords=keywords,
-                                                  correct=True,
-                                                  feedback_choice_id='correct')
-                        answer = bank.create_answer(a_form)
+                    # need a default one, even for extended text interaction
+                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                    a_form.load_from_qti_item(qti_xml,
+                                              keywords=keywords,
+                                              correct=True,
+                                              feedback_choice_id='correct')
+                    answer = bank.create_answer(a_form)
 
-                        # now let's do the incorrect answers with feedback, if available
-                        if choices is not None:
-                            # what if there are multiple right answer choices,
-                            #  i.e. movable words?
-                            right_answers = answer.object_map['choiceIds']
-                            wrong_answers = [c for c in choices if c['id'] not in right_answers]
+                    # now let's do the incorrect answers with feedback, if available
+                    if choices is not None:
+                        # what if there are multiple right answer choices,
+                        #  i.e. movable words?
+                        right_answers = answer.object_map['choiceIds']
+                        wrong_answers = [c for c in choices if c['id'] not in right_answers]
 
-                            if len(wrong_answers) > 0:
-                                for wrong_answer in wrong_answers:
-                                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                                    a_form.load_from_qti_item(qti_xml,
-                                                              keywords=keywords,
-                                                              correct=False,
-                                                              feedback_choice_id=wrong_answer['id'])
-
-                                    bank.create_answer(a_form)
-                            else:
-                                # create a generic one
+                        if len(wrong_answers) > 0:
+                            for wrong_answer in wrong_answers:
                                 a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                                 a_form.load_from_qti_item(qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
-                                                          feedback_choice_id='incorrect')
+                                                          feedback_choice_id=wrong_answer['id'])
 
                                 bank.create_answer(a_form)
+                        else:
+                            # create a generic one
+                            a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                            a_form.load_from_qti_item(qti_xml,
+                                                      keywords=keywords,
+                                                      correct=False,
+                                                      feedback_choice_id='incorrect')
+
+                            bank.create_answer(a_form)
 
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']

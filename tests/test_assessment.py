@@ -4888,7 +4888,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             len(item['answers']),
-            0
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertNotEqual(
@@ -4921,6 +4926,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                                          expected_child_contents[grandchild_index].string.strip())
             else:
                 self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
 
 class FileUploadTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -5010,4 +5016,77 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+
+
+class ExtendedTextInteractionTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_assessment, new_offered
+
+    def create_item(self):
+        url = '{0}/items'.format(self.url)
+        self._short_answer_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._short_answer_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered, new_assessment
+
+    def setUp(self):
+        super(ExtendedTextInteractionTests, self).setUp()
+
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(ExtendedTextInteractionTests, self).tearDown()
+
+        self._short_answer_test_file.close()
+
+    def test_can_send_text_response(self):
+        item = self.create_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident,
+                                                                                  utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'text': 'lorem ipsum foo bar baz'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
 

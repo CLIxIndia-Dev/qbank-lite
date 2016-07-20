@@ -753,6 +753,8 @@ def update_response_form(response, form):
                 form.set_file(asset_data=DataInputStream(file_data),
                               asset_name=file_label)
                 break
+    elif is_short_answer(response):
+        form.set_text(response['text'])
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
         if 'decimalValue' in response:
             form.set_decimal_value(float(response['decimalValue']))
