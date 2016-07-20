@@ -3001,6 +3001,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mc_multi_select_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_mw_sentence_item(self):
         url = '{0}/items'.format(self.url)
         self._mw_sentence_test_file.seek(0)
@@ -3030,6 +3038,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3037,6 +3046,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         super(MultipleChoiceTests, self).tearDown()
 
         self._mw_sentence_test_file.close()
+        self._mc_multi_select_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -3801,7 +3811,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertNotIn('Correct Feedback goes here!', data['feedback'])
         self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
-    def test_cannot_submit_too_many_choices_even_if_partially_correct(self):
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -3828,7 +3838,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertNotIn('Correct Feedback goes here!', data['feedback'])
         self.assertIn('Wrong...Feedback goes here!', data['feedback'])
 
-    def test_submitting_too_few_answers_returns_incorrect(self):
+    def test_submitting_too_few_answers_returns_incorrect_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -3847,6 +3857,110 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         self.assertNotIn('Correct Feedback goes here!', data['feedback'])
         self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_can_submit_right_answer_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertNotIn('Please try again!', data['feedback'])
+
+    def test_order_does_not_matter_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',  # swapped order
+                          'idb5345daa-a5c2-4924-a92b-e326886b5d1d',  # swapped order
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertNotIn('Please try again!', data['feedback'])
+
+    def test_can_submit_wrong_answer_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0',
+                          'id01913fba-e66d-4a01-9625-94102847faac'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
@@ -4108,6 +4222,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
         self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
         self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4125,6 +4240,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_sentence_missing_audio_test_file.close()
         self._xml_after_audio_test_file.close()
         self._mw_sandbox_test_file.close()
+        self._mc_multi_select_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4687,6 +4803,53 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                            'id8c68713f-8e39-446b-a6c8-df25dfb8118e']
         for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
             self.assertEqual(value.string.strip(), expected_values[index])
+
+    def test_can_upload_mc_multi_select(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            3
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        item_body.choiceInteraction.extract()
+        string_children = [c for c in item_body.contents if c.string.strip() != ""]
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected_children = [c for c in expected.contents if c.string.strip() != ""]
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            self.assertEqual(child.string.strip(), expected_children[index].string.strip())
 
 
 class FileUploadTests(BaseAssessmentTestCase):
