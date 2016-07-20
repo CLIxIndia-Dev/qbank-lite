@@ -350,6 +350,14 @@ def is_ordered_choice(response):
     else:
         return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence'])
 
+def is_short_answer(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-extended-text-interaction'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-extended-text-interaction'])
+
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
@@ -758,7 +766,7 @@ def validate_response(response, answers):
     correct = False
     # for longer submissions / multi-answer questions, need to make
     # sure that all of them match...
-    if is_file_submission(response):
+    if is_file_submission(response) or is_short_answer(response):
         return True  # always say True because the file was accepted
 
     submission = get_response_submissions(response)

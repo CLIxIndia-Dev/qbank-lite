@@ -2,6 +2,8 @@ import os
 import json
 import shutil
 
+from bs4 import Tag
+
 from dlkit_edx.primordium import Type
 from nose.tools import *
 from paste.fixture import TestApp
@@ -123,6 +125,8 @@ def get_managers():
                                                         proxy=proxy)
     return results
 
+def get_valid_contents(tag):
+    return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
 
 class BaseTestCase(TestCase):
     """
