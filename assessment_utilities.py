@@ -333,12 +333,14 @@ def is_multiple_choice(response):
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
                               'multi-choice-with-files-and-feedback',
-                              'qti-choice-interaction'])
+                              'qti-choice-interaction',
+                              'qti-choice-interaction-multi-select'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
-                                                     'qti-choice-interaction'])
+                                                     'qti-choice-interaction',
+                                                     'qti-choice-interaction-multi-select'])
 
 def is_ordered_choice(response):
     if isinstance(response['type'], list):

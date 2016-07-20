@@ -20,6 +20,7 @@ import utilities
 
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
 CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
@@ -409,6 +410,7 @@ class ItemsList(utilities.BaseClass):
                     question = bank.create_question(q_form)
 
                     if str(new_item.genus_type) in [str(CHOICE_INTERACTION_GENUS),
+                                                    str(CHOICE_INTERACTION_MULTI_GENUS),
                                                     str(ORDER_INTERACTION_MW_SENTENCE_GENUS)]:
                         choices = question.get_choices()
                     else:
