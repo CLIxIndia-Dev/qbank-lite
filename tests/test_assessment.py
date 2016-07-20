@@ -4837,6 +4837,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             3
         )
 
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)

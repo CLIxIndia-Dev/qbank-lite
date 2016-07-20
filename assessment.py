@@ -432,7 +432,10 @@ class ItemsList(utilities.BaseClass):
                         right_answers = answer.object_map['choiceIds']
                         wrong_answers = [c for c in choices if c['id'] not in right_answers]
 
-                        if len(wrong_answers) > 0:
+                        # for now only support a generic wrong answer feedback for
+                        # mc multi-select ... otherwise have to do scoring somehow
+                        if (len(wrong_answers) > 0 and
+                                str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
                             for wrong_answer in wrong_answers:
                                 a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                                 a_form.load_from_qti_item(qti_xml,
