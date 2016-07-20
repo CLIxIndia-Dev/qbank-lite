@@ -33,16 +33,19 @@ RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
@@ -3868,7 +3871,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
                           'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
                           'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
-            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3889,7 +3892,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',  # swapped order
                           'idb5345daa-a5c2-4924-a92b-e326886b5d1d',  # swapped order
                           'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
-            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3909,7 +3912,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         payload = {
             'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
                           'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
-            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3931,7 +3934,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                           'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
                           'id4f525d00-e24c-4ac3-a104-848a2cd686c0',
                           'id01913fba-e66d-4a01-9625-94102847faac'],
-            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3951,7 +3954,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         payload = {
             'choiceIds': ['a',
                           'b'],
-            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -4814,12 +4817,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['genusTypeId'],
-            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+            str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS)
         )
 
         self.assertEqual(
             item['question']['genusTypeId'],
-            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+            str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS)
         )
 
         self.assertEqual(
