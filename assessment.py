@@ -30,6 +30,7 @@ QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
+WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
 
 urls = (
@@ -1578,8 +1579,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         if ((correct_submissions == number_choices and
                                 len(submissions) == number_choices)
                                 or  # is a wrong answer
-                                (not correct and len(answer_choice_ids) == 1 and
-                                 answer_choice_ids[0] == None)):
+                                (not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
