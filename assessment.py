@@ -417,6 +417,7 @@ class ItemsList(utilities.BaseClass):
                         choices = None
 
                     # correct answer
+                    # need a default one, even for extended text interaction
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                     a_form.load_from_qti_item(qti_xml,
                                               keywords=keywords,

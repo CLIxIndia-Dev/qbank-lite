@@ -19,7 +19,7 @@ from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
     QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES
 
-from testing_utilities import BaseTestCase, get_managers, create_test_bank
+from testing_utilities import BaseTestCase, get_managers, create_test_bank, get_valid_contents
 from urllib import unquote, quote
 
 import utilities
@@ -34,18 +34,21 @@ WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
 QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
@@ -4226,6 +4229,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
         self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4244,6 +4248,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._xml_after_audio_test_file.close()
         self._mw_sandbox_test_file.close()
         self._mc_multi_select_test_file.close()
+        self._short_answer_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4298,9 +4303,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             self.assertEqual(child.string.strip(), expected_children[index].string.strip())
 
     def test_xml_preserved(self):
-        def get_valid_contents(tag):
-            return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
-
         url = '{0}/items'.format(self.url)
         self._xml_after_audio_test_file.seek(0)
         req = self.app.post(url,
@@ -4847,12 +4849,83 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
-        string_children = [c for c in item_body.contents if c.string.strip() != ""]
+        string_children = get_valid_contents(item_body)
         expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
-        expected_children = [c for c in expected.contents if c.string.strip() != ""]
+        expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
-            self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+            if isinstance(child, Tag):
+                child_contents = get_valid_contents(child)
+                expected_child_contents = get_valid_contents(expected_children[index])
+                for grandchild_index, grandchild in enumerate(child_contents):
+                    if isinstance(grandchild, Tag):
+                        for key, val in grandchild.attrs.iteritems():
+                            self.assertEqual(val,
+                                             expected_child_contents[grandchild_index].attrs[key])
+                    else:
+                        self.assertEqual(grandchild.string.strip(),
+                                         expected_child_contents[grandchild_index].string.strip())
+            else:
+                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+    def test_can_upload_short_answer(self):
+        url = '{0}/items'.format(self.url)
+        self._short_answer_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._short_answer_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        item_body.extendedTextInteraction.extract()
+        string_children = get_valid_contents(item_body)
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected_children = get_valid_contents(expected)
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            if isinstance(child, Tag):
+                child_contents = get_valid_contents(child)
+                expected_child_contents = get_valid_contents(expected_children[index])
+                for grandchild_index, grandchild in enumerate(child_contents):
+                    if isinstance(grandchild, Tag):
+                        for key, val in grandchild.attrs.iteritems():
+                            self.assertEqual(val,
+                                             expected_child_contents[grandchild_index].attrs[key])
+                    else:
+                        self.assertEqual(grandchild.string.strip(),
+                                         expected_child_contents[grandchild_index].string.strip())
+            else:
+                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
 
 
 class FileUploadTests(BaseAssessmentTestCase):
@@ -4943,4 +5016,77 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+
+
+class ExtendedTextInteractionTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_assessment, new_offered
+
+    def create_item(self):
+        url = '{0}/items'.format(self.url)
+        self._short_answer_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._short_answer_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered, new_assessment
+
+    def setUp(self):
+        super(ExtendedTextInteractionTests, self).setUp()
+
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(ExtendedTextInteractionTests, self).tearDown()
+
+        self._short_answer_test_file.close()
+
+    def test_can_send_text_response(self):
+        item = self.create_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident,
+                                                                                  utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'text': 'lorem ipsum foo bar baz'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
 
