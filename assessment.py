@@ -331,6 +331,7 @@ class ItemsList(utilities.BaseClass):
                 # once we read in a file
                 # https://docs.python.org/2/library/zipfile.html
                 keywords = []
+                description = ''
                 learning_objective = None
                 media_files = {}
                 qti_file = None
@@ -346,6 +347,8 @@ class ItemsList(utilities.BaseClass):
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
                                     if '[type]' in keyword.string:
                                         keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                    else:
+                                        description += keyword.string
                             if manifest_soup.resources.lom:
                                 for classification in manifest_soup.resources.lom.find_all('classification'):
                                     if classification.purpose.value.string == 'target audience':
@@ -386,7 +389,7 @@ class ItemsList(utilities.BaseClass):
                                                           PROVENANCE_ITEM_RECORD,
                                                           WRONG_ANSWER_ITEM])
                     form.display_name = soup.assessmentItem['title']
-                    form.description = 'QTI AssessmentItem'
+                    form.description = description or 'QTI AssessmentItem'
                     form.load_from_qti_item(qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
@@ -1541,7 +1544,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                             'answer-record-type')
             try:
-                local_data_map['files'] = {'submission': x['submission'].file}
+                local_data_map['files'] = {x['submission'].filename: x['submission'].file}
             except AttributeError:
                 pass
 

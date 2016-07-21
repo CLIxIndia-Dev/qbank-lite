@@ -4415,6 +4415,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4435,6 +4436,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mc_multi_select_test_file.close()
         self._short_answer_test_file.close()
         self._mw_fill_in_the_blank_test_file.close()
+        self._generic_upload_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -5219,6 +5221,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         #                                  expected_child_contents[grandchild_index].string.strip())
         #     else:
         #         self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+    def test_description_saved_if_provided(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fill_in_the_blank_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['description']['text'],
+            'Understanding shape properties through construction in LOGO'
+        )
+
+        self.fail('finish writing the test')
 
 
 class FileUploadTests(BaseAssessmentTestCase):
