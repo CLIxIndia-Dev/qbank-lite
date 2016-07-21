@@ -34,6 +34,8 @@ LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
+WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+
 
 def add_file_ids_to_form(form, file_ids):
     """
@@ -205,6 +207,30 @@ def create_new_item(bank, data):
     new_item = bank.create_item(form)
     return new_item
 
+def evaluate_inline_choice(answers, submission):
+    correct = False
+    right_answers = [a for a in answers
+                     if is_right_answer(a)]
+
+    for answer in right_answers:
+        answer_choices = answer.get_inline_choice_ids()
+        num_total = 0
+        num_right = 0
+        for inline_region, data in answer_choices.iteritems():
+            num_total += data['choiceIds'].available()
+        if len(submission.keys()) == len(answer_choices.keys()):
+            # assume order doesn't matter within the region -- though
+            # per QTI spec, I think it's only 1 choice per inline region
+            for inline_region, data in answer_choices.iteritems():
+                if ('choiceIds' in submission[inline_region] and
+                        len(submission[inline_region]['choiceIds']) == data['choiceIds'].available()):
+                    for choice_id in data['choiceIds']:
+                        if str(choice_id) in submission[inline_region]['choiceIds']:
+                            num_right += 1
+        if num_right == num_total:
+            correct = True
+    return correct
+
 def find_answer_in_answers(ans_id, ans_list):
     for ans in ans_list:
         if ans.ident == ans_id:
@@ -312,6 +338,8 @@ def get_response_submissions(response):
             submission = response.getlist('choiceIds')
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
         submission = float(response['decimalValue'])
+    elif is_inline_choice(response):
+        submission = response['inlineRegions']
     else:
         raise Unsupported
     return submission
@@ -325,6 +353,14 @@ def is_file_submission(response):
     else:
         return any(mc in response['type'] for mc in ['files-submission',
                                                      'qti-upload-interaction-audio'])
+
+def is_inline_choice(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 
 def is_multiple_choice(response):
     if isinstance(response['type'], list):
@@ -361,6 +397,38 @@ def is_short_answer(response):
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
+
+def match_submission_to_answer(answers, response):
+    submission = get_response_submissions(response)
+    answer_match = None
+    default_answer = None
+    match = False
+
+    if is_inline_choice(response):
+        # try to find an exact match response according to the regions + choiceIds
+        # if no exact match found, just look for a "wrong answer" answer with no inlineRegions
+        for answer in answers:
+            answer_regions = answer.get_inline_choice_ids()
+            if answer_regions == {} and str(answer.genus_type) == str(WRONG_ANSWER):
+                default_answer = answer
+            num_total = 0
+            num_right = 0
+            for inline_region, data in answer_regions.iteritems():
+                num_total += data['choiceIds'].available()
+            if len(answer_regions.keys()) == len(submission.keys()):
+                for inline_region, data in answer_regions.iteritems():
+                    if data['choiceIds'].available() == len(submission[inline_region]['choiceIds']):
+                        for choice_id in data['choiceIds']:
+                            if str(choice_id) in submission[inline_region]['choiceIds']:
+                                num_right += 1
+            if num_total == num_right:
+                match = True
+                answer_match = answer
+                break
+    if not match:
+        return default_answer
+    else:
+        return answer_match
 
 def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
@@ -760,6 +828,11 @@ def update_response_form(response, form):
             form.set_decimal_value(float(response['decimalValue']))
         if 'tolerance' in response:
             form.set_tolerance_value(float(response['tolerance']))
+    elif is_inline_choice(response):
+        for inline_region, data in response['inlineRegions'].iteritems():
+            form.add_inline_region(inline_region)
+            for choice_id in data['choiceIds']:
+                form.add_choice_id(choice_id, inline_region)
     else:
         raise Unsupported()
     return form
@@ -790,6 +863,8 @@ def validate_response(response, answers):
                             num_right += 1
                 if num_right == num_total and len(submission) == num_total:
                     correct = True
+    elif is_inline_choice(response):
+        correct = evaluate_inline_choice(answers, submission)
     else:
         for answer in answers:
             ans_type = answer.object_map['recordTypeIds'][0]
