@@ -136,7 +136,9 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data), 2)
-        self.assertTrue('.sltng' in data[1]['assetContents'][0]['url'])
-        self.assertEqual('asset-content-genus-type%3Asltng%40ODL.MIT.EDU',
-                         data[1]['assetContents'][0]['genusTypeId'])
+        for asset in data:
+            if asset['id'] != str(self.asset.ident):
+                self.assertTrue('.sltng' in asset['assetContents'][0]['url'])
+                self.assertEqual('asset-content-genus-type%3Asltng%40ODL.MIT.EDU',
+                                 asset['assetContents'][0]['genusTypeId'])
 
