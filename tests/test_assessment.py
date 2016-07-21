@@ -4529,7 +4529,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -4539,12 +4539,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 for grandchild_index, grandchild in enumerate(child_contents):
                     if isinstance(grandchild, Tag):
                         for key, val in grandchild.attrs.iteritems():
-                            if key == "class":
-                                self.assertIn(val,
-                                                 expected_child_contents[grandchild_index].attrs[key])
-                            else:
-                                self.assertEqual(val,
-                                                 expected_child_contents[grandchild_index].attrs[key])
+                            if key not in ['data', 'src']:
+                                if key == "class":
+                                    self.assertIn(val,
+                                                  expected_child_contents[grandchild_index].attrs[key])
+                                else:
+                                    self.assertEqual(val,
+                                                     expected_child_contents[grandchild_index].attrs[key])
                     else:
                         self.assertEqual(grandchild.string.strip(),
                                          expected_child_contents[grandchild_index].string.strip())
@@ -4885,10 +4886,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 match[1]
             )
 
-            self.assertEqual(
-                item['answers'][index]['texts']['feedback'],
-                match[0]
-            )
+            self.assertIn(match[0],
+                          item['answers'][index]['texts']['feedback'])
 
         self.assertNotEqual(
             item['id'],
@@ -5088,7 +5087,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -5156,7 +5155,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.extendedTextInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
+
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -5249,7 +5249,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
