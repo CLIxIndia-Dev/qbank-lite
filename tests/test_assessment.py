@@ -39,6 +39,7 @@ QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inli
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_ANSWER_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
@@ -47,6 +48,7 @@ QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-c
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
@@ -55,6 +57,7 @@ QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
@@ -4581,6 +4584,39 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
+    def test_can_upload_generic_qti_upload_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<p>Answer submitted</p>'
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
     def test_can_upload_qti_order_interaction_file(self):
         url = '{0}/items'.format(self.url)
         self._mw_sentence_test_file.seek(0)
@@ -5224,9 +5260,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
     def test_description_saved_if_provided(self):
         url = '{0}/items'.format(self.url)
-        self._mw_fill_in_the_blank_test_file.seek(0)
+        self._generic_upload_test_file.seek(0)
         req = self.app.post(url,
-                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
         self.ok(req)
         item = self.json(req)
 
@@ -5234,8 +5270,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['description']['text'],
             'Understanding shape properties through construction in LOGO'
         )
-
-        self.fail('finish writing the test')
 
 
 class FileUploadTests(BaseAssessmentTestCase):
@@ -5300,6 +5334,8 @@ class FileUploadTests(BaseAssessmentTestCase):
 
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
         self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_response_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -5308,6 +5344,8 @@ class FileUploadTests(BaseAssessmentTestCase):
 
         self._audio_response_file.close()
         self._audio_recording_test_file.close()
+        self._generic_upload_test_file.close()
+        self._generic_upload_response_test_file.close()
 
     def test_can_send_audio_file_response_for_audio_rt(self):
         url = '{0}/items'.format(self.url)
@@ -5328,6 +5366,24 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
 
+    def test_can_send_generic_file_response_for_generic_file_upload(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._generic_upload_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'Epidemic2.sltng', self._generic_upload_response_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
