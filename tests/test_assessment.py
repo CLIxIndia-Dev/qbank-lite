@@ -5195,6 +5195,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertIn('RESPONSE_1', item['question']['choices'])
         self.assertIn('RESPONSE_2', item['question']['choices'])
 
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+        response_2_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_2']]
+
+        self.assertIn('[_1_1_1_1_1_1_1', response_1_choice_ids)
+        self.assertIn('[_1_1_1_1_1_1', response_2_choice_ids)
+
         self.assertEqual(
             len(item['answers']),
             2
@@ -5231,32 +5237,51 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
+        num_expected_choices_response_1 = len(item['question']['choices']['RESPONSE_1'])
+        num_choices_response_1 = 0
+        num_expected_choices_response_2 = len(item['question']['choices']['RESPONSE_2'])
+        num_choices_response_2 = 0
+
         # now verify the QTI XML matches the JSON format
-        # SKIP for now .. super complicated for inlineChoice ...
-        # url = '{0}/{1}/qti'.format(url, unquote(item['id']))
-        # req = self.app.get(url)
-        # self.ok(req)
-        # qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
-        # item_body = qti_xml.itemBody
-        # item_body.extendedTextInteraction.extract()
-        # string_children = get_valid_contents(item_body)
-        # expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
-        # expected_children = get_valid_contents(expected)
-        # self.assertEqual(len(string_children), len(expected_children))
-        # for index, child in enumerate(string_children):
-        #     if isinstance(child, Tag):
-        #         child_contents = get_valid_contents(child)
-        #         expected_child_contents = get_valid_contents(expected_children[index])
-        #         for grandchild_index, grandchild in enumerate(child_contents):
-        #             if isinstance(grandchild, Tag):
-        #                 for key, val in grandchild.attrs.iteritems():
-        #                     self.assertEqual(val,
-        #                                      expected_child_contents[grandchild_index].attrs[key])
-        #             else:
-        #                 self.assertEqual(grandchild.string.strip(),
-        #                                  expected_child_contents[grandchild_index].string.strip())
-        #     else:
-        #         self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        string_children = get_valid_contents(item_body)
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected_children = get_valid_contents(expected)
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            if isinstance(child, Tag):
+                child_contents = get_valid_contents(child)
+                expected_child_contents = get_valid_contents(expected_children[index])
+                for grandchild_index, grandchild in enumerate(child_contents):
+                    if isinstance(grandchild, Tag):
+                        if grandchild.name == 'inlineChoiceInteraction':
+                            response_id = grandchild.attrs['responseIdentifier']
+                            for inline_choice in grandchild.find_all('inlineChoice'):
+                                if response_id == 'RESPONSE_1':
+                                    num_choices_response_1 += 1
+                                else:
+                                    num_choices_response_2 += 1
+                        else:
+                            for key, val in grandchild.attrs.iteritems():
+                                if key not in ["data", "src"]: #don't check the asset links
+                                    if key == 'class':
+                                        self.assertIn(val,
+                                                      expected_child_contents[grandchild_index].attrs[key])
+                                    else:
+                                        self.assertEqual(val,
+                                                         expected_child_contents[grandchild_index].attrs[key])
+                    else:
+                        self.assertEqual(grandchild.string.strip(),
+                                         expected_child_contents[grandchild_index].string.strip())
+            else:
+                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+        self.assertEqual(num_choices_response_1, num_expected_choices_response_1)
+        self.assertEqual(num_choices_response_2, num_expected_choices_response_2)
 
     def test_description_saved_if_provided(self):
         url = '{0}/items'.format(self.url)
