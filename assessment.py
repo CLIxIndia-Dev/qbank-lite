@@ -1563,6 +1563,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 'feedback': feedback
             }
             # update with item solution, if available
+            feedback_strings = []
+            confused_los = []
             try:
                 taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
                 feedback = taken.get_solution_for_question(
@@ -1577,8 +1579,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         autils.is_ordered_choice(local_data_map)):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
-                    feedback_strings = []
-                    confused_los = []
+
                     for answer in answers:
                         correct_submissions = 0
                         answer_choice_ids = list(answer.get_choice_ids())
@@ -1611,23 +1612,15 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
                             # only take the first feedback / confused LO for now
                             break
-                    if len(feedback_strings) > 0:
-                        feedback = '; '.join(feedback_strings)
-                        return_data.update({
-                            'feedback': feedback
-                        })
-                    if len(confused_los) > 0:
-                        return_data.update({
-                            'confusedLearningObjectiveIds': confused_los
-                        })
-                if (autils.is_file_submission(local_data_map) or
+                elif (autils.is_file_submission(local_data_map) or
                         autils.is_short_answer(local_data_map)):
                     # right now assume one "correct" answer with generic feedback
                     answers = bank.get_answers(first_section.ident, question.ident)
                     feedback_strings = []
                     confused_los = []
                     for answer in answers:
-                        if (correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
+                        if (correct and
+                                    str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
@@ -1640,15 +1633,31 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 confused_los += answer.confused_learning_objective_ids
                             except (KeyError, AttributeError):
                                 pass
-                    if len(feedback_strings) > 0:
-                        feedback = '; '.join(feedback_strings)
-                        return_data.update({
-                            'feedback': feedback
-                        })
-                    if len(confused_los) > 0:
-                        return_data.update({
-                            'confusedLearningObjectiveIds': confused_los
-                        })
+                            # only take the first feedback / confused LO for now
+                            break
+                elif autils.is_inline_choice(local_data_map):
+                    answer_match = autils.match_submission_to_answer(answers, local_data_map)
+                    try:
+                        if any('qti' in answer_record
+                               for answer_record in answer_match.object_map['recordTypeIds']):
+                            feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                        else:
+                            feedback_strings.append(answer_match.feedback)
+                    except (KeyError, AttributeError):
+                        pass
+                    try:
+                        confused_los += answer_match.confused_learning_objective_ids
+                    except (KeyError, AttributeError):
+                        pass
+            if len(feedback_strings) > 0:
+                feedback = '; '.join(feedback_strings)
+                return_data.update({
+                    'feedback': feedback
+                })
+            if len(confused_los) > 0:
+                return_data.update({
+                    'confusedLearningObjectiveIds': confused_los
+                })
 
             return return_data
         except (PermissionDenied, IllegalState, NotFound, InvalidArgument, InvalidId) as ex:

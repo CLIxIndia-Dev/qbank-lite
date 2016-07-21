@@ -2963,7 +2963,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
 
 
-class MultipleChoiceTests(BaseAssessmentTestCase):
+class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -3026,6 +3026,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
+    def create_mw_fitb_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fill_in_the_blank_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_mw_sentence_item(self):
         url = '{0}/items'.format(self.url)
         self._mw_sentence_test_file.seek(0)
@@ -3049,7 +3057,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         return taken, new_offered
 
     def setUp(self):
-        super(MultipleChoiceTests, self).setUp()
+        super(MultipleChoiceAndMWTests, self).setUp()
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -3057,15 +3065,17 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
-        super(MultipleChoiceTests, self).tearDown()
+        super(MultipleChoiceAndMWTests, self).tearDown()
 
         self._mw_sentence_test_file.close()
         self._mc_multi_select_test_file.close()
         self._number_of_feedback_test_file.close()
+        self._mw_fill_in_the_blank_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4002,6 +4012,146 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         self.assertIn('Listen carefully', data['feedback'])
         self.assertEqual(data['feedback'].count('Listen carefully'), 1)
 
+    def test_can_submit_right_answer_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Yes, you are correct.', data['feedback'])
+        self.assertIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertNotIn('No, please listen to the story again.', data['feedback'])
+        self.assertNotIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_region_does_matter_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_can_submit_wrong_answer_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['a']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['b']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1', 'a']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': []
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4374,7 +4524,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -4384,8 +4534,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 for grandchild_index, grandchild in enumerate(child_contents):
                     if isinstance(grandchild, Tag):
                         for key, val in grandchild.attrs.iteritems():
-                            self.assertEqual(val,
-                                             expected_child_contents[grandchild_index].attrs[key])
+                            if key == "class":
+                                self.assertIn(val,
+                                                 expected_child_contents[grandchild_index].attrs[key])
+                            else:
+                                self.assertEqual(val,
+                                                 expected_child_contents[grandchild_index].attrs[key])
                     else:
                         self.assertEqual(grandchild.string.strip(),
                                          expected_child_contents[grandchild_index].string.strip())
@@ -4896,7 +5050,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -4964,7 +5118,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.extendedTextInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
+        expected = BeautifulSoup(item['question']['text']['text'], 'html.parser')
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
