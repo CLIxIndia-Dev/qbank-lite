@@ -38,6 +38,7 @@ QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-exte
 QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_ANSWER_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ANSWER_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -47,6 +48,7 @@ QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended
 QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
@@ -56,6 +58,7 @@ QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-
 QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
 QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
@@ -2986,6 +2989,14 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
         return new_offered
 
+    def create_drag_and_drop_item(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_item(self, bank_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -3069,6 +3080,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3079,6 +3091,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._mc_multi_select_test_file.close()
         self._number_of_feedback_test_file.close()
         self._mw_fill_in_the_blank_test_file.close()
+        self._drag_and_drop_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4155,6 +4168,93 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('No, please listen to the story again.', data['feedback'])
         self.assertIn('This is a drawing of a goldfish.', data['feedback'])
 
+    def test_can_submit_right_answer_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct!', data['feedback'])
+        self.assertNotIn('Please try again.', data['feedback'])
+
+    def test_can_submit_wrong_answer_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',  # swapped the order
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',  # swapped the order
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+                          'a'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4419,6 +4519,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4440,6 +4541,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._short_answer_test_file.close()
         self._mw_fill_in_the_blank_test_file.close()
         self._generic_upload_test_file.close()
+        self._drag_and_drop_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -5675,6 +5777,149 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             'Understanding shape properties through construction in LOGO'
         )
 
+    def test_can_provide_both_description_and_type_in_description_field(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['description']['text'],
+            'This is an example of a drag and drop story sequence question from the English team.'
+        )
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+    def test_can_upload_drag_and_drop_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            4
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            4
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        expected_values = ['id127df214-2a19-44da-894a-853948313dae',
+                           'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                           'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                           'ide576c9cc-d20e-4ba3-8881-716100b796a0']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'audioTestFile__mp3'
+        image_1_asset_label = 'medium6529396219987445959Picture1_png'
+        image_2_asset_label = 'medium5957728225939996885Picture2_png'
+        image_3_asset_label = 'medium4379732137514528329Picture3_png'
+        image_4_asset_label = 'medium3189220463551707716Picture4_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+        image_1_asset_id = item['question']['fileIds'][image_1_asset_label]['assetId']
+        image_1_asset_content_id = item['question']['fileIds'][image_1_asset_label]['assetContentId']
+        image_2_asset_id = item['question']['fileIds'][image_2_asset_label]['assetId']
+        image_2_asset_content_id = item['question']['fileIds'][image_2_asset_label]['assetContentId']
+        image_3_asset_id = item['question']['fileIds'][image_3_asset_label]['assetId']
+        image_3_asset_content_id = item['question']['fileIds'][image_3_asset_label]['assetContentId']
+        image_4_asset_id = item['question']['fileIds'][image_4_asset_label]['assetId']
+        image_4_asset_content_id = item['question']['fileIds'][image_4_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p class="">
+<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p class="">
+<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p class="">
+<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p class="">
+<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{9}/contents/{10}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_1_asset_id,
+                      image_1_asset_content_id,
+                      image_2_asset_id,
+                      image_2_asset_content_id,
+                      image_3_asset_id,
+                      image_3_asset_content_id,
+                      image_4_asset_id,
+                      image_4_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
 
 class FileUploadTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -5788,6 +6033,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
+
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):

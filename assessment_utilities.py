@@ -384,9 +384,11 @@ def is_ordered_choice(response):
     if isinstance(response['type'], list):
         return any(mc in r
                    for r in response['type']
-                   for mc in ['qti-order-interaction-mw-sentence'])
+                   for mc in ['qti-order-interaction-mw-sentence',
+                              'qti-order-interaction-object-manipulation'])
     else:
-        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence'])
+        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence',
+                                                     'qti-order-interaction-object-manipulation'])
 
 def is_short_answer(response):
     if isinstance(response['type'], list):
