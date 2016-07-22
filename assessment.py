@@ -346,7 +346,11 @@ class ItemsList(utilities.BaseClass):
                             if manifest_soup.resources.resource.metadata.general.description:
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
                                     if '[type]' in keyword.string:
-                                        keywords.append(keyword.string.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                        split_keywords = keyword.string.split('}')
+                                        type_tag = split_keywords[0]
+                                        keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                        if len(split_keywords) > 1:
+                                            description += '\n'.join(split_keywords[1::]).strip()
                                     else:
                                         description += keyword.string
                             if manifest_soup.resources.lom:
@@ -413,9 +417,11 @@ class ItemsList(utilities.BaseClass):
                                                   keywords=keywords)
                     question = bank.create_question(q_form)
 
-                    if str(new_item.genus_type) in [str(CHOICE_INTERACTION_GENUS),
-                                                    str(CHOICE_INTERACTION_MULTI_GENUS),
-                                                    str(ORDER_INTERACTION_MW_SENTENCE_GENUS)]:
+                    local_map = {
+                        'type': str(new_item.genus_type)
+                    }
+                    if (autils.is_multiple_choice(local_map) or
+                            autils.is_ordered_choice(local_map)):
                         choices = question.get_choices()
                     else:
                         choices = None
