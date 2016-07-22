@@ -41,7 +41,7 @@ class index:
 
 class version:
     def GET(self):
-        return '0.34'
+        return '0.35'
 
 class video_test:
     def GET(self):

@@ -4485,13 +4485,46 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
-        item_body.choiceInteraction.extract()
-        string_children = [c for c in item_body.contents if c.string.strip() != ""]
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml')
-        expected_children = [c for c in expected.contents if c.string.strip() != ""]
-        self.assertEqual(len(string_children), len(expected_children))
-        for index, child in enumerate(string_children):
-            self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+        image_1_asset_label = 'medium8701311014467393642draggable_green_dot_png'
+        image_2_asset_label = 'medium3854799028001516110draggable_h1i_PNG'
+        image_1_asset_id = item['question']['fileIds'][image_1_asset_label]['assetId']
+        image_1_asset_content_id = item['question']['fileIds'][image_1_asset_label]['assetContentId']
+
+        image_2_asset_id = item['question']['fileIds'][image_2_asset_label]['assetId']
+        image_2_asset_content_id = item['question']['fileIds'][image_2_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Which of the following is a circle?
+  </p>
+<choiceInteraction maxChoices="1" responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="20"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>
+     |__|
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="26"/>
+</p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      image_1_asset_id,
+                      image_1_asset_content_id,
+                      image_2_asset_id,
+                      image_2_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
     def test_xml_preserved(self):
         url = '{0}/items'.format(self.url)
@@ -4585,6 +4618,44 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        audio_asset_label = 'audioTestFile__mp3'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</p>
+<p>
+<strong>
+    Introducting a new student
+   </strong>
+</p>
+<p>
+   It's the first day of school after the summer vacations. A new student has joined the class
+  </p>
+<p>
+   Student 1 talks to the new student to make him/her feel comfortable.
+  </p>
+<p>
+   Student 2 talks about herself or himself and asks a few questions about the new school
+  </p>
+<uploadInteraction responseIdentifier="RESPONSE_1"/>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
     def test_can_upload_generic_qti_upload_interaction_file(self):
         url = '{0}/items'.format(self.url)
         self._generic_upload_test_file.seek(0)
@@ -4616,6 +4687,29 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
+        )
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        expected_string = """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+     Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+    </span>
+<br/>
+</strong>
+</p>
+<uploadInteraction responseIdentifier="RESPONSE_1"/>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
         )
 
     def test_can_upload_qti_order_interaction_file(self):
@@ -4694,6 +4788,75 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                            'id2cad48be-2782-4625-9669-dfcb2062bf3c']
         for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
             self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'ee_u1l01a01r05__mp3'
+        image_asset_label = 'medium8081173379968782030intersection_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+        image_asset_id = item['question']['fileIds'][image_asset_label]['assetId']
+        image_asset_content_id = item['question']['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class="noun">
+     Raju
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idcccac9f8-3b85-4a2f-a95c-1922dec5d04a">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id78ce22bf-559f-44a4-95ee-156f222ad510">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id3045d860-24b4-4b30-9ca1-72408a3bcc9b">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id2cad48be-2782-4625-9669-dfcb2062bf3c">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
     def test_audio_file_in_question_gets_saved(self):
         url = '{0}/items'.format(self.url)
@@ -5041,6 +5204,95 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
             self.assertEqual(value.string.strip(), expected_values[index])
 
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'ee_u1l01a01r04__mp3'
+        asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
+<p class="noun">
+     the airport
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
+<p class="verb">
+     are
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>
+<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
+<p class="adverb">
+     on top of
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
+<p class="noun">
+     Raju's
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
+<p class="noun">
+     the city
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
+<p class="noun">
+     the bicycle
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
+<p class="verb">
+     dropped
+    </p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
     def test_can_upload_mc_multi_select(self):
         url = '{0}/items'.format(self.url)
         self._mc_multi_select_test_file.seek(0)
@@ -5085,25 +5337,95 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
-        item_body.choiceInteraction.extract()
-        string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
-        expected_children = get_valid_contents(expected)
-        self.assertEqual(len(string_children), len(expected_children))
-        for index, child in enumerate(string_children):
-            if isinstance(child, Tag):
-                child_contents = get_valid_contents(child)
-                expected_child_contents = get_valid_contents(expected_children[index])
-                for grandchild_index, grandchild in enumerate(child_contents):
-                    if isinstance(grandchild, Tag):
-                        for key, val in grandchild.attrs.iteritems():
-                            self.assertEqual(val,
-                                             expected_child_contents[grandchild_index].attrs[key])
-                    else:
-                        self.assertEqual(grandchild.string.strip(),
-                                         expected_child_contents[grandchild_index].string.strip())
-            else:
-                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
+        diamond_label = 'medium5027634271179083907square_png'
+        rectangle_label = 'medium2852808971416763161rectangle_png'
+        parallel_label = 'medium5011234143907175882parallel_png'
+        regular_square_label = 'medium3312330729255923592regularsquare_png'
+
+        diamond_asset_id = item['question']['fileIds'][diamond_label]['assetId']
+        diamond_asset_content_id = item['question']['fileIds'][diamond_label]['assetContentId']
+        rectangle_asset_id = item['question']['fileIds'][rectangle_label]['assetId']
+        rectangle_asset_content_id = item['question']['fileIds'][rectangle_label]['assetContentId']
+        parallel_asset_id = item['question']['fileIds'][parallel_label]['assetId']
+        parallel_asset_content_id = item['question']['fileIds'][parallel_label]['assetContentId']
+        regular_square_asset_id = item['question']['fileIds'][regular_square_label]['assetId']
+        regular_square_asset_content_id = item['question']['fileIds'][regular_square_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p dir="ltr" id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60">
+   In the diagram below,
+  </p>
+<p>
+<strong>
+</strong>
+</p>
+<p dir="ltr">
+   A is the set of rectangles, and
+  </p>
+<p dir="ltr">
+   B is the set of rhombuses
+  </p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+<img alt="venn1" height="202" src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" width="288"/>
+</p>
+<p dir="ltr">
+</p>
+<p>
+<strong>
+    Which all shape(s) can be contained in the gray shaded area?
+    <br/>
+</strong>
+</p>
+<choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="186"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id47e56db8-ee16-4111-9bcc-b8ac9716bcd4">
+<p>
+<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="144"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="201"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="148"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">
+       None of these
+      </span>
+<br/>
+</strong>
+</p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      parallel_asset_id,
+                      parallel_asset_content_id,
+                      regular_square_asset_id,
+                      regular_square_asset_content_id,
+                      rectangle_asset_id,
+                      rectangle_asset_content_id,
+                      diamond_asset_id,
+                      diamond_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
 
     def test_can_upload_short_answer(self):
         url = '{0}/items'.format(self.url)
@@ -5153,26 +5475,32 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
-        item_body.extendedTextInteraction.extract()
-        string_children = get_valid_contents(item_body)
+        asset_label = item['question']['fileIds'].keys()[0]
+        asset_id = item['question']['fileIds'][asset_label]['assetId']
+        asset_content_id = item['question']['fileIds'][asset_label]['assetContentId']
 
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
-        expected_children = get_valid_contents(expected)
-        self.assertEqual(len(string_children), len(expected_children))
-        for index, child in enumerate(string_children):
-            if isinstance(child, Tag):
-                child_contents = get_valid_contents(child)
-                expected_child_contents = get_valid_contents(expected_children[index])
-                for grandchild_index, grandchild in enumerate(child_contents):
-                    if isinstance(grandchild, Tag):
-                        for key, val in grandchild.attrs.iteritems():
-                            self.assertEqual(val,
-                                             expected_child_contents[grandchild_index].attrs[key])
-                    else:
-                        self.assertEqual(grandchild.string.strip(),
-                                         expected_child_contents[grandchild_index].string.strip())
-            else:
-                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+        expected_string = """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04bd-94f0-a53d-94c5c97ab6e6">
+     Which of the following figure(s) is/are parallelogram(s)? Give a reason for your choice.
+    </span>
+<br/>
+</strong>
+</p>
+<p>
+<strong>
+<img alt="A set of four shapes." height="204" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="703"/>
+</strong>
+</p>
+<extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
     def test_can_upload_mw_fill_in_the_blank(self):
         url = '{0}/items'.format(self.url)
@@ -5237,51 +5565,102 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
-        num_expected_choices_response_1 = len(item['question']['choices']['RESPONSE_1'])
-        num_choices_response_1 = 0
-        num_expected_choices_response_2 = len(item['question']['choices']['RESPONSE_2'])
-        num_choices_response_2 = 0
-
         # now verify the QTI XML matches the JSON format
         url = '{0}/{1}/qti'.format(url, unquote(item['id']))
         req = self.app.get(url)
         self.ok(req)
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
-        string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
-        expected_children = get_valid_contents(expected)
-        self.assertEqual(len(string_children), len(expected_children))
-        for index, child in enumerate(string_children):
-            if isinstance(child, Tag):
-                child_contents = get_valid_contents(child)
-                expected_child_contents = get_valid_contents(expected_children[index])
-                for grandchild_index, grandchild in enumerate(child_contents):
-                    if isinstance(grandchild, Tag):
-                        if grandchild.name == 'inlineChoiceInteraction':
-                            response_id = grandchild.attrs['responseIdentifier']
-                            for inline_choice in grandchild.find_all('inlineChoice'):
-                                if response_id == 'RESPONSE_1':
-                                    num_choices_response_1 += 1
-                                else:
-                                    num_choices_response_2 += 1
-                        else:
-                            for key, val in grandchild.attrs.iteritems():
-                                if key not in ["data", "src"]: #don't check the asset links
-                                    if key == 'class':
-                                        self.assertIn(val,
-                                                      expected_child_contents[grandchild_index].attrs[key])
-                                    else:
-                                        self.assertEqual(val,
-                                                         expected_child_contents[grandchild_index].attrs[key])
-                    else:
-                        self.assertEqual(grandchild.string.strip(),
-                                         expected_child_contents[grandchild_index].string.strip())
-            else:
-                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+        audio_asset_label = 'ee_u1l01a01r04__mp3'
+        image_asset_label = 'medium2741930469600907330bus_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
 
-        self.assertEqual(num_choices_response_1, num_expected_choices_response_1)
-        self.assertEqual(num_choices_response_2, num_expected_choices_response_2)
+        image_asset_id = item['question']['fileIds'][image_asset_label]['assetId']
+        image_asset_content_id = item['question']['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+<p>
+<p class="noun">
+     Raju's
+    </p>
+<p class="noun">
+     bags
+    </p>
+<p class="verb">
+     are
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="prep">
+      on
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1_1_1_1_1_1">
+<p class="under">
+      under
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1_1_1_1_1_1">
+<p class="verb">
+      lost
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1_1_1_1_1_1">
+<p class="prep">
+      on top of
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+<p>
+<p class="noun">
+     the bus
+    </p>
+<p class="prep">
+     in the
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_2" shuffle="true">
+<inlineChoice identifier="[_1_1_1_1_1_1">
+<p class="noun">
+      city
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="noun">
+      town
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1_1_1_1_1">
+<p class="noun">
+      station
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1_1_1_1_1">
+<p class="noun">
+      airport
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+   .
+  </p>
+<p>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+</p>
+<p>
+<img alt="This is a picture of a bus." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
     def test_description_saved_if_provided(self):
         url = '{0}/items'.format(self.url)
