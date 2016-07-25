@@ -75,7 +75,15 @@ FILESYSTEM_1 = {
             'displayName': 'Path to local filesystem datastore',
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
-                {'value': DATA_STORE_PATH, 'priority': 1}  # Mac
+                {'value': DATA_STORE_PATH, 'priority': 1}
+            ]
+        },
+        'magicItemLookupSessions': {
+            'syntax': 'STRING',
+            'displayName': 'Which magic item lookup sessions to try',
+            'description': 'To handle magic IDs.',
+            'values': [
+                {'value': 'records.assessment.qti.numeric_response_records.MagicNumericResponseItemLookupSession', 'priority': 1}
             ]
         },
     },

@@ -86,6 +86,14 @@ def configure_dlkit():
                     {'value': TEST_DATA_STORE, 'priority': 1}  # Mac
                 ]
             },
+            'magicItemLookupSessions': {
+                'syntax': 'STRING',
+                'displayName': 'Which magic item lookup sessions to try',
+                'description': 'To handle magic IDs.',
+                'values': [
+                    {'value': 'records.assessment.qti.numeric_response_records.MagicNumericResponseItemLookupSession', 'priority': 1}
+                ]
+            },
         },
 
     }

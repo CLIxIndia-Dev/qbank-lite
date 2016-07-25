@@ -4719,7 +4719,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['texts']['feedback'],
-            '<p>Answer submitted</p>'
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
         )
 
         self.assertNotEqual(
@@ -4790,7 +4790,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['texts']['feedback'],
-            '<p>Answer submitted</p>'
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
         )
 
         self.assertNotEqual(
