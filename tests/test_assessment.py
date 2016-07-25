@@ -36,6 +36,7 @@ QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-inte
 QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ANSWER_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-numeric-response'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -46,6 +47,7 @@ QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interact
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -56,6 +58,7 @@ QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-numeric-response'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -4520,6 +4523,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4542,6 +4547,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file.close()
         self._generic_upload_test_file.close()
         self._drag_and_drop_test_file.close()
+        self._simple_numeric_response_test_file.close()
+        self._floating_point_numeric_input_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -5919,6 +5926,217 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_can_upload_simple_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._simple_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._simple_numeric_response_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['step'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve: {var1} + {var2} =
+   <textEntryInteraction responseIdentifier="RESPONSE_1"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random integers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = int(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1 <= var1 <= 10)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_upload_floating_point_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._floating_point_numeric_input_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._floating_point_numeric_input_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['format'],
+            '%.4f'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve:
+   <printedVariable format="%.4f" identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random numbers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = float(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1.0 <= var1 <= 10.0)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
 
 
 class FileUploadTests(BaseAssessmentTestCase):

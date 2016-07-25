@@ -24,6 +24,7 @@ CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -463,7 +464,8 @@ class ItemsList(utilities.BaseClass):
                                                       feedback_choice_id='incorrect')
 
                             bank.create_answer(a_form)
-                    elif str(new_item.genus_type) == str(INLINE_CHOICE_INTERACTION_GENUS):
+                    elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
+                                                      str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
                         # create a generic one
                         a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                         a_form.load_from_qti_item(qti_xml,
