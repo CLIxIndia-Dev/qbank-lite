@@ -69,6 +69,7 @@ QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**QUESTION_GENUS_TYPES['qti
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
+N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
@@ -4309,7 +4310,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         bank.add_item(new_assessment.ident, item_id)
 
-        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [REVIEWABLE_OFFERED,
+                                                                                  N_OF_M_OFFERED])
         new_offered = bank.create_assessment_offered(form)
 
         return new_offered
@@ -4367,7 +4369,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
 
-        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [REVIEWABLE_TAKEN])
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
