@@ -4,7 +4,8 @@ import re
 import web
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
+from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
+    IllegalState
 from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
 from dlkit_edx.proxy_example import TestRequest
@@ -302,7 +303,7 @@ def get_question_status(bank, section, question_id):
     """
     try:
         student_response = bank.get_response(section.ident, question_id)
-    except NotFound:
+    except (NotFound, IllegalState):
         student_response = None
 
     if student_response:
@@ -340,6 +341,9 @@ def get_response_submissions(response):
         submission = float(response['decimalValue'])
     elif is_inline_choice(response):
         submission = response['inlineRegions']
+    elif is_numeric_response(response):
+        # just take the first region for now
+        submission = response[response.keys()[0]]
     else:
         raise Unsupported
     return submission
@@ -379,6 +383,14 @@ def is_multiple_choice(response):
                                                      'multi-choice-with-files-and-feedback',
                                                      'qti-choice-interaction',
                                                      'qti-choice-interaction-multi-select'])
+
+def is_numeric_response(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-numeric-response'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-numeric-response'])
 
 def is_ordered_choice(response):
     if isinstance(response['type'], list):
@@ -845,6 +857,12 @@ def update_response_form(response, form):
             form.add_inline_region(inline_region)
             for choice_id in data['choiceIds']:
                 form.add_choice_id(choice_id, inline_region)
+    elif is_numeric_response(response):
+        region = [k for k in response.keys()if k != 'type'][0]
+        try:
+            form.add_integer_value(int(response[region]), region)
+        except ValueError:
+            form.add_decimal_value(float(response[region]), region)
     else:
         raise Unsupported()
     return form
@@ -877,6 +895,13 @@ def validate_response(response, answers):
                     correct = True
     elif is_inline_choice(response):
         correct = evaluate_inline_choice(answers, submission)
+    elif is_numeric_response(response):
+        right_answers = [a for a in answers
+                         if is_right_answer(a)]
+
+        for answer in right_answers:
+            correct = answer.is_match(submission)
+            break  # only take the first right answer for now
     else:
         for answer in answers:
             ans_type = answer.object_map['recordTypeIds'][0]

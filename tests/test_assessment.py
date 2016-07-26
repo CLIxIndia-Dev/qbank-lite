@@ -19,6 +19,8 @@ from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
     QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES
 
+from sympy import sympify
+
 from testing_utilities import BaseTestCase, get_managers, create_test_bank, get_valid_contents
 from urllib import unquote, quote
 
@@ -36,6 +38,7 @@ QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-inte
 QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ANSWER_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-numeric-response'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ANSWER_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -46,6 +49,7 @@ QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interact
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -56,6 +60,7 @@ QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-numeric-response'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
@@ -2603,6 +2608,39 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertIn(test_student, data['takingAgentId'])
 
+    def test_can_finish_taken_to_get_new_taken(self):
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+        test_student = 'foobar'
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        url = '{0}/assessmentstaken/{1}/finish'.format(self.url,
+                                                       taken_id)
+
+        req = self.app.post(url,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken2 = json.loads(req.body)
+        taken2_id = unquote(taken2['id'])
+
+        self.assertNotEqual(taken_id, taken2_id)
+
 
 class BasicServiceTests(BaseAssessmentTestCase):
     """Test the views for getting the basic service calls
@@ -4276,6 +4314,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         return new_offered
 
+    def create_float_numeric_response_item(self):
+        url = '{0}items'.format(self.url)
+        self._float_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._float_numeric_response_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_item(self, bank_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -4303,6 +4349,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_simple_numeric_response_item(self):
+        url = '{0}items'.format(self.url)
+        self._simple_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._simple_numeric_response_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -4323,10 +4377,16 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
+        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/'
 
     def tearDown(self):
         super(NumericAnswerTests, self).tearDown()
+
+        self._simple_numeric_response_test_file.close()
+        self._float_numeric_response_test_file.close()
 
     def test_can_create_item(self):
         self.assertEqual(
@@ -4444,6 +4504,255 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             'No feedback available.'
         )
 
+    def test_can_submit_right_answer_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct!', data['feedback'])
+        self.assertNotIn('Incorrect ...', data['feedback'])
+
+    def test_can_submit_wrong_answer_simple_numeric(self):
+        mc_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+        payload = {
+            'RESPONSE_1': str(right_answer + 1),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_cannot_submit_non_integer_to_simple_numeric(self):
+        mc_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+        payload = {
+            'RESPONSE_1': str(right_answer) + '.0',
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_getting_same_question_twice_returns_same_parameter_values_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        # make sure the text matches the ID params
+        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expected_expression = '{0} + {1}'.format(question_1_params['var1'],
+                                                 question_1_params['var2'])
+        self.assertEqual(
+            question_expression,
+            expected_expression
+        )
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
+                                                              unquote(str(taken.ident)),
+                                                              question_1_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data1 = self.json(req)
+        q1 = data1['text']['text']
+
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data2 = self.json(req)
+            q2 = data2['text']['text']
+            self.assertEqual(q1, q2)
+
+    def test_can_submit_right_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct!', data['feedback'])
+        self.assertNotIn('Incorrect ...', data['feedback'])
+
+    def test_can_submit_wrong_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer - 0.1),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_cannot_submit_non_float_to_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(int(right_answer)),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_getting_same_question_twice_returns_same_parameter_values_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        # make sure the text matches the ID params
+        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expected_expression = '{0} + {1}'.format("%.4f" % (question_1_params['var1'],),
+                                                 question_1_params['var2'])
+        self.assertEqual(
+            question_expression,
+            expected_expression
+        )
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
+                                                              unquote(str(taken.ident)),
+                                                              question_1_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data1 = self.json(req)
+        q1 = data1['text']['text']
+
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data2 = self.json(req)
+            q2 = data2['text']['text']
+            self.assertEqual(q1, q2)
+
 
 class QTIEndpointTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4520,6 +4829,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4542,6 +4853,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file.close()
         self._generic_upload_test_file.close()
         self._drag_and_drop_test_file.close()
+        self._simple_numeric_response_test_file.close()
+        self._floating_point_numeric_input_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -4712,7 +5025,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['texts']['feedback'],
-            '<p>Answer submitted</p>'
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
         )
 
         self.assertNotEqual(
@@ -4783,7 +5096,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['texts']['feedback'],
-            '<p>Answer submitted</p>'
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
         )
 
         self.assertNotEqual(
@@ -5919,6 +6232,220 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_can_upload_simple_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._simple_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._simple_numeric_response_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['step'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve: {var1} + {var2} =
+   <textEntryInteraction responseIdentifier="RESPONSE_1"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random integers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = int(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1 <= var1 <= 10)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        print item['question']['id']
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_upload_floating_point_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._floating_point_numeric_input_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._floating_point_numeric_input_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['format'],
+            '%.4f'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve:
+   <printedVariable format="%.4f" identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random numbers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = float(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1.0 <= var1 <= 10.0)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
 
 
 class FileUploadTests(BaseAssessmentTestCase):
