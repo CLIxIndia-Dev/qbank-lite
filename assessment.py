@@ -390,9 +390,16 @@ class ItemsList(utilities.BaseClass):
                         parent_item = None
                         add_provenance_parent = False
 
-                    form = bank.get_item_form_for_create([QTI_ITEM,
-                                                          PROVENANCE_ITEM_RECORD,
-                                                          WRONG_ANSWER_ITEM])
+                    # if this is a numeric response, do not add the wrong answer item
+                    # record, because need that to go through the magical items
+                    if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD]
+                    else:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD,
+                                              WRONG_ANSWER_ITEM]
+                    form = bank.get_item_form_for_create(items_records_list)
                     form.display_name = soup.assessmentItem['title']
                     form.description = description or 'QTI AssessmentItem'
                     form.load_from_qti_item(qti_xml,
@@ -1417,12 +1424,6 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             else:
                 data = utilities.extract_items(questions)
 
-            # if 'files' in self.data():
-            #     for question in data['data']['results']:
-            #         if 'fileIds' in question:
-            #             question['files'] = bank.get_question(first_section.ident,
-            #                                                   utilities.clean_id(question['id'])).get_files()
-
             return data
         except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1448,10 +1449,13 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
             status = autils.get_question_status(bank,
                                                 first_section,
                                                 utilities.clean_id(question_id))
+            data = json.loads(data)
             data.update(status)
 
-            if 'fileIds' in data:
-                data['files'] = question.get_files()
+            # if 'fileIds' in data:
+            #     data['files'] = question.get_files()
+
+            data = json.dumps(data)
             return data
         except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1631,7 +1635,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     confused_los = []
                     for answer in answers:
                         if (correct and
-                                    str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
+                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
@@ -1660,6 +1664,28 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         confused_los += answer_match.confused_learning_objective_ids
                     except (KeyError, AttributeError):
                         pass
+                elif autils.is_numeric_response(local_data_map):
+                    answers = bank.get_answers(first_section.ident, question.ident)
+                    feedback_strings = []
+                    confused_los = []
+                    for answer in answers:
+                        if ((correct and
+                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)) or (
+                                not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
+                            try:
+                                if any('qti' in answer_record
+                                       for answer_record in answer.object_map['recordTypeIds']):
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                                else:
+                                    feedback_strings.append(answer.feedback)
+                            except (KeyError, AttributeError):
+                                pass
+                            try:
+                                confused_los += answer.confused_learning_objective_ids
+                            except (KeyError, AttributeError):
+                                pass
+                            # only take the first feedback / confused LO for now
+                            break
             if len(feedback_strings) > 0:
                 feedback = '; '.join(feedback_strings)
                 return_data.update({
