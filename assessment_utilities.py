@@ -862,7 +862,10 @@ def update_response_form(response, form):
         try:
             form.add_integer_value(int(response[region]), region)
         except ValueError:
-            form.add_decimal_value(float(response[region]), region)
+            try:
+                form.add_decimal_value(float(response[region]), region)
+            except ValueError:
+                form.set_text(str(response[region]))
     else:
         raise Unsupported()
     return form
