@@ -4565,6 +4565,37 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.assertNotIn('Correct!', data['feedback'])
         self.assertIn('Incorrect ...', data['feedback'])
 
+    def test_empty_string_evaluates_as_wrong_answer_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': "",
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+
     def test_cannot_submit_non_integer_to_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
@@ -4678,6 +4709,36 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         payload = {
             'RESPONSE_1': str(right_answer - 0.1),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_empty_string_evaluates_as_wrong_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': "",
             'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
