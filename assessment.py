@@ -408,6 +408,8 @@ class ItemsList(utilities.BaseClass):
                         form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
+                        # and also archive the parent
+                        autils.archive_item(bank, parent_item)
                     new_item = bank.create_item(form)
 
                     # ID Alias with the QTI ID from Onyx
