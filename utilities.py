@@ -185,7 +185,7 @@ def handle_exceptions(ex):
         raise web.Forbidden()
     elif isinstance(ex, IllegalState):
         web.message = 'IllegalState {}'.format(str(ex))
-        raise web.NotFound(message=str(ex))
+        raise web.NotAcceptable()
     else:
         web.message = 'Bad request {}'.format(ex)
         raise web.NotFound()

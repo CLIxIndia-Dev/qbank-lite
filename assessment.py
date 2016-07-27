@@ -1558,7 +1558,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             try:
                 local_data_map['files'] = {x['submission'].filename: x['submission'].file}
             except AttributeError:
-                pass
+                if autils.is_file_submission(local_data_map):
+                    raise IllegalState('You must supply a file with an audio response question')
 
             update_form = autils.update_response_form(local_data_map, response_form)
             bank.submit_response(first_section.ident, question.ident, update_form)

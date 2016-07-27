@@ -6624,6 +6624,22 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
 
+    def test_empty_response_without_file_throws_error(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._generic_upload_response_test_file.seek(0)
+        self.assertRaises(AppError,
+                          self.app.post,
+                          url)
+
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
