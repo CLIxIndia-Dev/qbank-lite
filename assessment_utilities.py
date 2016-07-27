@@ -122,6 +122,39 @@ def add_files_to_form(form, files):
         form.add_file(file_data, _clean(label), genus, ac_genus_type, display_name, description)
     return form
 
+def archive_bank_names(original_id):
+    return 'Archive for {0}'.format(str(original_id))
+
+def archive_bank_genus():
+    return Type('bank-genus-type%3Aclix-archive%40ODL.MIT.EDU')
+
+def archive_item(original_bank, item):
+    """archive this item to a clone of the original bank
+    Create the archive bank if it does not exist"""
+    am = get_assessment_manager()
+
+    querier = am.get_bank_query()
+
+    expected_name = archive_bank_names(original_bank.ident)
+    expected_genus = archive_bank_genus()
+
+    querier.match_display_name(expected_name, match=True)
+    querier.match_genus_type(expected_genus, match=True)
+
+    banks = am.get_banks_by_query(querier)
+    if banks.available() == 0:
+        # create the bank
+        form = am.get_bank_form_for_create([])
+        form.set_genus_type(expected_genus)
+        form.display_name = expected_name
+        form.description = 'For Archiving Items'
+        archive = am.create_bank(form)
+    else:
+        archive = banks.next()
+
+    am.assign_item_to_bank(item.ident, archive.ident)
+    am.unassign_item_from_bank(item.ident, original_bank.ident)
+
 def check_assessment_has_items(bank, assessment_id):
     """
     Before creating an assessment offered, check that the assessment
