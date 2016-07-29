@@ -15,6 +15,8 @@ from records.registry import ANSWER_GENUS_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
     ASSESSMENT_RECORD_TYPES
 
+from urllib import quote
+
 import assessment_utilities as autils
 import utilities
 
@@ -84,10 +86,28 @@ class AssessmentBanksList(utilities.BaseClass):
         """
         List all available assessment banks
         """
+        def _unescaped(string):
+            return ':' in string and '@' in string
         try:
-
             am = autils.get_assessment_manager()
-            assessment_banks = am.banks
+            inputs = web.input()
+            if 'displayName' in inputs or 'genusTypeId' in inputs:
+                querier = am.get_bank_query()
+                import pdb
+                pdb.set_trace()
+                if 'displayName' in inputs:
+                    if _unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'genusTypeId' in inputs:
+                    if (_unescaped(inputs['genusTypeId'])):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                assessment_banks = am.get_banks_by_query(querier)
+            else:
+                assessment_banks = am.banks
             banks = utilities.extract_items(assessment_banks)
             return banks
         except PermissionDenied as ex:
