@@ -5594,14 +5594,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         items = self.json(req)
         self.assertEqual(len(items), 2)
-        self.assertEqual(
-            items[0]['id'],
-            original_item_id
-        )
-        self.assertEqual(
-            items[1]['id'],
-            item2['id']
-        )
+        item_ids = [i['id'] for i in items]
+        self.assertIn(original_item_id, item_ids)
+        self.assertIn(item2['id'], item_ids)
 
         req = self.app.get(url)
         self.ok(req)
