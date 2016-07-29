@@ -93,8 +93,6 @@ class AssessmentBanksList(utilities.BaseClass):
             inputs = web.input()
             if 'displayName' in inputs or 'genusTypeId' in inputs:
                 querier = am.get_bank_query()
-                import pdb
-                pdb.set_trace()
                 if 'displayName' in inputs:
                     if _unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
