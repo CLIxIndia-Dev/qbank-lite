@@ -5513,7 +5513,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         items = self.json(req)
 
         self.assertEqual(len(items), 2)  # because there is another question from the setup
-        self.assertEqual(items[1]['id'], item2['id'])
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item2['id'], item_ids)
 
         req = self.app.get(banks_url)
         self.ok(req)
@@ -5559,7 +5560,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         items = self.json(req)
 
         self.assertEqual(len(items), 2)  # because there is another question from the setup
-        self.assertEqual(items[1]['id'], item2['id'])
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item2['id'], item_ids)
 
         req = self.app.get(banks_url)
         self.ok(req)
@@ -5606,7 +5608,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         items = self.json(req)
 
         self.assertEqual(len(items), 2)  # because there is another question from the setup
-        self.assertEqual(items[1]['id'], item3['id'])
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item3['id'], item_ids)
 
 
     def test_feedback_gets_set_on_qti_mc_upload(self):
