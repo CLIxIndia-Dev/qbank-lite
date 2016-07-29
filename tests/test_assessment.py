@@ -5531,6 +5531,84 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             original_item_id
         )
 
+    def test_archiving_only_creates_one_archive_bank(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+        original_item_id = item['id']
+
+        banks_url = '/api/v1/assessment/banks'
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 1)
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item2 = self.json(req)
+
+        self.assertNotEqual(item['id'], item2['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+
+        self.assertEqual(len(items), 2)  # because there is another question from the setup
+        self.assertEqual(items[1]['id'], item2['id'])
+
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 2)
+        archive_bank = [b for b in banks if 'archive' in b['genusTypeId']][0]
+
+        archive_bank_items_url = '/api/v1/assessment/banks/{0}/items'.format(archive_bank['id'])
+        req = self.app.get(archive_bank_items_url)
+        self.ok(req)
+        items = self.json(req)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(
+            items[0]['id'],
+            original_item_id
+        )
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item3 = self.json(req)
+
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 2)
+
+        req = self.app.get(archive_bank_items_url)
+        self.ok(req)
+        items = self.json(req)
+        self.assertEqual(len(items), 2)
+        self.assertEqual(
+            items[0]['id'],
+            original_item_id
+        )
+        self.assertEqual(
+            items[1]['id'],
+            item2['id']
+        )
+
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+
+        self.assertEqual(len(items), 2)  # because there is another question from the setup
+        self.assertEqual(items[1]['id'], item3['id'])
+
+
     def test_feedback_gets_set_on_qti_mc_upload(self):
         url = '{0}/items'.format(self.url)
         self._mc_feedback_test_file.seek(0)
