@@ -131,6 +131,13 @@ def archive_bank_genus():
 def archive_item(original_bank, item):
     """archive this item to a clone of the original bank
     Create the archive bank if it does not exist"""
+
+    # NOTE: instead of using two query params, the expected_name
+    #       AND the expected_genus, we need to resort to using
+    #       only the genus and match on the name ourselves
+    #       There seems to be mismatching regex behavior between
+    #       the deployment Ubuntu and Mac, where Mac will find
+    #       the archive files using both params, but Ubuntu will not...
     am = get_assessment_manager()
 
     querier = am.get_bank_query()
@@ -138,7 +145,7 @@ def archive_item(original_bank, item):
     expected_name = archive_bank_names(original_bank.ident)
     expected_genus = archive_bank_genus()
 
-    querier.match_display_name(expected_name, match=True)
+    # querier.match_display_name(expected_name, match=True)
     querier.match_genus_type(expected_genus, match=True)
 
     banks = am.get_banks_by_query(querier)
@@ -150,8 +157,19 @@ def archive_item(original_bank, item):
         form.description = 'For Archiving Items'
         archive = am.create_bank(form)
     else:
-        archive = banks.next()
-
+        archive = None
+        for bank in banks:
+            if bank.display_name.text == expected_name:
+                archive = bank
+                break
+        if archive is None:
+            # create the bank
+            form = am.get_bank_form_for_create([])
+            form.set_genus_type(expected_genus)
+            form.display_name = expected_name
+            form.description = 'For Archiving Items'
+            archive = am.create_bank(form)
+        
     am.assign_item_to_bank(item.ident, archive.ident)
     am.unassign_item_from_bank(item.ident, original_bank.ident)
 
