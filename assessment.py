@@ -364,7 +364,7 @@ class ItemsList(utilities.BaseClass):
                             manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
                             if manifest_soup.resources.resource.metadata.general.description:
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
-                                    if keyword is not None:
+                                    if keyword is not None and keyword.string is not None:
                                         if '[type]' in keyword.string:
                                             split_keywords = keyword.string.split('}')
                                             type_tag = split_keywords[0]
