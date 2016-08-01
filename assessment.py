@@ -364,14 +364,15 @@ class ItemsList(utilities.BaseClass):
                             manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
                             if manifest_soup.resources.resource.metadata.general.description:
                                 for keyword in manifest_soup.resources.resource.metadata.general.description:
-                                    if '[type]' in keyword.string:
-                                        split_keywords = keyword.string.split('}')
-                                        type_tag = split_keywords[0]
-                                        keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
-                                        if len(split_keywords) > 1:
-                                            description += '\n'.join(split_keywords[1::]).strip()
-                                    else:
-                                        description += keyword.string
+                                    if keyword is not None:
+                                        if '[type]' in keyword.string:
+                                            split_keywords = keyword.string.split('}')
+                                            type_tag = split_keywords[0]
+                                            keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                            if len(split_keywords) > 1:
+                                                description += '\n'.join(split_keywords[1::]).strip()
+                                        else:
+                                            description += keyword.string
                             if manifest_soup.resources.lom:
                                 for classification in manifest_soup.resources.lom.find_all('classification'):
                                     if classification.purpose.value.string == 'target audience':
