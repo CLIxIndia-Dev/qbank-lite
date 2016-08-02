@@ -1579,7 +1579,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             try:
                 local_data_map['files'] = {x['submission'].filename: x['submission'].file}
             except AttributeError:
-                if autils.is_file_submission(local_data_map):
+                if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
+                    # TODO: for now, take empty response for MW Sandbox
                     raise IllegalState('You must supply a file with an audio response question')
 
             update_form = autils.update_response_form(local_data_map, response_form)

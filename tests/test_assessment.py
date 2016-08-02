@@ -5753,10 +5753,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertEqual(
-            len(item['answers'][0]['choiceIds']),
-            13
-        )
+        # deprecated -- there should be no answer choices; is a file submission if anything
+        # self.assertEqual(
+        #     len(item['answers'][0]['choiceIds']),
+        #     13
+        # )
         self.assertEqual(
             len(item['question']['choices']),
             13
@@ -6676,6 +6677,14 @@ class FileUploadTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mw_sandbox_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -6697,6 +6706,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'r')
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._generic_upload_response_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -6707,6 +6717,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self._audio_recording_test_file.close()
         self._generic_upload_test_file.close()
         self._generic_upload_response_test_file.close()
+        self._mw_sandbox_test_file.close()
 
     def test_can_send_audio_file_response_for_audio_rt(self):
         url = '{0}/items'.format(self.url)
@@ -6721,7 +6732,7 @@ class FileUploadTests(BaseAssessmentTestCase):
                                                                      unquote(item['id']))
         self._audio_response_file.seek(0)
         req = self.app.post(url,
-                            upload_files=[('submission', 'submissionFile', self._audio_response_file.read())])
+                            upload_files=[('submission', 'submissionFile.wav', self._audio_response_file.read())])
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
@@ -6757,10 +6768,35 @@ class FileUploadTests(BaseAssessmentTestCase):
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(self._taken.ident)),
                                                                      unquote(item['id']))
-        self._generic_upload_response_test_file.seek(0)
         self.assertRaises(AppError,
                           self.app.post,
                           url)
+
+    def test_can_submit_file_to_mw_sandbox(self):
+        sandbox = self.create_mw_sandbox_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(sandbox['id']))
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'myRecording.wav', self._audio_recording_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+    def test_can_do_empty_response_for_mw_sandbox(self):
+        sandbox = self.create_mw_sandbox_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(sandbox['id']))
+        req = self.app.post(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):

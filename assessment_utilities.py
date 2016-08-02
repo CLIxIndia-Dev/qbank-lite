@@ -405,11 +405,13 @@ def is_file_submission(response):
                    for r in response['type']
                    for mc in ['files-submission',
                               'qti-upload-interaction-audio',
-                              'qti-upload-interaction-generic'])
+                              'qti-upload-interaction-generic',
+                              'qti-order-interaction-mw-sandbox'])
     else:
         return any(mc in response['type'] for mc in ['files-submission',
                                                      'qti-upload-interaction-audio',
-                                                     'qti-upload-interaction-generic'])
+                                                     'qti-upload-interaction-generic',
+                                                     'qti-order-interaction-mw-sandbox'])
 
 def is_inline_choice(response):
     if isinstance(response['type'], list):
@@ -434,6 +436,14 @@ def is_multiple_choice(response):
                                                      'multi-choice-with-files-and-feedback',
                                                      'qti-choice-interaction',
                                                      'qti-choice-interaction-multi-select'])
+
+def is_mw_sandbox(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-order-interaction-mw-sandbox'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sandbox'])
 
 def is_numeric_response(response):
     if isinstance(response['type'], list):
@@ -881,21 +891,24 @@ def update_response_form(response, form):
             form.add_choice_id(response['choiceIds'])
             # raise InvalidArgument('ChoiceIds should be a list.')
     elif is_file_submission(response):
-        for file_label, file_data in response['files'].iteritems():
-            data_package = DataInputStream(file_data)
-            data_package.name = file_label  # assumption ..
-            extension = file_label.split('.')[-1]
-            ac_genus_type = Type(identifier=extension,
-                                 namespace='asset-content-genus-type',
-                                 authority='ODL.MIT.EDU')
+        try:
+            for file_label, file_data in response['files'].iteritems():
+                data_package = DataInputStream(file_data)
+                data_package.name = file_label  # assumption ..
+                extension = file_label.split('.')[-1]
+                ac_genus_type = Type(identifier=extension,
+                                     namespace='asset-content-genus-type',
+                                     authority='ODL.MIT.EDU')
 
-            try:
-                form.add_file(data_package, file_label)
-            except AttributeError:
-                form.set_file(asset_data=data_package,
-                              asset_name=file_label,
-                              asset_content_type=ac_genus_type)
-                break
+                try:
+                    form.add_file(data_package, file_label)
+                except AttributeError:
+                    form.set_file(asset_data=data_package,
+                                  asset_name=file_label,
+                                  asset_content_type=ac_genus_type)
+                    break
+        except KeyError:
+            pass  # perhaps no file passed in?
     elif is_short_answer(response):
         form.set_text(response['text'])
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
