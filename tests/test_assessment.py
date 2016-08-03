@@ -4894,6 +4894,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
         self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
         self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4918,6 +4919,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file.close()
         self._simple_numeric_response_test_file.close()
         self._floating_point_numeric_input_test_file.close()
+        self._video_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -6632,6 +6634,61 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_video_tags_unescaped_in_qti(self):
+        url = '{0}/items'.format(self.url)
+        self._video_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile.zip', self._video_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+        item_body.choiceInteraction.extract()
+
+        expected_string = """<itemBody>
+<p>
+<span style="font-size: 12.8px;">
+<video class="video-js vis-skin-colors-clix vjs-big-play-centered" controls="controls" data-setup="{}" height="360" id="video-js-test" preload="auto" width="480">
+<source src="video-js-test.mp4" type=\'video/mp4; codecs="avc1.42E01E, mp4a.40.2"\'/>
+<track kind="captions" label="English" src="video-js-test-en.vtt" srclang="en" type="text/vtt"/>
+<track kind="captions" label="Hindi" src="video-js-test-hi.vtt" srclang="hi" type="text/vtt"/>
+<track kind="captions" label="Telegu" src="video-js-test-te.vtt" srclang="te" type="text/vtt"/>
+<p class="vjs-no-js">
+      To view this video please enable JavaScript, and consider upgrading to a web browser that
+      <a href="http://videojs.com/html5-video-support/" target="_blank">
+       supports HTML5 video
+      </a>
+</p>
+</video>
+</span>
+</p>
+<p>
+<span style="font-size: 12.8px;">
+    Was Raju\'s father on the bus?
+   </span>
+</p>
+
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
 
 class FileUploadTests(BaseAssessmentTestCase):
