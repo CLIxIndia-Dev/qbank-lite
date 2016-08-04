@@ -397,7 +397,13 @@ class ItemsList(utilities.BaseClass):
                             qti_file = qti_zip.open(zip_file_name)
 
                     qti_xml = qti_file.read()
-                    soup = BeautifulSoup(qti_xml, 'xml')
+
+                    # to handle video tags, we need to do a blanket replace
+                    # of  &lt; => <
+                    # and &gt; => >
+                    # with the assumption that will not break anything else ...
+                    clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    soup = BeautifulSoup(clean_qti_xml, 'xml')
 
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
@@ -421,7 +427,7 @@ class ItemsList(utilities.BaseClass):
                     form = bank.get_item_form_for_create(items_records_list)
                     form.display_name = soup.assessmentItem['title']
                     form.description = description or 'QTI AssessmentItem'
-                    form.load_from_qti_item(qti_xml,
+                    form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
                         form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
@@ -436,13 +442,12 @@ class ItemsList(utilities.BaseClass):
                                     original_qti_id)
 
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-
                     if len(media_files) > 0:
-                        q_form.load_from_qti_item(qti_xml,
+                        q_form.load_from_qti_item(clean_qti_xml,
                                                   media_files=media_files,
                                                   keywords=keywords)
                     else:
-                        q_form.load_from_qti_item(qti_xml,
+                        q_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords)
                     question = bank.create_question(q_form)
 
@@ -458,7 +463,7 @@ class ItemsList(utilities.BaseClass):
                     # correct answer
                     # need a default one, even for extended text interaction
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                    a_form.load_from_qti_item(qti_xml,
+                    a_form.load_from_qti_item(clean_qti_xml,
                                               keywords=keywords,
                                               correct=True,
                                               feedback_choice_id='correct')
@@ -477,7 +482,7 @@ class ItemsList(utilities.BaseClass):
                                 str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
                             for wrong_answer in wrong_answers:
                                 a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                                a_form.load_from_qti_item(qti_xml,
+                                a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
                                                           feedback_choice_id=wrong_answer['id'])
@@ -486,7 +491,7 @@ class ItemsList(utilities.BaseClass):
                         else:
                             # create a generic one
                             a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                            a_form.load_from_qti_item(qti_xml,
+                            a_form.load_from_qti_item(clean_qti_xml,
                                                       keywords=keywords,
                                                       correct=False,
                                                       feedback_choice_id='incorrect')
@@ -496,7 +501,7 @@ class ItemsList(utilities.BaseClass):
                                                       str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
                         # create a generic one
                         a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                        a_form.load_from_qti_item(qti_xml,
+                        a_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords,
                                                   correct=False,
                                                   feedback_choice_id='incorrect')

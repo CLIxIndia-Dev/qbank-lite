@@ -90,6 +90,13 @@ class AssetsList(utilities.BaseClass):
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
+    @utilities.format_response
+    def POST(self, repository_id):
+        try:
+            pass
+        except (PermissionDenied, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
 
 class AssetContentDetails(utilities.BaseClass):
     """
