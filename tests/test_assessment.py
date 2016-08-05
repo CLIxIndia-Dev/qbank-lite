@@ -7082,7 +7082,7 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                 video_asset_content = asset_content
             elif 'vtt' in asset_content['genusTypeId']:
                 caption_asset_content = asset_content
-        
+
         repo_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
         self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(repo_id,
                                                                                           asset['id'],
