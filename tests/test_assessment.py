@@ -6635,7 +6635,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
 
-    def test_video_tags_unescaped_in_qti(self):
+    def test_video_tags_appear_in_qti(self):
         url = '{0}/items'.format(self.url)
         self._video_test_file.seek(0)
         req = self.app.post(url,
@@ -6663,19 +6663,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <span style="font-size: 12.8px;">
-<video class="video-js vis-skin-colors-clix vjs-big-play-centered" controls="controls" data-setup="{}" height="360" id="video-js-test" preload="auto" width="480">
-<source src="video-js-test.mp4" type=\'video/mp4; codecs="avc1.42E01E, mp4a.40.2"\'/>
-<track kind="captions" label="English" src="video-js-test-en.vtt" srclang="en" type="text/vtt"/>
-<track kind="captions" label="Hindi" src="video-js-test-hi.vtt" srclang="hi" type="text/vtt"/>
-<track kind="captions" label="Telegu" src="video-js-test-te.vtt" srclang="te" type="text/vtt"/>
-<p class="vjs-no-js">
-      To view this video please enable JavaScript, and consider upgrading to a web browser that
-      <a href="http://videojs.com/html5-video-support/" target="_blank">
-       supports HTML5 video
-      </a>
-</p>
-</video>
-</span>
+    [type]{video}
+   </span>
 </p>
 <p>
 <span style="font-size: 12.8px;">
@@ -6928,3 +6917,28 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
 
+
+class VideoTagReplacementTests(BaseAssessmentTestCase):
+    def setUp(self):
+        super(VideoTagReplacementTests, self).setUp()
+
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(VideoTagReplacementTests, self).tearDown()
+
+        self._video_test_file.close()
+
+    def test_can_replace_video_tag_in_qti_with_supplied_html(self):
+        self.fail('finish writing the test')
+
+    def test_video_source_in_html_replaced_with_asset_content_reference(self):
+        self.fail('finish writing the test')
+
+    def test_can_replace_caption_vtt_files_in_supplied_html_with_asset_content_reference(self):
+        self.fail('finish writing the test')
+
+    def test_question_qti_includes_video_tag_captions_and_transcript(self):
+        self.fail('finish writing the test')

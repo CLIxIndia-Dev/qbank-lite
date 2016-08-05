@@ -93,7 +93,40 @@ class AssetsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, repository_id):
         try:
-            pass
+            x = web.input(inputFile={})
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(utilities.clean_id(repository_id))
+            # get each set of files individually, because
+            # we are doing this in memory, so the file pointer changes
+            # once we read in a file
+            # https://docs.python.org/2/library/zipfile.html
+
+            input_file = x['inputFile'].file
+            # first, let's search the database to see if an asset exists with
+            # the file name -- file name will be everything minus the
+            # extension and language indicator.
+            # for example, for one video there might be four files:
+            #   * ee_u1l01a01v01.mov
+            #   * ee_u1l01a01v01_en.vtt
+            #   * ee_u1l01a01v01_hi.vtt
+            #   * ee_u1l01a01v01_te.vtt
+            # In this case, the "filename" / asset displayName.text is `ee_u1l01a01v01`.
+            # If that already exists, add the input_file as an asset content.
+            # If that asset does not exist, create it.
+            file_name = x['inputFile'].filename
+            querier = repository.get_asset_query()
+            querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
+            assets = repository.get_assets_by_query(querier)
+            if assets.available() > 0:
+                asset = assets.next()
+            else:
+                asset = rutils.create_asset(repository, file_name)
+
+            # now let's create an asset content for this asset, with the
+            # right genus type and file data
+            rutils.append_asset_contents(repository, asset, file_name, input_file)
+
+            return utilities.extract_items(repository.get_asset(asset.ident))
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
