@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import csv
 import json
 import os
 
@@ -6635,7 +6635,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
 
-    def test_video_tags_unescaped_in_qti(self):
+    def test_video_tags_appear_in_qti(self):
         url = '{0}/items'.format(self.url)
         self._video_test_file.seek(0)
         req = self.app.post(url,
@@ -6663,19 +6663,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <span style="font-size: 12.8px;">
-<video class="video-js vis-skin-colors-clix vjs-big-play-centered" controls="controls" data-setup="{}" height="360" id="video-js-test" preload="auto" width="480">
-<source src="video-js-test.mp4" type=\'video/mp4; codecs="avc1.42E01E, mp4a.40.2"\'/>
-<track kind="captions" label="English" src="video-js-test-en.vtt" srclang="en" type="text/vtt"/>
-<track kind="captions" label="Hindi" src="video-js-test-hi.vtt" srclang="hi" type="text/vtt"/>
-<track kind="captions" label="Telegu" src="video-js-test-te.vtt" srclang="te" type="text/vtt"/>
-<p class="vjs-no-js">
-      To view this video please enable JavaScript, and consider upgrading to a web browser that
-      <a href="http://videojs.com/html5-video-support/" target="_blank">
-       supports HTML5 video
-      </a>
-</p>
-</video>
-</span>
+    [type]{video}
+   </span>
 </p>
 <p>
 <span style="font-size: 12.8px;">
@@ -6928,3 +6917,179 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
 
+
+class VideoTagReplacementTests(BaseAssessmentTestCase):
+    def create_video_question(self):
+        url = '{0}/items'.format(self.url)
+        self._video_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile.zip', self._video_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def markup(self):
+        reader = csv.reader(self._video_matrix_test_file, delimiter='\t')
+        for index, row in enumerate(reader):
+            if index > 0:
+                return row[3]
+
+    def setUp(self):
+        super(VideoTagReplacementTests, self).setUp()
+
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
+        self._video_matrix_test_file = open('{0}/tests/files/video_upload_matrix.tsv'.format(ABS_PATH), 'r')
+        self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
+        self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(VideoTagReplacementTests, self).tearDown()
+
+        self._video_test_file.close()
+        self._video_matrix_test_file.close()
+        self._video_upload_test_file.close()
+        self._caption_upload_test_file.close()
+
+    def upload_video_and_caption_files(self):
+        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        return data
+
+    def test_can_replace_video_tag_in_qti_with_supplied_html(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertNotIn('<video', data['question']['text']['text'])
+        self.assertNotIn('</video>', data['question']['text']['text'])
+        self.assertNotIn('<aside class="transcript">', data['question']['text']['text'])
+        self.assertNotIn('</aside>', data['question']['text']['text'])
+
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('<video', data['question']['text']['text'])
+        self.assertIn('</video>', data['question']['text']['text'])
+        self.assertIn('<aside class="transcript">', data['question']['text']['text'])
+        self.assertIn('</aside>', data['question']['text']['text'])
+
+    def test_video_source_in_html_replaced_with_asset_content_reference(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        source = soup.find('source')
+        self.assertEqual('AssetContent:video-js-test_mp4', source['src'])
+        self.assertIn(
+            'fileIds',
+            data['question']
+        )
+        self.assertIn(
+            'video-js-test_mp4',
+            data['question']['fileIds']
+        )
+
+    def test_can_replace_caption_vtt_files_in_supplied_html_with_asset_content_reference(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        track = soup.find('track', label="English")
+        self.assertEqual('AssetContent:video-js-test-en_vtt', track['src'])
+        self.assertIn(
+            'fileIds',
+            data['question']
+        )
+        self.assertIn(
+            'video-js-test_mp4',
+            data['question']['fileIds']
+        )
+
+    def test_video_and_transcript_asset_content_ids_replaced_in_output_qti(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url,
+                                         unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'lxml-xml')
+        source = soup.find('source')
+
+        asset_contents = asset['assetContents']
+        video_asset_content = None
+        caption_asset_content = None
+        for asset_content in asset_contents:
+            if 'mp4' in asset_content['genusTypeId']:
+                video_asset_content = asset_content
+            elif 'vtt' in asset_content['genusTypeId']:
+                caption_asset_content = asset_content
+
+        repo_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(repo_id,
+                                                                                          asset['id'],
+                                                                                          video_asset_content['id']),
+                      source['src'])
+        track = soup.find('track', label='English')
+        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(repo_id,
+                                                                                          asset['id'],
+                                                                                          caption_asset_content['id']),
+                      track['src'])
