@@ -183,13 +183,106 @@ class AssetUploadTests(BaseRepositoryTestCase):
             data['assetContents'][0]['genusTypeId'],
             'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
         )
+
+        # because this is hidden / stripped out
+        self.assertNotIn(
+            'asset_content_record_type%3Afilesystem%40odl.mit.edu',
+            data['recordTypeIds']
+        )
         self.assertIn(
-            'CLIX/datastore/repository/AssetContents/',
+            'datastore/repository/AssetContent/',
             data['assetContents'][0]['url']
+        )
+        self.assertEqual(
+            'video-js-test.mp4',
+            data['assetContents'][0]['displayName']['text']
         )
 
     def test_can_upload_caption_vtt_files_to_repository(self):
-        self.fail('finish writing the test')
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data['assetContents']),
+            1
+        )
+        self.assertEqual(
+            data['assetContents'][0]['genusTypeId'],
+            'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
+        )
+
+        # because this is hidden / stripped out
+        self.assertNotIn(
+            'asset_content_record_type%3Afilesystem%40odl.mit.edu',
+            data['recordTypeIds']
+        )
+        self.assertIn(
+            'datastore/repository/AssetContent/',
+            data['assetContents'][0]['url']
+        )
+        self.assertEqual(
+            'video-js-test-en.vtt',
+            data['assetContents'][0]['displayName']['text']
+        )
 
     def test_caption_and_video_files_uploaded_as_asset_contents_on_same_asset(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data['assetContents']),
+            1
+        )
+        asset_id = data['id']
+        self.assertEqual(
+            data['displayName']['text'],
+            'video_js_test'
+        )
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data['assetContents']),
+            2
+        )
+        self.assertEqual(
+            asset_id,
+            data['id']
+        )
+        self.assertEqual(
+            data['displayName']['text'],
+            'video_js_test'
+        )
+
+        self.assertEqual(
+            data['assetContents'][0]['genusTypeId'],
+            'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
+        )
+        self.assertIn(
+            'datastore/repository/AssetContent/',
+            data['assetContents'][0]['url']
+        )
+        self.assertEqual(
+            'video-js-test.mp4',
+            data['assetContents'][0]['displayName']['text']
+        )
+
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
+        )
+        self.assertIn(
+            'datastore/repository/AssetContent/',
+            data['assetContents'][1]['url']
+        )
+        self.assertEqual(
+            'video-js-test-en.vtt',
+            data['assetContents'][1]['displayName']['text']
+        )

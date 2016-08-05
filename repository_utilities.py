@@ -6,6 +6,7 @@ from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
+from dlkit_edx.errors import NotFound
 from dlkit_edx.proxy_example import TestRequest
 
 from records import registry
@@ -22,16 +23,17 @@ WAV_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['wav'])
 def append_asset_contents(repo, asset, file_name, file_data):
     asset_content_type_list = []
     try:
-        config = repo._runtime.get_configuration()
+        config = repo._osid_object._runtime.get_configuration()
         parameter_id = Id('parameter:assetContentRecordTypeForFiles@filesystem')
         asset_content_type_list.append(
             config.get_value_by_parameter(parameter_id).get_type_value())
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, NotFound):
         pass
 
     acfc = repo.get_asset_content_form_for_create(asset.ident,
                                                   asset_content_type_list)
     acfc.set_genus_type(get_asset_content_genus_type(file_name))
+    acfc.display_name = file_name
 
     data = DataInputStream(file_data)
     data.name = file_name
@@ -50,9 +52,12 @@ def append_asset_contents(repo, asset, file_name, file_data):
 
     return repo.get_asset(asset.ident)
 
+def convert_ac_name_to_label(asset_content):
+    return asset_content.display_name.text.replace('.', '_')
+
 def create_asset(repo, file_name):
     afc = repo.get_asset_form_for_create([])
-    afc.set_display_name(file_name)
+    afc.set_display_name(get_singular_filename(file_name))
     afc.set_description('File uploaded from a script')
     return repo.create_asset(afc)
 
@@ -84,7 +89,7 @@ def get_asset_content_genus_type(file_name):
     return ac_genus_type
 
 def get_file_extension(file_name):
-    return os.path.splitext(os.path.basename(file_name))[-1]
+    return os.path.splitext(os.path.basename(file_name))[-1].replace('.', '')
 
 def get_repository_manager():
     condition = PROXY_SESSION.get_proxy_condition()
@@ -102,3 +107,9 @@ def get_singular_filename(file_name):
         return '_'.join(file_name.split('_')[0:-1])
     else:
         return file_name.split('.')[0]
+
+def match_asset_content_by_name(asset_content_list, name):
+    for asset_content in asset_content_list:
+        if asset_content.display_name.text == name:
+            return asset_content
+    return None

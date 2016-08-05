@@ -18,6 +18,7 @@ from records.registry import ANSWER_GENUS_TYPES,\
 from urllib import quote
 
 import assessment_utilities as autils
+import repository_utilities as rutils
 import utilities
 
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
@@ -32,6 +33,7 @@ PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+QUESTION_WITH_FILES = Type(**QUESTION_RECORD_TYPES['files'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
@@ -54,6 +56,7 @@ urls = (
     "/banks/(.*)/assessments/(.*)/items", "AssessmentItemsList",
     "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
     "/banks/(.*)/assessments", "AssessmentsList",
+    "/banks/(.*)/items/(.*)/videoreplacement", "ItemVideoTagReplacement",
     "/banks/(.*)/items/(.*)/qti", "ItemQTIDetails",
     "/banks/(.*)/items/(.*)", "ItemDetails",
     "/banks/(.*)/items", "ItemsList",
@@ -1759,6 +1762,89 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
             return data
         except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
+
+
+class ItemVideoTagReplacement(utilities.BaseClass):
+    """
+    If a `[type]{video}` text tag is found in the item QTI / question text, this will
+    replace it with the provided HTML markup, and also attempt to inject
+    the right `AssetContent:<file_label>` replacement so that it can be
+    output with the right relative URLs later.
+
+    This assumes that all the files have been uploaded into a single asset,
+    and the filename source in the HTML markup matches the displayName of
+    the uploaded assetContent (i.e. it matches the original filename).
+
+    api/v1/assessment/banks/<bank_id>/items/<item_id>/videoreplacement
+
+    POST
+    POST {
+        "assetId": "asset%3A1%40CLIx",
+        "html": "<video><track /></video>"
+    }
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       This UI: {"name" : "an assessment item","description" : "this is a hard quiz problem","question":{"type":"question-record-type%3Aresponse-string%40ODL.MIT.EDU","questionString":"Where am I?"},"answers":[{"type":"answer-record-type%3Aresponse-string%40ODL.MIT.EDU","responseString":"Here"}]}
+    """
+    @utilities.format_response
+    def POST(self, bank_id, item_id):
+        am = autils.get_assessment_manager()
+        bank = am.get_bank(utilities.clean_id(bank_id))
+        item = bank.get_item(utilities.clean_id(item_id))
+        question = item.get_question()
+        question_text = question.get_text().text
+        params = self.data()
+        if ('[type]{video}' in question_text and
+                'html' in params and
+                'assetId' in params):
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(bank.ident)
+            asset = repository.get_asset(utilities.clean_id(params['assetId']))
+            asset_contents = list(asset.get_asset_contents())
+
+            if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
+                # this is so bad. Don't do this normally.
+                form = bank.get_question_form_for_update(question.ident)
+                form._for_update = False
+                record = form.get_question_form_record(QUESTION_WITH_FILES)
+                record._init_metadata()
+                record._init_map()
+                form._for_update = True
+                bank.update_question(form)
+
+            form = bank.get_question_form_for_update(question.ident)
+
+            # first, update the text with just the new markup
+            updated_text = question_text.replace('[type]{video}', params['html'])
+
+            # second, update the question's fileList with the assets
+            #     def add_asset(self, asset_id, asset_content_id=None, label=None, asset_content_type=None):
+            for asset_content in asset_contents:
+                form.add_asset(asset.ident,
+                               asset_content_id=asset_content.ident,
+                               label=rutils.convert_ac_name_to_label(asset_content),
+                               asset_content_type=asset_content.genus_type)
+
+            # third, replace the source attributes in the markup with
+            # the AssetContent placeholders
+            soup = BeautifulSoup(updated_text, 'lxml-xml')
+            new_media_regex = re.compile('^(?!AssetContent).*$')
+            for new_media in soup.find_all(src=new_media_regex):
+                original_file_name = new_media['src']
+                asset_content = rutils.match_asset_content_by_name(asset_contents,
+                                                                   original_file_name)
+                if asset_content is not None:
+                    new_media['src'] = 'AssetContent:{0}'.format(rutils.convert_ac_name_to_label(asset_content))
+
+            # save it back
+            form.set_text(str(soup.itemBody))
+            bank.update_question(form)
+            item = bank.get_item(item.ident)
+
+        return utilities.convert_dl_object(item)
 
 app_assessment = web.application(urls, locals())
 # session = utilities.activate_managers(web.session.Session(app_assessment,

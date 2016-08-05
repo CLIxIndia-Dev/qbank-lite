@@ -125,8 +125,7 @@ class AssetsList(utilities.BaseClass):
             # now let's create an asset content for this asset, with the
             # right genus type and file data
             rutils.append_asset_contents(repository, asset, file_name, input_file)
-
-            return utilities.extract_items(repository.get_asset(asset.ident))
+            return utilities.convert_dl_object(repository.get_asset(asset.ident))
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
