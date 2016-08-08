@@ -1839,6 +1839,11 @@ class ItemVideoTagReplacement(utilities.BaseClass):
                 if asset_content is not None:
                     new_media['src'] = 'AssetContent:{0}'.format(rutils.convert_ac_name_to_label(asset_content))
 
+            # fourth, inject a crossorigin attribute for the video tag
+            # per NickBenoit@AtomicJolt
+            for video in soup.find_all('video'):
+                video['crossorigin'] = 'anonymous'
+
             # save it back
             form.set_text(str(soup.itemBody))
             bank.update_question(form)
