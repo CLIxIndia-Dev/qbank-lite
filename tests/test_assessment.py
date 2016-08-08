@@ -7108,3 +7108,29 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
             data['bankId'],
             'foo'
         )
+
+    def test_crossorigin_attribute_injected_into_video_tag(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/items/{1}/qti'.format(self.url,
+                                         unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'lxml-xml')
+        for video in soup.find_all('video'):
+            self.assertIn('crossorigin', video.attrs)
+            self.assertEqual(
+                video['crossorigin'],
+                'anonymous'
+            )
