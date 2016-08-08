@@ -165,7 +165,18 @@ def extract_items(item_list):
             try:
                 orig_list = list(item_list)
                 try:
-                    return json.dumps([i.object_map for i in orig_list])
+                    if hasattr(orig_list[0], 'object_map'):
+                        results = []
+                        for item in orig_list:
+                            try:
+                                results.append(item.object_map)
+                            except Exception: # yes, this is overly broad and violets PEP8
+                                # but we are suppressing all errors that might happen
+                                # due to bad items
+                                pass
+                        return json.dumps(results)
+                    else:
+                        raise AttributeError
                 except AttributeError:
                     # Hierarchy Nodes do not have .object_map
                     return json.dumps([i.get_node_map() for i in orig_list])

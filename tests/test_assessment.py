@@ -7093,3 +7093,18 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                                                                                           asset['id'],
                                                                                           caption_asset_content['id']),
                       track['src'])
+
+    def test_can_get_item_without_bank_id(self):
+        item = self.create_video_question()
+        url = '/api/v1/assessment/banks/foo/items/{0}'.format(item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            item['id'],
+            data['id']
+        )
+        self.assertNotEqual(
+            data['bankId'],
+            'foo'
+        )
