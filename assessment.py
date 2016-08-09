@@ -409,6 +409,7 @@ class ItemsList(utilities.BaseClass):
                     # and &gt; => >
                     # with the assumption that will not break anything else ...
                     clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+
                     soup = BeautifulSoup(clean_qti_xml, 'xml')
 
                     # QTI ID alias check to see if this item exists already
