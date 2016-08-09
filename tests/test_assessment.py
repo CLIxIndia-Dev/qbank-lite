@@ -5116,7 +5116,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         expected_string = """<itemBody>
 <p>
-<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/x-mpeg"/>
 </p>
 <p>
 <strong>
@@ -5291,7 +5291,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>
 </p>
 <p>
-<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/x-mpeg"/>
 </p>
 <p>
 <img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
@@ -5891,7 +5891,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Movable Word Sandbox:
   </p>
 <p>
-<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/x-mpeg"/>
 </p>
 <orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
 <simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
@@ -6323,7 +6323,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    .
   </p>
 <p>
-<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/x-mpeg"/>
 </p>
 <p>
 <img alt="This is a picture of a bus." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
@@ -6551,7 +6551,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Listen to each audio clip and put the pictures of the story in order.
   </p>
 <p>
-<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mp3"/>
+<object class="HTML5" data="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/x-mpeg"/>
 </p>
 <orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
 <simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
