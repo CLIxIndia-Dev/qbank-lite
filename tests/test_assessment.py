@@ -4897,6 +4897,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
         self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
         self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4924,6 +4925,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._video_test_file.close()
         self._audio_everywhere_test_file.close()
         self._audio_in_choices_test_file.close()
+        self._mw_fitb_2_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -6331,6 +6333,120 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                       audio_asset_content_id,
                       image_asset_id,
                       image_asset_content_id)
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_mw_fill_in_the_blank_2(self):
+        """mostly to test that the words post-<inlineChoiceInteraction> are wrapped properly"""
+        url = '{0}/items'.format(self.url)
+        self._mw_fitb_2_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fitb_2_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+
+        self.assertIn('[_1_1_1', response_1_choice_ids)
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1_1']
+        )
+        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('Please listem to the story and try again.', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        expected_string = """<itemBody>
+<p>
+<p>
+<p class="noun">
+     Raju's
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<inlineChoice identifier="[_1_1">
+<p class="noun">
+      gifts
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1">
+<p class="noun">
+      bags
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1">
+<p class="noun">
+      bicycles
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1">
+<p class="noun">
+      lunches
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_4_1_1">
+<p class="noun">
+      flowers
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+<p>
+<p class="verb">
+     are
+    </p>
+<p class="prep">
+     on
+    </p>
+<p class="noun">
+     the bus.
+    </p>
+</p>
+</p>
+</itemBody>"""
+
         self.assertEqual(
             str(item_body),
             expected_string
