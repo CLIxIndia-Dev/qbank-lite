@@ -4895,6 +4895,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
         self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
         self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
+        self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
+        self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4920,6 +4922,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._simple_numeric_response_test_file.close()
         self._floating_point_numeric_input_test_file.close()
         self._video_test_file.close()
+        self._audio_everywhere_test_file.close()
+        self._audio_in_choices_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -5355,6 +5359,74 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertIn(expected_string_start,
                       qti.itemBody.contents[1].object['data'])
 
+    def test_audio_elements_get_autoplay_false_flag(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_everywhere_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testQTI.zip', self._audio_everywhere_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        first_tag = True
+        for object_ in qti.find_all('object'):
+            if first_tag:
+                self.assertEqual(
+                    len(object_.contents),
+                    0
+                )
+                first_tag = False
+            else:
+                self.assertEqual(
+                    len(object_.contents),
+                    3)
+                self.assertEqual(
+                    object_.contents[0],
+                    u'\n'
+                )
+                self.assertEqual(
+                    str(object_.contents[1]),
+                    '<param name="autoplay" value="false"/>'
+                )
+                self.assertEqual(
+                    object_.contents[2],
+                    u'\n'
+                )
+
+    def test_audio_in_choices_always_get_autoplay_false_flag(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_in_choices_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testQTI.zip', self._audio_in_choices_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        for object_ in qti.find_all('object'):
+            self.assertEqual(
+                len(object_.contents),
+                3)
+            self.assertEqual(
+                object_.contents[0],
+                u'\n'
+            )
+            self.assertEqual(
+                str(object_.contents[1]),
+                '<param name="autoplay" value="false"/>'
+            )
+            self.assertEqual(
+                object_.contents[2],
+                u'\n'
+            )
+
     def test_with_taken_can_get_question_qti_without_answers(self):
         url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.url,
                                                               unquote(str(self._taken.ident)))
@@ -5608,7 +5680,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_ids = [i['id'] for i in items]
         self.assertIn(item3['id'], item_ids)
 
-
     def test_feedback_gets_set_on_qti_mc_upload(self):
         url = '{0}/items'.format(self.url)
         self._mc_feedback_test_file.seek(0)
@@ -5640,7 +5711,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(WRONG_ANSWER_GENUS)
             )
 
-        expected_matches = ((u'<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches. </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
+        expected_matches = (('<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
                             ("<p>Listen again and answer.</p>", "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f"),
                             ("<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>", "id8e65e4e1-e891-4c30-a35c-5cc43df18710"),
                             ("<p>Zo has hurt himself.</p>", "ida1986000-f320-4346-b289-7310974afd1a"))
