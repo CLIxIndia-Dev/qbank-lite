@@ -5608,7 +5608,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_ids = [i['id'] for i in items]
         self.assertIn(item3['id'], item_ids)
 
-
     def test_feedback_gets_set_on_qti_mc_upload(self):
         url = '{0}/items'.format(self.url)
         self._mc_feedback_test_file.seek(0)
@@ -5640,7 +5639,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(WRONG_ANSWER_GENUS)
             )
 
-        expected_matches = ((u'<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches. </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
+        expected_matches = (('<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
                             ("<p>Listen again and answer.</p>", "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f"),
                             ("<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>", "id8e65e4e1-e891-4c30-a35c-5cc43df18710"),
                             ("<p>Zo has hurt himself.</p>", "ida1986000-f320-4346-b289-7310974afd1a"))
