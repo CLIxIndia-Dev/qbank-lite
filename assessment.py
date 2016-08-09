@@ -397,9 +397,12 @@ class ItemsList(utilities.BaseClass):
                         if ('.xml' in zip_file_name and
                                 'media/' not in zip_file_name and
                                 zip_file_name != 'imsmanifest.xml'):
-                            qti_file = qti_zip.open(zip_file_name)
+                            qti_file = qti_zip.open(zip_file_name, 'rU')
 
                     qti_xml = qti_file.read()
+
+                    # clean out &nbsp; non-breaking spaces (unicode char \xa0)
+                    qti_xml = qti_xml.replace('\xa0', ' ').replace('\xc2', ' ')
 
                     # to handle video tags, we need to do a blanket replace
                     # of  &lt; => <
