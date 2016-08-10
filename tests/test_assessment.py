@@ -5116,7 +5116,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         expected_string = """<itemBody>
 <p>
-<audio autoplay="autoplay" controls="controls">
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
@@ -5293,7 +5293,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>
 </p>
 <p>
-<audio autoplay="autoplay" controls="controls">
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
@@ -5895,7 +5895,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Movable Word Sandbox:
   </p>
 <p>
-<audio autoplay="autoplay" controls="controls">
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
@@ -6329,7 +6329,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    .
   </p>
 <p>
-<audio autoplay="autoplay" controls="controls">
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
@@ -6559,7 +6559,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Listen to each audio clip and put the pictures of the story in order.
   </p>
 <p>
-<audio autoplay="autoplay" controls="controls">
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
