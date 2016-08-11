@@ -12,21 +12,33 @@ from dlkit_edx.errors import *
 from dlkit_edx.primordium import Type, DataInputStream
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
-    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES
+    QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
+    ASSESSMENT_RECORD_TYPES
+
+from urllib import quote
 
 import assessment_utilities as autils
+import repository_utilities as rutils
 import utilities
 
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
 CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
+ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
-REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+QUESTION_WITH_FILES = Type(**QUESTION_RECORD_TYPES['files'])
+REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
+SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
+WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
 
 urls = (
@@ -44,6 +56,7 @@ urls = (
     "/banks/(.*)/assessments/(.*)/items", "AssessmentItemsList",
     "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
     "/banks/(.*)/assessments", "AssessmentsList",
+    "/banks/(.*)/items/(.*)/videoreplacement", "ItemVideoTagReplacement",
     "/banks/(.*)/items/(.*)/qti", "ItemQTIDetails",
     "/banks/(.*)/items/(.*)", "ItemDetails",
     "/banks/(.*)/items", "ItemsList",
@@ -76,10 +89,26 @@ class AssessmentBanksList(utilities.BaseClass):
         """
         List all available assessment banks
         """
+        def _unescaped(string):
+            return ':' in string and '@' in string
         try:
-
             am = autils.get_assessment_manager()
-            assessment_banks = am.banks
+            inputs = web.input()
+            if 'displayName' in inputs or 'genusTypeId' in inputs:
+                querier = am.get_bank_query()
+                if 'displayName' in inputs:
+                    if _unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'genusTypeId' in inputs:
+                    if (_unescaped(inputs['genusTypeId'])):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                assessment_banks = am.get_banks_by_query(querier)
+            else:
+                assessment_banks = am.banks
             banks = utilities.extract_items(assessment_banks)
             return banks
         except PermissionDenied as ex:
@@ -126,7 +155,7 @@ class AssessmentBankDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             data = am.delete_bank(utilities.clean_id(bank_id))
             return web.Accepted()
-        except (PermissionDenied, IllegalState) as ex:
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -136,7 +165,7 @@ class AssessmentBankDetails(utilities.BaseClass):
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
             bank = utilities.convert_dl_object(assessment_bank)
             return bank
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -149,7 +178,7 @@ class AssessmentBankDetails(utilities.BaseClass):
             updated_bank = am.update_bank(form)
             bank = utilities.convert_dl_object(updated_bank)
             return bank
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -184,7 +213,7 @@ class AssessmentsList(utilities.BaseClass):
 
             data = utilities.extract_items(assessments)
             return data
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -236,12 +265,11 @@ class AssessmentsList(utilities.BaseClass):
                     a_form.load_from_qti_item(qti_xml)
                     bank.create_answer(a_form)
             except AttributeError:  #'dict' object has no attribute 'file'
-                form = bank.get_assessment_form_for_create([])
+                form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
                 form = utilities.set_form_basics(form, self.data())
 
                 new_assessment = bank.create_assessment(form)
-
                 # if item IDs are included in the assessment, append them.
                 if 'itemIds' in self.data():
                     if isinstance(self.data()['itemIds'], basestring):
@@ -265,7 +293,7 @@ class AssessmentsList(utilities.BaseClass):
                 full_assessment = bank.get_assessment(new_assessment.ident)
             data = utilities.convert_dl_object(full_assessment)
             return data
-        except (PermissionDenied, NotFound, InvalidArgument) as ex:
+        except (PermissionDenied, NotFound, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -307,7 +335,7 @@ class ItemsList(utilities.BaseClass):
                 data = utilities.extract_items(items)
 
             return data
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -325,6 +353,8 @@ class ItemsList(utilities.BaseClass):
                 # once we read in a file
                 # https://docs.python.org/2/library/zipfile.html
                 keywords = []
+                description = ''
+                learning_objective = None
                 media_files = {}
                 qti_file = None
 
@@ -335,9 +365,21 @@ class ItemsList(utilities.BaseClass):
                             manifest = qti_zip.open(zip_file_name)
                             manifest_xml = manifest.read()
                             manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
-                            if manifest_soup.resources.resource.metadata.general.keyword:
-                                for keyword in manifest_soup.resources.resource.metadata.general.keyword:
-                                    keywords.append(keyword.string)
+                            if manifest_soup.resources.resource.metadata.general.description:
+                                for keyword in manifest_soup.resources.resource.metadata.general.description:
+                                    if keyword is not None and keyword.string is not None:
+                                        if '[type]' in keyword.string:
+                                            split_keywords = keyword.string.split('}')
+                                            type_tag = split_keywords[0]
+                                            keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                            if len(split_keywords) > 1:
+                                                description += '\n'.join(split_keywords[1::]).strip()
+                                        else:
+                                            description += keyword.string
+                            if manifest_soup.resources.lom:
+                                for classification in manifest_soup.resources.lom.find_all('classification'):
+                                    if classification.purpose.value.string == 'target audience':
+                                        learning_objective = classification.taxonPath.taxon.entry.string.string
 
                 # now get media files
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
@@ -355,10 +397,20 @@ class ItemsList(utilities.BaseClass):
                         if ('.xml' in zip_file_name and
                                 'media/' not in zip_file_name and
                                 zip_file_name != 'imsmanifest.xml'):
-                            qti_file = qti_zip.open(zip_file_name)
+                            qti_file = qti_zip.open(zip_file_name, 'rU')
 
                     qti_xml = qti_file.read()
-                    soup = BeautifulSoup(qti_xml, 'xml')
+
+                    # clean out &nbsp; non-breaking spaces (unicode char \xa0)
+                    qti_xml = qti_xml.replace('\xa0', ' ').replace('\xc2', ' ')
+
+                    # to handle video tags, we need to do a blanket replace
+                    # of  &lt; => <
+                    # and &gt; => >
+                    # with the assumption that will not break anything else ...
+                    clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+
+                    soup = BeautifulSoup(clean_qti_xml, 'xml')
 
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
@@ -370,17 +422,26 @@ class ItemsList(utilities.BaseClass):
                         parent_item = None
                         add_provenance_parent = False
 
-                    form = bank.get_item_form_for_create([QTI_ITEM,
-                                                          PROVENANCE_ITEM_RECORD,
-                                                          WRONG_ANSWER_ITEM])
+                    # if this is a numeric response, do not add the wrong answer item
+                    # record, because need that to go through the magical items
+                    if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD]
+                    else:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD,
+                                              WRONG_ANSWER_ITEM]
+                    form = bank.get_item_form_for_create(items_records_list)
                     form.display_name = soup.assessmentItem['title']
-                    form.description = 'QTI AssessmentItem'
-                    form.load_from_qti_item(qti_xml,
+                    form.description = description or 'QTI AssessmentItem'
+                    form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
-
+                    if learning_objective is not None:
+                        form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
-
+                        # and also archive the parent
+                        autils.archive_item(bank, parent_item)
                     new_item = bank.create_item(form)
 
                     # ID Alias with the QTI ID from Onyx
@@ -388,24 +449,28 @@ class ItemsList(utilities.BaseClass):
                                     original_qti_id)
 
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-
                     if len(media_files) > 0:
-                        q_form.load_from_qti_item(qti_xml,
+                        q_form.load_from_qti_item(clean_qti_xml,
                                                   media_files=media_files,
                                                   keywords=keywords)
                     else:
-                        q_form.load_from_qti_item(qti_xml,
+                        q_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords)
                     question = bank.create_question(q_form)
 
-                    if str(new_item.genus_type) == str(CHOICE_INTERACTION_GENUS):
+                    local_map = {
+                        'type': str(new_item.genus_type)
+                    }
+                    if (autils.is_multiple_choice(local_map) or
+                            autils.is_ordered_choice(local_map)):
                         choices = question.get_choices()
                     else:
                         choices = None
 
                     # correct answer
+                    # need a default one, even for extended text interaction
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                    a_form.load_from_qti_item(qti_xml,
+                    a_form.load_from_qti_item(clean_qti_xml,
                                               keywords=keywords,
                                               correct=True,
                                               feedback_choice_id='correct')
@@ -413,16 +478,43 @@ class ItemsList(utilities.BaseClass):
 
                     # now let's do the incorrect answers with feedback, if available
                     if choices is not None:
-                        right_answer = answer.object_map['choiceIds'][0]
-                        wrong_answers = [c for c in choices if c['id'] != right_answer]
-                        for wrong_answer in wrong_answers:
+                        # what if there are multiple right answer choices,
+                        #  i.e. movable words?
+                        right_answers = answer.object_map['choiceIds']
+                        wrong_answers = [c for c in choices if c['id'] not in right_answers]
+
+                        # for now only support a generic wrong answer feedback for
+                        # mc multi-select ... otherwise have to do scoring somehow
+                        if (len(wrong_answers) > 0 and
+                                str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
+                            for wrong_answer in wrong_answers:
+                                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                a_form.load_from_qti_item(clean_qti_xml,
+                                                          keywords=keywords,
+                                                          correct=False,
+                                                          feedback_choice_id=wrong_answer['id'])
+
+                                bank.create_answer(a_form)
+                        else:
+                            # create a generic one
                             a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                            a_form.load_from_qti_item(qti_xml,
+                            a_form.load_from_qti_item(clean_qti_xml,
                                                       keywords=keywords,
                                                       correct=False,
-                                                      feedback_choice_id=wrong_answer['id'])
+                                                      feedback_choice_id='incorrect')
 
                             bank.create_answer(a_form)
+                    elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
+                                                      str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
+                        # create a generic one
+                        a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                        a_form.load_from_qti_item(clean_qti_xml,
+                                                  keywords=keywords,
+                                                  correct=False,
+                                                  feedback_choice_id='incorrect')
+
+                        bank.create_answer(a_form)
+
             except AttributeError:  #'dict' object has no attribute 'file'
                 expected = ['name', 'description']
                 utilities.verify_keys_present(self.data(), expected)
@@ -494,7 +586,7 @@ class ItemsList(utilities.BaseClass):
                 pass
             return return_data
         except (KeyError, PermissionDenied, Unsupported,
-                InvalidArgument, NullArgument, TypeError) as ex:
+                InvalidArgument, NullArgument, TypeError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -520,35 +612,58 @@ class AssessmentDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment(utilities.clean_id(sub_id))
             return web.Accepted()
-        except (PermissionDenied, IllegalState) as ex:
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
-            data = utilities.convert_dl_object(bank.get_assessment(utilities.clean_id(sub_id)))
+            als = am.get_assessment_lookup_session()
+            als.use_federated_bank_view()
+            data = utilities.convert_dl_object(als.get_assessment(utilities.clean_id(sub_id)))
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def PUT(self, bank_id, sub_id):
         try:
+            local_data_map = self.data()
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             form = bank.get_assessment_form_for_update(utilities.clean_id(sub_id))
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, local_data_map)
 
             updated_assessment = bank.update_assessment(form)
+
+            if 'itemIds' in local_data_map:
+                # first clear out existing items
+                for item in bank.get_assessment_items(utilities.clean_id(sub_id)):
+                    bank.remove_item(utilities.clean_id(sub_id), item.ident)
+
+                # now add the new ones
+                if isinstance(local_data_map['itemIds'], basestring):
+                    items = json.loads(local_data_map['itemIds'])
+                else:
+                    items = local_data_map['itemIds']
+
+                if not isinstance(items, list):
+                    try:
+                        utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
+                        items = [items]
+                    except:
+                        raise InvalidArgument
+
+                for item_id in items:
+                    bank.add_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
 
             full_assessment = bank.get_assessment(updated_assessment.ident)
             data = utilities.convert_dl_object(full_assessment)
 
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -581,7 +696,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
                                                               0, descendant_levels, False)
             data = utilities.extract_items(nodes.get_child_bank_nodes())
             return data
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -605,7 +720,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
                 am.add_child_bank(utilities.clean_id(bank_id),
                                                           child_bank.ident)
             return web.Created()
-        except (PermissionDenied, NotFound, KeyError) as ex:
+        except (PermissionDenied, NotFound, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -644,7 +759,7 @@ class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
 
             data = node_data.get_object_node_map()
             return data
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -672,7 +787,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
             root_banks = am.get_root_banks()
             banks = utilities.extract_items(root_banks)
             return banks
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -691,7 +806,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
 
             am.add_root_bank(utilities.clean_id(self.data()['id']))
             return web.Created()
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -718,7 +833,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
             else:
                 raise IllegalState('That bank is not a root.')
             return web.Accepted()
-        except (PermissionDenied, IllegalState) as ex:
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -736,7 +851,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
 
             data = bank.object_map
             return data
-        except (PermissionDenied, IllegalState) as ex:
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -762,7 +877,7 @@ class ItemDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_item(utilities.clean_id(sub_id))
             return web.Accepted()
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('This Item is being used in one or more '
@@ -773,9 +888,10 @@ class ItemDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            ils = am.get_item_lookup_session()
+            ils.use_federated_bank_view()
 
-            item = bank.get_item(utilities.clean_id(sub_id))
+            item = ils.get_item(utilities.clean_id(sub_id))
             data = utilities.convert_dl_object(item)
 
             # if 'fileIds' in data:
@@ -794,7 +910,7 @@ class ItemDetails(utilities.BaseClass):
                 pass
 
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -880,7 +996,7 @@ class ItemDetails(utilities.BaseClass):
                 pass
 
             return return_data
-        except (PermissionDenied, Unsupported, InvalidArgument, NotFound) as ex:
+        except (PermissionDenied, Unsupported, InvalidArgument, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -895,10 +1011,13 @@ class ItemQTIDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            ils = am.get_item_lookup_session()
+            ils.use_federated_bank_view()
 
-            item = bank.get_item(utilities.clean_id(sub_id))
-            return item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+            item = ils.get_item(utilities.clean_id(sub_id))
+
+            item_bank = am.get_bank(utilities.clean_id(item.object_map['bankId']))
+            return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
@@ -948,7 +1067,7 @@ class AssessmentItemsList(utilities.BaseClass):
                     if item['question'] and 'fileIds' in item['question']:
                         item['question']['files'] = dlkit_item.get_question().get_files()
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -977,7 +1096,7 @@ class AssessmentItemsList(utilities.BaseClass):
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
             data = utilities.extract_items(items)
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1011,7 +1130,7 @@ class AssessmentItemsList(utilities.BaseClass):
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
             data = utilities.extract_items(items)
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1031,7 +1150,7 @@ class AssessmentItemDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.remove_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
             return web.Accepted()
-        except (PermissionDenied, IllegalState) as ex:
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1058,7 +1177,7 @@ class AssessmentsOffered(utilities.BaseClass):
             offerings = bank.get_assessments_offered_for_assessment(utilities.clean_id(sub_id))
             data = utilities.extract_items(offerings)
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1082,7 +1201,7 @@ class AssessmentsOffered(utilities.BaseClass):
             else:
                 raise InvalidArgument()
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except LookupError as ex:
             utilities.handle_exceptions(type(ex)('Cannot create an assessment offering for '
@@ -1113,7 +1232,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_offered(utilities.clean_id(offering_id))
             return web.Accepted()
-        except PermissionDenied as ex:
+        except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('There are still AssessmentTakens '
@@ -1124,9 +1243,10 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     def GET(self, bank_id, offering_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            aols = am.get_assessment_offered_lookup_session()
+            aols.use_federated_bank_view()
 
-            offering = bank.get_assessment_offered(utilities.clean_id(offering_id))
+            offering = aols.get_assessment_offered(utilities.clean_id(offering_id))
             data = utilities.convert_dl_object(offering)
             return data
         except (PermissionDenied, NotFound) as ex:
@@ -1156,7 +1276,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             else:
                 raise InvalidArgument()
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1196,7 +1316,7 @@ class AssessmentsTaken(utilities.BaseClass):
                 takens = bank.get_assessments_taken_for_assessment(utilities.clean_id(sub_id))
             data = utilities.extract_items(takens)
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1240,7 +1360,7 @@ class AssessmentsTaken(utilities.BaseClass):
                 data = utilities.convert_dl_object(bank.create_assessment_taken(form))
 
             return data
-        except (PermissionDenied, InvalidArgument) as ex:
+        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except Unsupported as ex:
             utilities.handle_exceptions(type(ex)('Can only create AssessmentTaken from an '
@@ -1267,18 +1387,19 @@ class AssessmentTakenDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_taken(utilities.clean_id(taken_id))
             return web.Accepted()
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def GET(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
-            taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
+            atls = am.get_assessment_taken_lookup_session()
+            atls.use_federated_bank_view()
+            taken = atls.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1293,15 +1414,15 @@ class FinishAssessmentTaken(utilities.BaseClass):
     def POST(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            bank = am.get_bank(utilities.clean_id(bank_id))
+            assessment_session = am.get_assessment_session()
             # "finish" the assessment section
             # bank.finished_assessment_section(first_section.ident)
-            bank.finish_assessment(utilities.clean_id(taken_id))
+            assessment_session.finish_assessment(utilities.clean_id(taken_id))
             data = {
                 'success': True
             }
             return data
-        except (PermissionDenied, IllegalState, NotFound) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1336,14 +1457,8 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             else:
                 data = utilities.extract_items(questions)
 
-            # if 'files' in self.data():
-            #     for question in data['data']['results']:
-            #         if 'fileIds' in question:
-            #             question['files'] = bank.get_question(first_section.ident,
-            #                                                   utilities.clean_id(question['id'])).get_files()
-
             return data
-        except (PermissionDenied, IllegalState, NotFound) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1367,12 +1482,15 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
             status = autils.get_question_status(bank,
                                                 first_section,
                                                 utilities.clean_id(question_id))
+            data = json.loads(data)
             data.update(status)
 
-            if 'fileIds' in data:
-                data['files'] = question.get_files()
+            # if 'fileIds' in data:
+            #     data['files'] = question.get_files()
+
+            data = json.dumps(data)
             return data
-        except (PermissionDenied, IllegalState, NotFound) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1395,7 +1513,7 @@ class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
             # if 'fileIds' in data:
             #     data['files'] = question.get_files()
             return data
-        except (PermissionDenied, IllegalState, NotFound) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1425,7 +1543,7 @@ class AssessmentTakenQuestionStatus(utilities.BaseClass):
                                               utilities.clean_id(question_id))
 
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1449,6 +1567,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id, taken_id, question_id):
         try:
+            x = web.input(submission={})
+
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
@@ -1459,9 +1579,22 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             local_data_map = self.data()
             if 'type' not in local_data_map:
                 # kind of a hack
-                local_data_map['type'] = question.object_map['recordTypeIds'][0]
-                local_data_map['type'] = local_data_map['type'].replace('question-record-type',
-                                                                        'answer-record-type')
+                question_map = question.object_map['genusTypeId']
+                if question_map != 'GenusType%3ADEFAULT%40DLKIT.MIT.EDU':
+                    local_data_map['type'] = question.object_map['genusTypeId']
+                    local_data_map['type'] = local_data_map['type'].replace('question-type',
+                                                                            'answer-type')
+                else:
+                    local_data_map['type'] = question.object_map['recordTypeIds'][0]
+                    local_data_map['type'] = local_data_map['type'].replace('question-record-type',
+                                                                            'answer-record-type')
+            try:
+                local_data_map['files'] = {x['submission'].filename: x['submission'].file}
+            except AttributeError:
+                if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
+                    # TODO: for now, take empty response for MW Sandbox
+                    raise IllegalState('You must supply a file with an audio response question')
+
             update_form = autils.update_response_form(local_data_map, response_form)
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
@@ -1480,6 +1613,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 'feedback': feedback
             }
             # update with item solution, if available
+            feedback_strings = []
+            confused_los = []
             try:
                 taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
                 feedback = taken.get_solution_for_question(
@@ -1490,13 +1625,28 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             except (IllegalState, TypeError, AttributeError):
                 # update with answer feedback, if available
                 # for now, just support this for multiple choice questions...
-                if autils.is_multiple_choice(local_data_map):
+                if (autils.is_multiple_choice(local_data_map) or
+                        autils.is_ordered_choice(local_data_map)):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
-                    feedback_strings = []
-                    confused_los = []
+
                     for answer in answers:
-                        if answer.get_choice_ids()[0] in submissions:
+                        correct_submissions = 0
+                        answer_choice_ids = list(answer.get_choice_ids())
+                        number_choices = len(answer_choice_ids)
+                        if len(submissions) == number_choices:
+                            for index, choice_id in enumerate(answer_choice_ids):
+                                if autils.is_multiple_choice(local_data_map):
+                                    if str(choice_id) in submissions:
+                                        correct_submissions += 1
+                                elif autils.is_ordered_choice(local_data_map):
+                                    if str(choice_id) == submissions[index]:
+                                        correct_submissions += 1
+
+                        if ((correct_submissions == number_choices and
+                                len(submissions) == number_choices)
+                                or  # is a wrong answer
+                                (not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
                             try:
                                 if any('qti' in answer_record
                                        for answer_record in answer.object_map['recordTypeIds']):
@@ -1509,18 +1659,80 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 confused_los += answer.confused_learning_objective_ids
                             except (KeyError, AttributeError):
                                 pass
-                    if len(feedback_strings) > 0:
-                        feedback = '; '.join(feedback_strings)
-                        return_data.update({
-                            'feedback': feedback
-                        })
-                    if len(confused_los) > 0:
-                        return_data.update({
-                            'confusedLearningObjectiveIds': confused_los
-                        })
+
+                            # only take the first feedback / confused LO for now
+                            break
+                elif (autils.is_file_submission(local_data_map) or
+                        autils.is_short_answer(local_data_map)):
+                    # right now assume one "correct" answer with generic feedback
+                    answers = bank.get_answers(first_section.ident, question.ident)
+                    feedback_strings = []
+                    confused_los = []
+                    for answer in answers:
+                        if (correct and
+                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
+                            try:
+                                if any('qti' in answer_record
+                                       for answer_record in answer.object_map['recordTypeIds']):
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                                else:
+                                    feedback_strings.append(answer.feedback)
+                            except (KeyError, AttributeError):
+                                pass
+                            try:
+                                confused_los += answer.confused_learning_objective_ids
+                            except (KeyError, AttributeError):
+                                pass
+                            # only take the first feedback / confused LO for now
+                            break
+                elif autils.is_inline_choice(local_data_map):
+                    answer_match = autils.match_submission_to_answer(answers, local_data_map)
+                    try:
+                        if any('qti' in answer_record
+                               for answer_record in answer_match.object_map['recordTypeIds']):
+                            feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                        else:
+                            feedback_strings.append(answer_match.feedback)
+                    except (KeyError, AttributeError):
+                        pass
+                    try:
+                        confused_los += answer_match.confused_learning_objective_ids
+                    except (KeyError, AttributeError):
+                        pass
+                elif autils.is_numeric_response(local_data_map):
+                    answers = bank.get_answers(first_section.ident, question.ident)
+                    feedback_strings = []
+                    confused_los = []
+                    for answer in answers:
+                        if ((correct and
+                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)) or (
+                                not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
+                            try:
+                                if any('qti' in answer_record
+                                       for answer_record in answer.object_map['recordTypeIds']):
+                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                                else:
+                                    feedback_strings.append(answer.feedback)
+                            except (KeyError, AttributeError):
+                                pass
+                            try:
+                                confused_los += answer.confused_learning_objective_ids
+                            except (KeyError, AttributeError):
+                                pass
+                            # only take the first feedback / confused LO for now
+                            break
+            if len(feedback_strings) > 0:
+                feedback = '; '.join(feedback_strings)
+                return_data.update({
+                    'feedback': feedback
+                })
+            if len(confused_los) > 0:
+                return_data.update({
+                    'confusedLearningObjectiveIds': confused_los
+                })
 
             return return_data
-        except (PermissionDenied, IllegalState, NotFound, InvalidArgument) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1552,8 +1764,96 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
             data = utilities.extract_items(answers)
 
             return data
-        except (PermissionDenied, IllegalState, NotFound) as ex:
+        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
+
+
+class ItemVideoTagReplacement(utilities.BaseClass):
+    """
+    If a `[type]{video}` text tag is found in the item QTI / question text, this will
+    replace it with the provided HTML markup, and also attempt to inject
+    the right `AssetContent:<file_label>` replacement so that it can be
+    output with the right relative URLs later.
+
+    This assumes that all the files have been uploaded into a single asset,
+    and the filename source in the HTML markup matches the displayName of
+    the uploaded assetContent (i.e. it matches the original filename).
+
+    api/v1/assessment/banks/<bank_id>/items/<item_id>/videoreplacement
+
+    POST
+    POST {
+        "assetId": "asset%3A1%40CLIx",
+        "html": "<video><track /></video>"
+    }
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+
+    Example (note the use of double quotes!!):
+       This UI: {"name" : "an assessment item","description" : "this is a hard quiz problem","question":{"type":"question-record-type%3Aresponse-string%40ODL.MIT.EDU","questionString":"Where am I?"},"answers":[{"type":"answer-record-type%3Aresponse-string%40ODL.MIT.EDU","responseString":"Here"}]}
+    """
+    @utilities.format_response
+    def POST(self, bank_id, item_id):
+        am = autils.get_assessment_manager()
+        bank = am.get_bank(utilities.clean_id(bank_id))
+        item = bank.get_item(utilities.clean_id(item_id))
+        question = item.get_question()
+        question_text = question.get_text().text
+        params = self.data()
+        if ('[type]{video}' in question_text and
+                'html' in params and
+                'assetId' in params):
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(bank.ident)
+            asset = repository.get_asset(utilities.clean_id(params['assetId']))
+            asset_contents = list(asset.get_asset_contents())
+
+            if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
+                # this is so bad. Don't do this normally.
+                form = bank.get_question_form_for_update(question.ident)
+                form._for_update = False
+                record = form.get_question_form_record(QUESTION_WITH_FILES)
+                record._init_metadata()
+                record._init_map()
+                form._for_update = True
+                bank.update_question(form)
+
+            form = bank.get_question_form_for_update(question.ident)
+
+            # first, update the text with just the new markup
+            updated_text = question_text.replace('[type]{video}', params['html'])
+
+            # second, update the question's fileList with the assets
+            #     def add_asset(self, asset_id, asset_content_id=None, label=None, asset_content_type=None):
+            for asset_content in asset_contents:
+                form.add_asset(asset.ident,
+                               asset_content_id=asset_content.ident,
+                               label=rutils.convert_ac_name_to_label(asset_content),
+                               asset_content_type=asset_content.genus_type)
+
+            # third, replace the source attributes in the markup with
+            # the AssetContent placeholders
+            soup = BeautifulSoup(updated_text, 'lxml-xml')
+            new_media_regex = re.compile('^(?!AssetContent).*$')
+            for new_media in soup.find_all(src=new_media_regex):
+                original_file_name = new_media['src']
+                asset_content = rutils.match_asset_content_by_name(asset_contents,
+                                                                   original_file_name)
+                if asset_content is not None:
+                    new_media['src'] = 'AssetContent:{0}'.format(rutils.convert_ac_name_to_label(asset_content))
+
+            # fourth, inject a crossorigin attribute for the video tag
+            # per NickBenoit@AtomicJolt
+            for video in soup.find_all('video'):
+                video['crossorigin'] = 'anonymous'
+
+            # save it back
+            form.set_text(str(soup.itemBody))
+            bank.update_question(form)
+            item = bank.get_item(item.ident)
+
+        return utilities.convert_dl_object(item)
 
 app_assessment = web.application(urls, locals())
 # session = utilities.activate_managers(web.session.Session(app_assessment,

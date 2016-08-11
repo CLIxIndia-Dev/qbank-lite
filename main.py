@@ -33,6 +33,7 @@ urls = (
     '/api/v1/repository', repository.app_repository,
     '/test', 'video_test',
     '/datastore_path', 'bootloader_storage_path',
+    '/version', 'version',
     '/(.*)', 'index'
 )
 app = web.application(urls, locals())
@@ -44,6 +45,10 @@ class bootloader_storage_path:
 class index:
     def GET(self, path):
         return "Trying to GET {}".format(path)
+
+class version:
+    def GET(self):
+        return '0.55'
 
 class video_test:
     def GET(self):

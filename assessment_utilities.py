@@ -4,7 +4,8 @@ import re
 import web
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument
+from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
+    IllegalState
 from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
 from dlkit_edx.proxy_example import TestRequest
@@ -33,6 +34,9 @@ JSON_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['json'])
 LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
+N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
+WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+
 
 def add_file_ids_to_form(form, file_ids):
     """
@@ -117,6 +121,57 @@ def add_files_to_form(form, files):
                        _infer_display_name(label))
         form.add_file(file_data, _clean(label), genus, ac_genus_type, display_name, description)
     return form
+
+def archive_bank_names(original_id):
+    return 'Archive for {0}'.format(str(original_id))
+
+def archive_bank_genus():
+    return Type('bank-genus-type%3Aclix-archive%40ODL.MIT.EDU')
+
+def archive_item(original_bank, item):
+    """archive this item to a clone of the original bank
+    Create the archive bank if it does not exist"""
+
+    # NOTE: instead of using two query params, the expected_name
+    #       AND the expected_genus, we need to resort to using
+    #       only the genus and match on the name ourselves
+    #       There seems to be mismatching regex behavior between
+    #       the deployment Ubuntu and Mac, where Mac will find
+    #       the archive files using both params, but Ubuntu will not...
+    am = get_assessment_manager()
+
+    querier = am.get_bank_query()
+
+    expected_name = archive_bank_names(original_bank.ident)
+    expected_genus = archive_bank_genus()
+
+    # querier.match_display_name(expected_name, match=True)
+    querier.match_genus_type(expected_genus, match=True)
+
+    banks = am.get_banks_by_query(querier)
+    if banks.available() == 0:
+        # create the bank
+        form = am.get_bank_form_for_create([])
+        form.set_genus_type(expected_genus)
+        form.display_name = expected_name
+        form.description = 'For Archiving Items'
+        archive = am.create_bank(form)
+    else:
+        archive = None
+        for bank in banks:
+            if bank.display_name.text == expected_name:
+                archive = bank
+                break
+        if archive is None:
+            # create the bank
+            form = am.get_bank_form_for_create([])
+            form.set_genus_type(expected_genus)
+            form.display_name = expected_name
+            form.description = 'For Archiving Items'
+            archive = am.create_bank(form)
+        
+    am.assign_item_to_bank(item.ident, archive.ident)
+    am.unassign_item_from_bank(item.ident, original_bank.ident)
 
 def check_assessment_has_items(bank, assessment_id):
     """
@@ -204,6 +259,30 @@ def create_new_item(bank, data):
     new_item = bank.create_item(form)
     return new_item
 
+def evaluate_inline_choice(answers, submission):
+    correct = False
+    right_answers = [a for a in answers
+                     if is_right_answer(a)]
+
+    for answer in right_answers:
+        answer_choices = answer.get_inline_choice_ids()
+        num_total = 0
+        num_right = 0
+        for inline_region, data in answer_choices.iteritems():
+            num_total += data['choiceIds'].available()
+        if len(submission.keys()) == len(answer_choices.keys()):
+            # assume order doesn't matter within the region -- though
+            # per QTI spec, I think it's only 1 choice per inline region
+            for inline_region, data in answer_choices.iteritems():
+                if ('choiceIds' in submission[inline_region] and
+                        len(submission[inline_region]['choiceIds']) == data['choiceIds'].available()):
+                    for choice_id in data['choiceIds']:
+                        if str(choice_id) in submission[inline_region]['choiceIds']:
+                            num_right += 1
+        if num_right == num_total:
+            correct = True
+    return correct
+
 def find_answer_in_answers(ans_id, ans_list):
     for ans in ans_list:
         if ans.ident == ans_id:
@@ -275,7 +354,7 @@ def get_question_status(bank, section, question_id):
     """
     try:
         student_response = bank.get_response(section.ident, question_id)
-    except NotFound:
+    except (NotFound, IllegalState):
         student_response = None
 
     if student_response:
@@ -301,7 +380,7 @@ def get_question_status(bank, section, question_id):
 def get_response_submissions(response):
     if response['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
         submission = response['integerValues']
-    elif is_multiple_choice(response):
+    elif is_multiple_choice(response) or is_ordered_choice(response):
         if isinstance(response, dict):
             if isinstance(response['choiceIds'], list):
                 submission = response['choiceIds']
@@ -311,9 +390,36 @@ def get_response_submissions(response):
             submission = response.getlist('choiceIds')
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
         submission = float(response['decimalValue'])
+    elif is_inline_choice(response):
+        submission = response['inlineRegions']
+    elif is_numeric_response(response):
+        # just take the first region for now
+        submission = response[response.keys()[0]]
     else:
         raise Unsupported
     return submission
+
+def is_file_submission(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['files-submission',
+                              'qti-upload-interaction-audio',
+                              'qti-upload-interaction-generic',
+                              'qti-order-interaction-mw-sandbox'])
+    else:
+        return any(mc in response['type'] for mc in ['files-submission',
+                                                     'qti-upload-interaction-audio',
+                                                     'qti-upload-interaction-generic',
+                                                     'qti-order-interaction-mw-sandbox'])
+
+def is_inline_choice(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 
 def is_multiple_choice(response):
     if isinstance(response['type'], list):
@@ -322,16 +428,84 @@ def is_multiple_choice(response):
                    for mc in ['multi-choice-ortho',
                               'multi-choice-edx',
                               'multi-choice-with-files-and-feedback',
-                              'qti-choice-interaction'])
+                              'qti-choice-interaction',
+                              'qti-choice-interaction-multi-select'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
-                                                     'qti-choice-interaction'])
+                                                     'qti-choice-interaction',
+                                                     'qti-choice-interaction-multi-select'])
+
+def is_mw_sandbox(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-order-interaction-mw-sandbox'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sandbox'])
+
+def is_numeric_response(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-numeric-response'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-numeric-response'])
+
+def is_ordered_choice(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-order-interaction-mw-sentence',
+                              'qti-order-interaction-object-manipulation'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence',
+                                                     'qti-order-interaction-object-manipulation'])
+
+def is_short_answer(response):
+    if isinstance(response['type'], list):
+        return any(mc in r
+                   for r in response['type']
+                   for mc in ['qti-extended-text-interaction'])
+    else:
+        return any(mc in response['type'] for mc in ['qti-extended-text-interaction'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
+
+def match_submission_to_answer(answers, response):
+    submission = get_response_submissions(response)
+    answer_match = None
+    default_answer = None
+    match = False
+
+    if is_inline_choice(response):
+        # try to find an exact match response according to the regions + choiceIds
+        # if no exact match found, just look for a "wrong answer" answer with no inlineRegions
+        for answer in answers:
+            answer_regions = answer.get_inline_choice_ids()
+            if answer_regions == {} and str(answer.genus_type) == str(WRONG_ANSWER):
+                default_answer = answer
+            num_total = 0
+            num_right = 0
+            for inline_region, data in answer_regions.iteritems():
+                num_total += data['choiceIds'].available()
+            if len(answer_regions.keys()) == len(submission.keys()):
+                for inline_region, data in answer_regions.iteritems():
+                    if data['choiceIds'].available() == len(submission[inline_region]['choiceIds']):
+                        for choice_id in data['choiceIds']:
+                            if str(choice_id) in submission[inline_region]['choiceIds']:
+                                num_right += 1
+            if num_total == num_right:
+                match = True
+                answer_match = answer
+                break
+    if not match:
+        return default_answer
+    else:
+        return answer_match
 
 def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
@@ -371,7 +545,8 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
             # use our new Offered Record object, which lets us do
             # "can_review_whether_correct()" on the Taken.
             offering_form = bank.get_assessment_offered_form_for_create(assessment_id,
-                                                                        [REVIEWABLE_OFFERED])
+                                                                        [REVIEWABLE_OFFERED,
+                                                                         N_OF_M_OFFERED])
             execute = bank.create_assessment_offered
 
         if 'duration' in offering:
@@ -403,6 +578,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if 'maxAttempts' in offering:
             offering_form.set_max_attempts(offering['maxAttempts'])
+
+        if 'nOfM' in offering:
+            offering_form.set_n_of_m(int(offering['nOfM']))
 
         new_offering = execute(offering_form)
         return_data.append(new_offering)
@@ -701,7 +879,7 @@ def update_response_form(response, form):
             form.set_face_values(front_face_value=values['frontFaceValue'],
                                  side_face_value=values['sideFaceValue'],
                                  top_face_value=values['topFaceValue'])
-    elif is_multiple_choice(response):
+    elif is_multiple_choice(response) or is_ordered_choice(response):
         try:
             response['choiceIds'] = response.getlist('choiceIds')
         except Exception:
@@ -712,14 +890,46 @@ def update_response_form(response, form):
         else:
             form.add_choice_id(response['choiceIds'])
             # raise InvalidArgument('ChoiceIds should be a list.')
-    elif response['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
-        for file_label, file_data in response['files'].iteritems():
-            form.add_file(DataInputStream(file_data), file_label)
+    elif is_file_submission(response):
+        try:
+            for file_label, file_data in response['files'].iteritems():
+                data_package = DataInputStream(file_data)
+                data_package.name = file_label  # assumption ..
+                extension = file_label.split('.')[-1]
+                ac_genus_type = Type(identifier=extension,
+                                     namespace='asset-content-genus-type',
+                                     authority='ODL.MIT.EDU')
+
+                try:
+                    form.add_file(data_package, file_label)
+                except AttributeError:
+                    form.set_file(asset_data=data_package,
+                                  asset_name=file_label,
+                                  asset_content_type=ac_genus_type)
+                    break
+        except KeyError:
+            pass  # perhaps no file passed in?
+    elif is_short_answer(response):
+        form.set_text(response['text'])
     elif response['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
         if 'decimalValue' in response:
             form.set_decimal_value(float(response['decimalValue']))
         if 'tolerance' in response:
             form.set_tolerance_value(float(response['tolerance']))
+    elif is_inline_choice(response):
+        for inline_region, data in response['inlineRegions'].iteritems():
+            form.add_inline_region(inline_region)
+            for choice_id in data['choiceIds']:
+                form.add_choice_id(choice_id, inline_region)
+    elif is_numeric_response(response):
+        region = [k for k in response.keys()if k != 'type'][0]
+        try:
+            form.add_integer_value(int(response[region]), region)
+        except ValueError:
+            try:
+                form.add_decimal_value(float(response[region]), region)
+            except ValueError:
+                form.set_text(str(response[region]))
     else:
         raise Unsupported()
     return form
@@ -728,27 +938,37 @@ def validate_response(response, answers):
     correct = False
     # for longer submissions / multi-answer questions, need to make
     # sure that all of them match...
-    if response['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
+    if is_file_submission(response) or is_short_answer(response):
         return True  # always say True because the file was accepted
 
     submission = get_response_submissions(response)
 
-    if is_multiple_choice(response):
+    if is_multiple_choice(response) or is_ordered_choice(response):
         right_answers = [a for a in answers
                          if is_right_answer(a)]
-        num_total = len(right_answers)
 
-        if num_total != len(submission):
-            pass
-        else:
+        for answer in right_answers:
             num_right = 0
-            for answer in right_answers:
-                if answer.get_choice_ids()[0] in submission:
-                    num_right += 1
-                else:
-                    break
-            if num_right == num_total:
-                correct = True
+            num_total = answer.get_choice_ids().available()
+            if len(submission) == num_total:
+                for index, choice_id in enumerate(answer.get_choice_ids()):
+                    if is_ordered_choice(response):
+                        if str(choice_id) == submission[index]:  # order matters
+                            num_right += 1
+                    else:
+                        if str(choice_id) in submission:  # order doesn't matter
+                            num_right += 1
+                if num_right == num_total and len(submission) == num_total:
+                    correct = True
+    elif is_inline_choice(response):
+        correct = evaluate_inline_choice(answers, submission)
+    elif is_numeric_response(response):
+        right_answers = [a for a in answers
+                         if is_right_answer(a)]
+
+        for answer in right_answers:
+            correct = answer.is_match(submission)
+            break  # only take the first right answer for now
     else:
         for answer in answers:
             ans_type = answer.object_map['recordTypeIds'][0]

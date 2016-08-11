@@ -2,6 +2,8 @@ import os
 import json
 import shutil
 
+from bs4 import Tag
+
 from dlkit_edx.primordium import Type
 from nose.tools import *
 from paste.fixture import TestApp
@@ -84,6 +86,14 @@ def configure_dlkit():
                     {'value': TEST_DATA_STORE, 'priority': 1}  # Mac
                 ]
             },
+            'magicItemLookupSessions': {
+                'syntax': 'STRING',
+                'displayName': 'Which magic item lookup sessions to try',
+                'description': 'To handle magic IDs.',
+                'values': [
+                    {'value': 'records.assessment.qti.numeric_response_records.MagicNumericResponseItemLookupSession', 'priority': 1}
+                ]
+            },
         },
 
     }
@@ -123,6 +133,8 @@ def get_managers():
                                                         proxy=proxy)
     return results
 
+def get_valid_contents(tag):
+    return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
 
 class BaseTestCase(TestCase):
     """

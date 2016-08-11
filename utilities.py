@@ -6,17 +6,20 @@ import web
 from urllib import quote
 
 from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
+from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
+    OperationFailed
 from dlkit_edx.primordium import Id, Type
 from dlkit_edx.proxy_example import TestRequest
 
+
+CORS_HEADERS = "Content-Type,Authorization,X-Api-Proxy,X-Api-Key,request-line"
 
 class BaseClass:
     def OPTIONS(self, *args, **kwargs):
         # https://www.youtube.com/watch?v=gZelOtYjYv8
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
+        web.header("Access-Control-Allow-Headers", CORS_HEADERS)
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         return
@@ -39,12 +42,28 @@ def format_response_mit_type(func):
     """
     @functools.wraps(func)
     def wrapper(self, *args):
+        from assessment_utilities import get_assessment_manager
         results = func(self, *args)
 
-        return {
+        response = {
             "format": "MIT-CLIx-OEA",
             "data": json.loads(results)  # return an object
         }
+
+        # inject the offered N of M also, if available
+        if (len(args) == 2 and
+                args[0].startswith('assessment.Bank') and
+                args[1].startswith('assessment.AssessmentTaken')):
+            am = get_assessment_manager()
+            bank = am.get_bank(clean_id(args[0]))
+            taken = bank.get_assessment_taken(clean_id(args[1]))
+            offered = bank.get_assessment_offered(clean_id(taken.object_map['assessmentOfferedId']))
+            offered_map = offered.object_map
+            if 'nOfM' in offered_map:
+                response.update({
+                    'nOfM': offered_map['nOfM']
+                })
+        return response
     return wrapper
 
 def format_response(func):
@@ -55,7 +74,7 @@ def format_response(func):
         web.header('Content-type', 'application/json')
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
+        web.header("Access-Control-Allow-Headers", CORS_HEADERS)
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
@@ -72,7 +91,7 @@ def format_xml_response(func):
         web.header('Content-type', 'application/xml')
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
+        web.header("Access-Control-Allow-Headers", CORS_HEADERS)
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
@@ -88,7 +107,7 @@ def allow_cors(func):
         results = func(self, *args)
         web.header("Access-Control-Allow-Origin", "*")
         web.header("Access-Control-Allow-Credentials", "true")
-        web.header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Api-Proxy")
+        web.header("Access-Control-Allow-Headers", CORS_HEADERS)
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         return results
@@ -143,12 +162,22 @@ def extract_items(item_list):
     try:
         if item_list.available() > 0:
             # so we don't list the items because it's a generator
-            orig_list = list(item_list)
             try:
-                return json.dumps([i.object_map for i in orig_list])
-            except AttributeError:
-                # Hierarchy Nodes do not have .object_map
-                return json.dumps([i.get_node_map() for i in orig_list])
+                orig_list = list(item_list)
+                results = []
+                for item in orig_list:
+                    try:
+                        results.append(item.object_map)
+                    except AttributeError:
+                        # Hierarchy Nodes do not have .object_map
+                        results.append(item.get_node_map())
+                    except Exception: # yes, this is overly broad and violets PEP8
+                        # but we are suppressing all errors that might happen
+                        # due to bad items
+                        pass
+                return json.dumps(results)
+            except OperationFailed:
+                return json.dumps([i.object_map for i in item_list])
         else:
             return json.dumps([])
     except AttributeError:
@@ -162,11 +191,11 @@ def handle_exceptions(ex):
         web.message = 'Permission Denied'
         raise web.Forbidden()
     elif isinstance(ex, IllegalState):
-        web.message = 'IllegalState {}'.format(ex)
+        web.message = 'IllegalState {}'.format(str(ex))
         raise web.NotAcceptable()
     else:
         web.message = 'Bad request {}'.format(ex)
-        raise web.NotAcceptable()
+        raise web.NotFound()
 
 def set_form_basics(form, data):
     def _grab_first_match(keys):

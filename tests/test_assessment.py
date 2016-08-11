@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-
+import csv
 import json
 import os
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from copy import deepcopy
 
@@ -13,12 +13,15 @@ from nose.tools import *
 
 from paste.fixture import AppError
 
+from records.assessment.qti.basic import _stringify
 from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
-    QUESTION_GENUS_TYPES
+    QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES
 
-from testing_utilities import BaseTestCase, get_managers, create_test_bank
+from sympy import sympify
+
+from testing_utilities import BaseTestCase, get_managers, create_test_bank, get_valid_contents
 from urllib import unquote, quote
 
 import utilities
@@ -31,20 +34,45 @@ NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-re
 RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 
-
 QTI_ANSWER_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction'])
+QTI_ANSWER_CHOICE_INTERACTION_MULTI_GENUS = Type(**ANSWER_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_ANSWER_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_ANSWER_INLINE_CHOICE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ANSWER_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-numeric-response'])
+QTI_ANSWER_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_ANSWER_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_ANSWER_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ANSWER_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_ANSWER_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
+QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-numeric-response'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['qti'])
 
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
+N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
+SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
@@ -58,7 +86,7 @@ class BaseAssessmentTestCase(BaseTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -2133,6 +2161,130 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
 
         self.assertTrue(taken['reviewWhetherCorrect'])
 
+    def test_can_set_n_of_m_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], 2)
+
+    def test_can_update_n_of_m_on_update(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], -1)
+
+        payload = {
+            "nOfM": 5
+        }
+
+        assessment_offering_details_endpoint = '{0}/{1}'.format(assessment_offering_endpoint,
+                                                                unquote(offering['id']))
+
+        req = self.app.put(assessment_offering_details_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['nOfM'], payload['nOfM'])
+
+    def test_can_see_n_of_m_when_getting_taken_questions(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            },
+            "duration"  : {
+                "days"  : 2
+            },
+            "nOfM" : 2
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertEquals(offered['nOfM'], 2)
+
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint)
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        # Instructor can now take the assessment
+        taken_endpoint = self.url + '/assessmentstaken/' + taken_id
+
+        # Only GET of this endpoint is supported
+        taken_questions_endpoint = taken_endpoint + '/questions'
+
+        req = self.app.get(taken_questions_endpoint)
+        self.ok(req)
+        data = json.loads(req.body)
+        self.assertIn('nOfM', data)
+        self.assertEqual(data['nOfM'], payload['nOfM'])
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -2456,6 +2608,39 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         req = self.app.get(taken_endpoint)
         data = self.json(req)
         self.assertIn(test_student, data['takingAgentId'])
+
+    def test_can_finish_taken_to_get_new_taken(self):
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+        test_student = 'foobar'
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+
+        url = '{0}/assessmentstaken/{1}/finish'.format(self.url,
+                                                       taken_id)
+
+        req = self.app.post(url,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken2 = json.loads(req.body)
+        taken2_id = unquote(taken2['id'])
+
+        self.assertNotEqual(taken_id, taken2_id)
 
 
 class BasicServiceTests(BaseAssessmentTestCase):
@@ -2823,7 +3008,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
 
 
-class MultipleChoiceTests(BaseAssessmentTestCase):
+class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -2831,7 +3016,7 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -2842,6 +3027,14 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         new_offered = bank.create_assessment_offered(form)
 
         return new_offered
+
+    def create_drag_and_drop_item(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        return self.json(req)
 
     def create_item(self, bank_id):
         if isinstance(bank_id, basestring):
@@ -2870,6 +3063,38 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_mc_item_for_feedback_testing(self):
+        url = '{0}/items'.format(self.url)
+        self._number_of_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._number_of_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mc_multi_select_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mw_fitb_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fill_in_the_blank_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mw_sentence_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -2885,15 +3110,27 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
         return taken, new_offered
 
     def setUp(self):
-        super(MultipleChoiceTests, self).setUp()
+        super(MultipleChoiceAndMWTests, self).setUp()
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
+
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
-        super(MultipleChoiceTests, self).tearDown()
+        super(MultipleChoiceAndMWTests, self).tearDown()
+
+        self._mw_sentence_test_file.close()
+        self._mc_multi_select_test_file.close()
+        self._number_of_feedback_test_file.close()
+        self._mw_fill_in_the_blank_test_file.close()
+        self._drag_and_drop_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -3608,6 +3845,455 @@ class MultipleChoiceTests(BaseAssessmentTestCase):
                                       [new_answer_string],
                                       [answer_type])
 
+    def test_can_submit_right_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct Feedback goes here!', data['feedback'])
+        self.assertNotIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_can_submit_wrong_answer_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',  # swapped the order
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',  # swapped the order
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
+                          'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                          'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                          'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                          'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                          'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                          'id2cad48be-2782-4625-9669-dfcb2062bf3c',
+                          'a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct Feedback goes here!', data['feedback'])
+        self.assertIn('Wrong...Feedback goes here!', data['feedback'])
+
+    def test_can_submit_right_answer_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertNotIn('Please try again!', data['feedback'])
+
+    def test_order_does_not_matter_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',  # swapped order
+                          'idb5345daa-a5c2-4924-a92b-e326886b5d1d',  # swapped order
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertNotIn('Please try again!', data['feedback'])
+
+    def test_can_submit_wrong_answer_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0',
+                          'id01913fba-e66d-4a01-9625-94102847faac'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_mc_multi_select(self):
+        mc_item = self.create_mc_multi_select_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
+        self.assertIn('Please try again!', data['feedback'])
+
+    def test_only_one_feedback_provided(self):
+        item = self.create_mc_item_for_feedback_testing()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'choiceIds': ['a'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Well done!', data['feedback'])
+        self.assertNotIn(';', data['feedback'])
+        self.assertIn('Listen carefully', data['feedback'])
+        self.assertEqual(data['feedback'].count('Listen carefully'), 1)
+
+    def test_can_submit_right_answer_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Yes, you are correct.', data['feedback'])
+        self.assertIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertNotIn('No, please listen to the story again.', data['feedback'])
+        self.assertNotIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_region_does_matter_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_can_submit_wrong_answer_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['a']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['b']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1', 'a']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': ['[_1_1_1_1_1_1']
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_mw_fill_in_the_blank(self):
+        mc_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'inlineRegions': {
+                'RESPONSE_1': {
+                    'choiceIds': ['[_1_1_1_1_1_1_1']
+                },
+                'RESPONSE_2': {
+                    'choiceIds': []
+                }
+            },
+            'type': 'answer-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Yes, you are correct.', data['feedback'])
+        self.assertNotIn('This is an image of a brown bunny.', data['feedback'])
+        self.assertIn('No, please listen to the story again.', data['feedback'])
+        self.assertIn('This is a drawing of a goldfish.', data['feedback'])
+
+    def test_can_submit_right_answer_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You are correct!', data['feedback'])
+        self.assertNotIn('Please try again.', data['feedback'])
+
+    def test_can_submit_wrong_answer_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',  # swapped the order
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',  # swapped the order
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
+    def test_cannot_submit_too_many_choices_even_if_partially_correct_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+                          'a'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
+    def test_submitting_too_few_answers_returns_incorrect_drag_and_drop(self):
+        mc_item = self.create_drag_and_drop_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['a',
+                          'b'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You are correct!', data['feedback'])
+        self.assertIn('Please try again.', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -3617,17 +4303,26 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
 
         bank.add_item(new_assessment.ident, item_id)
 
-        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [REVIEWABLE_OFFERED,
+                                                                                  N_OF_M_OFFERED])
         new_offered = bank.create_assessment_offered(form)
 
         return new_offered
+
+    def create_float_numeric_response_item(self):
+        url = '{0}items'.format(self.url)
+        self._float_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._float_numeric_response_test_file.read())])
+        self.ok(req)
+        return self.json(req)
 
     def create_item(self, bank_id):
         if isinstance(bank_id, basestring):
@@ -3656,6 +4351,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         return bank.get_item(new_item.ident)
 
+    def create_simple_numeric_response_item(self):
+        url = '{0}items'.format(self.url)
+        self._simple_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._simple_numeric_response_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -3666,7 +4369,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
         new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
 
-        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [REVIEWABLE_TAKEN])
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
@@ -3676,10 +4379,16 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
+        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/'
 
     def tearDown(self):
         super(NumericAnswerTests, self).tearDown()
+
+        self._simple_numeric_response_test_file.close()
+        self._float_numeric_response_test_file.close()
 
     def test_can_create_item(self):
         self.assertEqual(
@@ -3797,6 +4506,316 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             'No feedback available.'
         )
 
+    def test_can_submit_right_answer_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct!', data['feedback'])
+        self.assertNotIn('Incorrect ...', data['feedback'])
+
+    def test_can_submit_wrong_answer_simple_numeric(self):
+        mc_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+        payload = {
+            'RESPONSE_1': str(right_answer + 1),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_empty_string_evaluates_as_wrong_answer_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': "",
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+
+    def test_cannot_submit_non_integer_to_simple_numeric(self):
+        mc_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+        payload = {
+            'RESPONSE_1': str(right_answer) + '.0',
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_getting_same_question_twice_returns_same_parameter_values_simple_numeric(self):
+        nr_item = self.create_simple_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        # make sure the text matches the ID params
+        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expected_expression = '{0} + {1}'.format(question_1_params['var1'],
+                                                 question_1_params['var2'])
+        self.assertEqual(
+            question_expression,
+            expected_expression
+        )
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
+                                                              unquote(str(taken.ident)),
+                                                              question_1_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data1 = self.json(req)
+        q1 = data1['text']['text']
+
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data2 = self.json(req)
+            q2 = data2['text']['text']
+            self.assertEqual(q1, q2)
+
+    def test_can_submit_right_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Correct!', data['feedback'])
+        self.assertNotIn('Incorrect ...', data['feedback'])
+
+    def test_can_submit_wrong_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(right_answer - 0.1),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_empty_string_evaluates_as_wrong_answer_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': "",
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_cannot_submit_non_float_to_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        right_answer = sympify(expression)
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        payload = {
+            'RESPONSE_1': str(int(right_answer)),
+            'type': 'answer-type%3Aqti-numeric-response%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('Incorrect ...', data['feedback'])
+
+    def test_getting_same_question_twice_returns_same_parameter_values_float_numeric(self):
+        nr_item = self.create_float_numeric_response_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        # make sure the text matches the ID params
+        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expected_expression = '{0} + {1}'.format("%.4f" % (question_1_params['var1'],),
+                                                 question_1_params['var2'])
+        self.assertEqual(
+            question_expression,
+            expected_expression
+        )
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
+                                                              unquote(str(taken.ident)),
+                                                              question_1_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data1 = self.json(req)
+        q1 = data1['text']['text']
+
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data2 = self.json(req)
+            q2 = data2['text']['text']
+            self.assertEqual(q1, q2)
+
 
 class QTIEndpointTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -3806,7 +4825,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item_id = utilities.clean_id(item_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_assessment_form_for_create([])
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
         form.display_name = 'a test assessment'
         form.description = 'for testing with'
         new_assessment = bank.create_assessment(form)
@@ -3864,6 +4883,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
         self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
+        self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
+        self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
+        self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -3877,6 +4911,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._test_file2.close()
         self._audio_recording_test_file.close()
         self._mc_feedback_test_file.close()
+        self._mw_sentence_test_file.close()
+        self._mw_sentence_missing_audio_test_file.close()
+        self._xml_after_audio_test_file.close()
+        self._mw_sandbox_test_file.close()
+        self._mc_multi_select_test_file.close()
+        self._short_answer_test_file.close()
+        self._mw_fill_in_the_blank_test_file.close()
+        self._generic_upload_test_file.close()
+        self._drag_and_drop_test_file.close()
+        self._simple_numeric_response_test_file.close()
+        self._floating_point_numeric_input_test_file.close()
+        self._video_test_file.close()
+        self._audio_everywhere_test_file.close()
+        self._audio_in_choices_test_file.close()
+        self._mw_fitb_2_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -3916,6 +4965,112 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        image_1_asset_label = 'medium8701311014467393642draggable_green_dot_png'
+        image_2_asset_label = 'medium3854799028001516110draggable_h1i_PNG'
+        image_1_asset_id = item['question']['fileIds'][image_1_asset_label]['assetId']
+        image_1_asset_content_id = item['question']['fileIds'][image_1_asset_label]['assetContentId']
+
+        image_2_asset_id = item['question']['fileIds'][image_2_asset_label]['assetId']
+        image_2_asset_content_id = item['question']['fileIds'][image_2_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Which of the following is a circle?
+  </p>
+<choiceInteraction maxChoices="1" responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="20"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>
+     |__|
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="26"/>
+</p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      image_1_asset_id,
+                      image_1_asset_content_id,
+                      image_2_asset_id,
+                      image_2_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_xml_preserved(self):
+        url = '{0}/items'.format(self.url)
+        self._xml_after_audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._xml_after_audio_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        item_body.choiceInteraction.extract()
+        string_children = get_valid_contents(item_body)
+        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
+        expected_children = get_valid_contents(expected)
+        self.assertEqual(len(string_children), len(expected_children))
+        for index, child in enumerate(string_children):
+            if isinstance(child, Tag):
+                child_contents = get_valid_contents(child)
+                expected_child_contents = get_valid_contents(expected_children[index])
+                for grandchild_index, grandchild in enumerate(child_contents):
+                    if isinstance(grandchild, Tag):
+                        for key, val in grandchild.attrs.iteritems():
+                            if key not in ['data', 'src']:
+                                if key == "class":
+                                    self.assertIn(val,
+                                                  expected_child_contents[grandchild_index].attrs[key])
+                                else:
+                                    self.assertEqual(val,
+                                                     expected_child_contents[grandchild_index].attrs[key])
+                    else:
+                        self.assertEqual(grandchild.string.strip(),
+                                         expected_child_contents[grandchild_index].string.strip())
+            else:
+                self.assertEqual(child.string.strip(), expected_children[index].string.strip())
+
     def test_can_upload_qti_upload_interaction_file(self):
         url = '{0}/items'.format(self.url)
         self._audio_recording_test_file.seek(0)
@@ -3939,9 +5094,258 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(RIGHT_ANSWER_GENUS)
         )
 
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
+        )
+
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
+        )
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        audio_asset_label = 'audioTestFile__mp3'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<strong>
+    Introducting a new student
+   </strong>
+</p>
+<p>
+   It's the first day of school after the summer vacations. A new student has joined the class
+  </p>
+<p>
+   Student 1 talks to the new student to make him/her feel comfortable.
+  </p>
+<p>
+   Student 2 talks about herself or himself and asks a few questions about the new school
+  </p>
+<uploadInteraction responseIdentifier="RESPONSE_1"/>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_generic_qti_upload_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        expected_string = """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+     Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+    </span>
+<br/>
+</strong>
+</p>
+<uploadInteraction responseIdentifier="RESPONSE_1"/>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_qti_order_interaction_file(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            7
+        )
+        self.assertIn('feedback', item['answers'][0]['texts'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][1]['choiceIds']),
+            1
+        )
+        self.assertIsNone(item['answers'][1]['choiceIds'][0])
+        self.assertIn('feedback', item['answers'][1]['texts'])
+
+        self.assertEqual(
+            len(item['question']['choices']),
+            7
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p in choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif 'left' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        item_details_url = '{0}?qti'.format(url)
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        data = self.json(req)
+        item = [i for i in data if i['id'] == item['id']][0]
+        self.assertIn('qti', item)
+        item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
+        expected_values = ['id51b2feca-d407-46d5-b548-d6645a021008',
+                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                           'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                           'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                           'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                           'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                           'id2cad48be-2782-4625-9669-dfcb2062bf3c']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'ee_u1l01a01r05__mp3'
+        image_asset_label = 'medium8081173379968782030intersection_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+        image_asset_id = item['question']['fileIds'][image_asset_label]['assetId']
+        image_asset_content_id = item['question']['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class="noun">
+     Raju
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idcccac9f8-3b85-4a2f-a95c-1922dec5d04a">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id78ce22bf-559f-44a4-95ee-156f222ad510">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id3045d860-24b4-4b30-9ca1-72408a3bcc9b">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id2cad48be-2782-4625-9669-dfcb2062bf3c">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
         )
 
     def test_audio_file_in_question_gets_saved(self):
@@ -3959,7 +5363,75 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         expected_string_start = '/api/v1/repository/repositories/'
         self.assertIn(expected_string_start,
-                      qti.itemBody.contents[1].object['data'])
+                      qti.itemBody.contents[1].source['src'])
+
+    def test_audio_elements_get_autoplay_false_flag(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_everywhere_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testQTI.zip', self._audio_everywhere_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        first_tag = True
+        for object_ in qti.find_all('object'):
+            if first_tag:
+                self.assertEqual(
+                    len(object_.contents),
+                    0
+                )
+                first_tag = False
+            else:
+                self.assertEqual(
+                    len(object_.contents),
+                    3)
+                self.assertEqual(
+                    object_.contents[0],
+                    u'\n'
+                )
+                self.assertEqual(
+                    str(object_.contents[1]),
+                    '<param name="autoplay" value="false"/>'
+                )
+                self.assertEqual(
+                    object_.contents[2],
+                    u'\n'
+                )
+
+    def test_audio_in_choices_always_get_autoplay_false_flag(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_in_choices_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testQTI.zip', self._audio_in_choices_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url,
+                                   item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        for object_ in qti.find_all('object'):
+            self.assertEqual(
+                len(object_.contents),
+                3)
+            self.assertEqual(
+                object_.contents[0],
+                u'\n'
+            )
+            self.assertEqual(
+                str(object_.contents[1]),
+                '<param name="autoplay" value="false"/>'
+            )
+            self.assertEqual(
+                object_.contents[2],
+                u'\n'
+            )
 
     def test_with_taken_can_get_question_qti_without_answers(self):
         url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.url,
@@ -4093,6 +5565,127 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(item['provenanceId'], '')
         self.assertEqual(item2['provenanceId'], item['id'])
 
+    def test_uploading_same_qti_item_id_archives_old_item(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+        original_item_id = item['id']
+
+        banks_url = '/api/v1/assessment/banks'
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 1)
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item2 = self.json(req)
+
+        self.assertNotEqual(item['id'], item2['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+
+        self.assertEqual(len(items), 2)  # because there is another question from the setup
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item2['id'], item_ids)
+
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 2)
+        archive_bank = [b for b in banks if 'archive' in b['genusTypeId']][0]
+
+        url = '/api/v1/assessment/banks/{0}/items'.format(archive_bank['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(
+            items[0]['id'],
+            original_item_id
+        )
+
+    def test_archiving_only_creates_one_archive_bank(self):
+        url = '{0}/items'.format(self.url)
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item = self.json(req)
+        original_item_id = item['id']
+
+        banks_url = '/api/v1/assessment/banks'
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 1)
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item2 = self.json(req)
+
+        self.assertNotEqual(item['id'], item2['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+
+        self.assertEqual(len(items), 2)  # because there is another question from the setup
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item2['id'], item_ids)
+
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 2)
+        archive_bank = [b for b in banks if 'archive' in b['genusTypeId']][0]
+
+        archive_bank_items_url = '/api/v1/assessment/banks/{0}/items'.format(archive_bank['id'])
+        req = self.app.get(archive_bank_items_url)
+        self.ok(req)
+        items = self.json(req)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(
+            items[0]['id'],
+            original_item_id
+        )
+
+        self._test_file2.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._test_file2.read())])
+        self.ok(req)
+        item3 = self.json(req)
+
+        req = self.app.get(banks_url)
+        self.ok(req)
+        banks = self.json(req)
+        self.assertEqual(len(banks), 2)
+
+        req = self.app.get(archive_bank_items_url)
+        self.ok(req)
+        items = self.json(req)
+        self.assertEqual(len(items), 2)
+        item_ids = [i['id'] for i in items]
+        self.assertIn(original_item_id, item_ids)
+        self.assertIn(item2['id'], item_ids)
+
+        req = self.app.get(url)
+        self.ok(req)
+        items = self.json(req)
+
+        self.assertEqual(len(items), 2)  # because there is another question from the setup
+        item_ids = [i['id'] for i in items]
+        self.assertIn(item3['id'], item_ids)
+
     def test_feedback_gets_set_on_qti_mc_upload(self):
         url = '{0}/items'.format(self.url)
         self._mc_feedback_test_file.seek(0)
@@ -4124,7 +5717,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(WRONG_ANSWER_GENUS)
             )
 
-        expected_matches = ((u'<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches. </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
+        expected_matches = (('<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
                             ("<p>Listen again and answer.</p>", "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f"),
                             ("<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>", "id8e65e4e1-e891-4c30-a35c-5cc43df18710"),
                             ("<p>Zo has hurt himself.</p>", "ida1986000-f320-4346-b289-7310974afd1a"))
@@ -4135,12 +5728,1606 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 match[1]
             )
 
-            self.assertEqual(
-                item['answers'][index]['texts']['feedback'],
-                match[0]
-            )
+            self.assertIn(match[0],
+                          item['answers'][index]['texts']['feedback'])
 
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
         )
+
+    def test_missing_media_element_just_gets_filtered_out(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_missing_audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_missing_audio_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            7
+        )
+        self.assertIn('feedback', item['answers'][0]['texts'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][1]['choiceIds']),
+            1
+        )
+        self.assertIsNone(item['answers'][1]['choiceIds'][0])
+        self.assertIn('feedback', item['answers'][1]['texts'])
+
+        self.assertEqual(
+            len(item['question']['choices']),
+            7
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p in choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif 'left' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['text']['text'])
+
+    def test_learning_objectives_are_parsed_and_saved(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['learningObjectiveIds'],
+            ['learning.Objective%3AGrade 9.B2%40CLIX.TISS.EDU']
+        )
+
+    def test_can_upload_mw_sandbox_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        # deprecated -- there should be no answer choices; is a file submission if anything
+        # self.assertEqual(
+        #     len(item['answers'][0]['choiceIds']),
+        #     13
+        # )
+        self.assertEqual(
+            len(item['question']['choices']),
+            13
+        )
+
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n == choice['text'] for n in ['the bags', 'the bus',
+                                                 'the bridge', "Raju's",
+                                                 'the seat', 'the airport',
+                                                 'the city', 'the bicycle']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p == choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif any(v == choice['text'] for v in ['are', 'left', 'dropped']):
+                self.assertIn('"verb"', choice['text'])
+            elif any(av == choice['text'] for av in ['under', 'on top of']):
+                self.assertIn('"adverb"', choice['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        item_details_url = '{0}?qti'.format(url)
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        data = self.json(req)
+        item = [i for i in data if i['id'] == item['id']][0]
+        self.assertIn('qti', item)
+        item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
+        expected_values = ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
+                           'id969e920d-6d22-4d06-b4ac-40a821e350c6',
+                           'id820fae90-3794-40d1-bee0-daa36da223b3',
+                           'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
+                           'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
+                           'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
+                           'iddd689e9d-0cd0-478d-9d37-2856f866a757',
+                           'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
+                           'id41288bb9-e76e-4313-bf57-2101edfe3a76',
+                           'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
+                           'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
+                           'id472afb75-4aa9-4daa-a163-075798ee57ab',
+                           'id8c68713f-8e39-446b-a6c8-df25dfb8118e']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'ee_u1l01a01r04__mp3'
+        asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
+<p class="noun">
+     the airport
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
+<p class="verb">
+     are
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>
+<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
+<p class="adverb">
+     on top of
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
+<p class="noun">
+     Raju's
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>
+<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
+<p class="noun">
+     the city
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
+<p class="noun">
+     the bicycle
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
+<p class="verb">
+     dropped
+    </p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_mc_multi_select(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            3
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        diamond_label = 'medium5027634271179083907square_png'
+        rectangle_label = 'medium2852808971416763161rectangle_png'
+        parallel_label = 'medium5011234143907175882parallel_png'
+        regular_square_label = 'medium3312330729255923592regularsquare_png'
+
+        diamond_asset_id = item['question']['fileIds'][diamond_label]['assetId']
+        diamond_asset_content_id = item['question']['fileIds'][diamond_label]['assetContentId']
+        rectangle_asset_id = item['question']['fileIds'][rectangle_label]['assetId']
+        rectangle_asset_content_id = item['question']['fileIds'][rectangle_label]['assetContentId']
+        parallel_asset_id = item['question']['fileIds'][parallel_label]['assetId']
+        parallel_asset_content_id = item['question']['fileIds'][parallel_label]['assetContentId']
+        regular_square_asset_id = item['question']['fileIds'][regular_square_label]['assetId']
+        regular_square_asset_content_id = item['question']['fileIds'][regular_square_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p dir="ltr" id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60">
+   In the diagram below,
+  </p>
+<p>
+<strong>
+</strong>
+</p>
+<p dir="ltr">
+   A is the set of rectangles, and
+  </p>
+<p dir="ltr">
+   B is the set of rhombuses
+  </p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+<img alt="venn1" height="202" src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" width="288"/>
+</p>
+<p dir="ltr">
+</p>
+<p>
+<strong>
+    Which all shape(s) can be contained in the gray shaded area?
+    <br/>
+</strong>
+</p>
+<choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="186"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id47e56db8-ee16-4111-9bcc-b8ac9716bcd4">
+<p>
+<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="144"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="201"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="148"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">
+       None of these
+      </span>
+<br/>
+</strong>
+</p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      parallel_asset_id,
+                      parallel_asset_content_id,
+                      regular_square_asset_id,
+                      regular_square_asset_content_id,
+                      rectangle_asset_id,
+                      rectangle_asset_content_id,
+                      diamond_asset_id,
+                      diamond_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+
+    def test_can_upload_short_answer(self):
+        url = '{0}/items'.format(self.url)
+        self._short_answer_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._short_answer_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['texts']['feedback'],
+            '<p>Answer submitted</p>'
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        self.assertEqual(item['question']['maxStrings'], 300)
+        self.assertEqual(item['question']['expectedLength'], 100)
+        self.assertEqual(item['question']['expectedLines'], 5)
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        asset_label = item['question']['fileIds'].keys()[0]
+        asset_id = item['question']['fileIds'][asset_label]['assetId']
+        asset_content_id = item['question']['fileIds'][asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04bd-94f0-a53d-94c5c97ab6e6">
+     Which of the following figure(s) is/are parallelogram(s)? Give a reason for your choice.
+    </span>
+<br/>
+</strong>
+</p>
+<p>
+<strong>
+<img alt="A set of four shapes." height="204" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="703"/>
+</strong>
+</p>
+<extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_mw_fill_in_the_blank(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fill_in_the_blank_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+        self.assertIn('RESPONSE_2', item['question']['choices'])
+
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+        response_2_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_2']]
+
+        self.assertIn('[_1_1_1_1_1_1_1', response_1_choice_ids)
+        self.assertIn('[_1_1_1_1_1_1', response_2_choice_ids)
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+        self.assertIn('RESPONSE_2', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1_1_1_1_1_1']
+        )
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_2']['choiceIds'],
+            ['[_1_1_1_1_1_1']
+        )
+
+        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('No, please listen to the story again.', item['answers'][1]['texts']['feedback'])
+
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+        audio_asset_label = 'ee_u1l01a01r04__mp3'
+        image_asset_label = 'medium2741930469600907330bus_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+
+        image_asset_id = item['question']['fileIds'][image_asset_label]['assetId']
+        image_asset_content_id = item['question']['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+<p>
+<p class="noun">
+     Raju's
+    </p>
+<p class="noun">
+     bags
+    </p>
+<p class="verb">
+     are
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="prep">
+      on
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1_1_1_1_1_1">
+<p class="under">
+      under
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1_1_1_1_1_1">
+<p class="verb">
+      lost
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1_1_1_1_1_1">
+<p class="prep">
+      on top of
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+<p>
+<p class="noun">
+     the bus
+    </p>
+<p class="prep">
+     in the
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_2" shuffle="true">
+<inlineChoice identifier="[_1_1_1_1_1_1">
+<p class="noun">
+      city
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="noun">
+      town
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1_1_1_1_1">
+<p class="noun">
+      station
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1_1_1_1_1">
+<p class="noun">
+      airport
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+   .
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a picture of a bus." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_mw_fill_in_the_blank_2(self):
+        """mostly to test that the words post-<inlineChoiceInteraction> are wrapped properly"""
+        url = '{0}/items'.format(self.url)
+        self._mw_fitb_2_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_fitb_2_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+
+        self.assertIn('[_1_1_1', response_1_choice_ids)
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1_1']
+        )
+        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('Please listem to the story and try again.', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        expected_string = """<itemBody>
+<p>
+<p>
+<p class="noun">
+     Raju's
+    </p>
+</p>
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<inlineChoice identifier="[_1_1">
+<p class="noun">
+      gifts
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_1_1_1">
+<p class="noun">
+      bags
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_2_1_1">
+<p class="noun">
+      bicycles
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_3_1_1">
+<p class="noun">
+      lunches
+     </p>
+</inlineChoice>
+<inlineChoice identifier="[_4_1_1">
+<p class="noun">
+      flowers
+     </p>
+</inlineChoice>
+</inlineChoiceInteraction>
+<p>
+<p class="verb">
+     are
+    </p>
+<p class="prep">
+     on
+    </p>
+<p class="noun">
+     the bus.
+    </p>
+</p>
+</p>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_description_saved_if_provided(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['description']['text'],
+            'Understanding shape properties through construction in LOGO'
+        )
+
+    def test_can_provide_both_description_and_type_in_description_field(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['description']['text'],
+            'This is an example of a drag and drop story sequence question from the English team.'
+        )
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+    def test_can_upload_drag_and_drop_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._drag_and_drop_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._drag_and_drop_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            4
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            4
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        expected_values = ['id127df214-2a19-44da-894a-853948313dae',
+                           'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                           'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                           'ide576c9cc-d20e-4ba3-8881-716100b796a0']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        audio_asset_label = 'audioTestFile__mp3'
+        image_1_asset_label = 'medium6529396219987445959Picture1_png'
+        image_2_asset_label = 'medium5957728225939996885Picture2_png'
+        image_3_asset_label = 'medium4379732137514528329Picture3_png'
+        image_4_asset_label = 'medium3189220463551707716Picture4_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+        image_1_asset_id = item['question']['fileIds'][image_1_asset_label]['assetId']
+        image_1_asset_content_id = item['question']['fileIds'][image_1_asset_label]['assetContentId']
+        image_2_asset_id = item['question']['fileIds'][image_2_asset_label]['assetId']
+        image_2_asset_content_id = item['question']['fileIds'][image_2_asset_label]['assetContentId']
+        image_3_asset_id = item['question']['fileIds'][image_3_asset_label]['assetId']
+        image_3_asset_content_id = item['question']['fileIds'][image_3_asset_label]['assetContentId']
+        image_4_asset_id = item['question']['fileIds'][image_4_asset_label]['assetId']
+        image_4_asset_content_id = item['question']['fileIds'][image_4_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p class="">
+<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p class="">
+<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p class="">
+<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p class="">
+<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{9}/contents/{10}" width="100"/>
+</p>
+</simpleChoice>
+</p>
+</simpleChoice>
+</orderInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_1_asset_id,
+                      image_1_asset_content_id,
+                      image_2_asset_id,
+                      image_2_asset_content_id,
+                      image_3_asset_id,
+                      image_3_asset_content_id,
+                      image_4_asset_id,
+                      image_4_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+    def test_can_upload_simple_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._simple_numeric_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._simple_numeric_response_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['step'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve: {var1} + {var2} =
+   <textEntryInteraction responseIdentifier="RESPONSE_1"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random integers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = int(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1 <= var1 <= 10)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        print item['question']['id']
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_upload_floating_point_numeric_response_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._floating_point_numeric_input_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._floating_point_numeric_input_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['format'],
+            '%.4f'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve:
+   <printedVariable format="%.4f" identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random numbers are inserted that meet the requirements
+        item_body_str = str(item_body)
+        var1 = float(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
+        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+
+        self.assertTrue(1.0 <= var1 <= 10.0)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_video_tags_appear_in_qti(self):
+        url = '{0}/items'.format(self.url)
+        self._video_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile.zip', self._video_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+        item_body.choiceInteraction.extract()
+
+        expected_string = """<itemBody>
+<p>
+<span style="font-size: 12.8px;">
+    [type]{video}
+   </span>
+</p>
+<p>
+<span style="font-size: 12.8px;">
+    Was Raju\'s father on the bus?
+   </span>
+</p>
+
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+
+class FileUploadTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_assessment, new_offered
+
+    def create_item(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_item_form_for_create([QTI_ITEM_RECORD])
+        form.display_name = 'a test item!'
+        form.description = 'for testing with'
+        form.load_from_qti_item(self._test_xml)
+        new_item = bank.create_item(form)
+
+        form = bank.get_question_form_for_create(item_id=new_item.ident,
+                                                 question_record_types=[QTI_QUESTION_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_question(form)
+
+        form = bank.get_answer_form_for_create(item_id=new_item.ident,
+                                               answer_record_types=[QTI_ANSWER_RECORD])
+        form.load_from_qti_item(self._test_xml)
+        bank.create_answer(form)
+
+        return bank.get_item(new_item.ident)
+
+    def create_mw_sandbox_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sandbox_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sandbox_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered, new_assessment
+
+    def setUp(self):
+        super(FileUploadTests, self).setUp()
+
+        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
+        self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_response_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(FileUploadTests, self).tearDown()
+
+        self._audio_response_file.close()
+        self._audio_recording_test_file.close()
+        self._generic_upload_test_file.close()
+        self._generic_upload_response_test_file.close()
+        self._mw_sandbox_test_file.close()
+
+    def test_can_send_audio_file_response_for_audio_rt(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._audio_recording_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._audio_response_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'submissionFile.wav', self._audio_response_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+    def test_can_send_generic_file_response_for_generic_file_upload(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._generic_upload_response_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'Epidemic2.sltng', self._generic_upload_response_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+    def test_empty_response_without_file_throws_error(self):
+        url = '{0}/items'.format(self.url)
+        self._generic_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._generic_upload_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self.assertRaises(AppError,
+                          self.app.post,
+                          url)
+
+    def test_can_submit_file_to_mw_sandbox(self):
+        sandbox = self.create_mw_sandbox_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(sandbox['id']))
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'myRecording.wav', self._audio_recording_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+    def test_can_do_empty_response_for_mw_sandbox(self):
+        sandbox = self.create_mw_sandbox_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(sandbox['id']))
+        req = self.app.post(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+
+class ExtendedTextInteractionTests(BaseAssessmentTestCase):
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_assessment, new_offered
+
+    def create_item(self):
+        url = '{0}/items'.format(self.url)
+        self._short_answer_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._short_answer_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment, new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered, new_assessment
+
+    def setUp(self):
+        super(ExtendedTextInteractionTests, self).setUp()
+
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(ExtendedTextInteractionTests, self).tearDown()
+
+        self._short_answer_test_file.close()
+
+    def test_can_send_text_response(self):
+        item = self.create_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident,
+                                                                                  utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'text': 'lorem ipsum foo bar baz'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+
+
+class VideoTagReplacementTests(BaseAssessmentTestCase):
+    def create_video_question(self):
+        url = '{0}/items'.format(self.url)
+        self._video_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile.zip', self._video_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def markup(self):
+        reader = csv.reader(self._video_matrix_test_file, delimiter='\t')
+        for index, row in enumerate(reader):
+            if index > 0:
+                return row[3]
+
+    def setUp(self):
+        super(VideoTagReplacementTests, self).setUp()
+
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
+        self._video_matrix_test_file = open('{0}/tests/files/video_upload_matrix.tsv'.format(ABS_PATH), 'r')
+        self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
+        self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(VideoTagReplacementTests, self).tearDown()
+
+        self._video_test_file.close()
+        self._video_matrix_test_file.close()
+        self._video_upload_test_file.close()
+        self._caption_upload_test_file.close()
+
+    def upload_video_and_caption_files(self):
+        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        return data
+
+    def test_can_replace_video_tag_in_qti_with_supplied_html(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertNotIn('<video', data['question']['text']['text'])
+        self.assertNotIn('</video>', data['question']['text']['text'])
+        self.assertNotIn('<aside class="transcript">', data['question']['text']['text'])
+        self.assertNotIn('</aside>', data['question']['text']['text'])
+
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('<video', data['question']['text']['text'])
+        self.assertIn('</video>', data['question']['text']['text'])
+        self.assertIn('<aside class="transcript">', data['question']['text']['text'])
+        self.assertIn('</aside>', data['question']['text']['text'])
+
+    def test_video_source_in_html_replaced_with_asset_content_reference(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        source = soup.find('source')
+        self.assertEqual('AssetContent:video-js-test_mp4', source['src'])
+        self.assertIn(
+            'fileIds',
+            data['question']
+        )
+        self.assertIn(
+            'video-js-test_mp4',
+            data['question']['fileIds']
+        )
+
+    def test_can_replace_caption_vtt_files_in_supplied_html_with_asset_content_reference(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        track = soup.find('track', label="English")
+        self.assertEqual('AssetContent:video-js-test-en_vtt', track['src'])
+        self.assertIn(
+            'fileIds',
+            data['question']
+        )
+        self.assertIn(
+            'video-js-test_mp4',
+            data['question']['fileIds']
+        )
+
+    def test_video_and_transcript_asset_content_ids_replaced_in_output_qti(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url,
+                                         unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'lxml-xml')
+        source = soup.find('source')
+
+        asset_contents = asset['assetContents']
+        video_asset_content = None
+        caption_asset_content = None
+        for asset_content in asset_contents:
+            if 'mp4' in asset_content['genusTypeId']:
+                video_asset_content = asset_content
+            elif 'vtt' in asset_content['genusTypeId']:
+                caption_asset_content = asset_content
+
+        repo_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(repo_id,
+                                                                                          asset['id'],
+                                                                                          video_asset_content['id']),
+                      source['src'])
+        track = soup.find('track', label='English')
+        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(repo_id,
+                                                                                          asset['id'],
+                                                                                          caption_asset_content['id']),
+                      track['src'])
+
+    def test_can_get_item_without_bank_id(self):
+        item = self.create_video_question()
+        url = '/api/v1/assessment/banks/foo/items/{0}'.format(item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            item['id'],
+            data['id']
+        )
+        self.assertNotEqual(
+            data['bankId'],
+            'foo'
+        )
+
+    def test_crossorigin_attribute_injected_into_video_tag(self):
+        item = self.create_video_question()
+        asset = self.upload_video_and_caption_files()
+        url = '{0}/items/{1}/videoreplacement'.format(self.url,
+                                                      unquote(item['id']))
+
+        payload = {
+            'assetId': asset['id'],
+            'html': self.markup()
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/items/{1}/qti'.format(self.url,
+                                         unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'lxml-xml')
+        for video in soup.find_all('video'):
+            self.assertIn('crossorigin', video.attrs)
+            self.assertEqual(
+                video['crossorigin'],
+                'anonymous'
+            )
