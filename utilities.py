@@ -12,7 +12,7 @@ from dlkit_edx.primordium import Id, Type
 from dlkit_edx.proxy_example import TestRequest
 
 
-CORS_HEADERS = "Content-Type,Authorization,X-Api-Proxy,X-Api-Key,request-line"
+CORS_HEADERS = "Content-Type,Authorization,X-Api-Proxy,X-Api-Key,request-line,X-Api-Locale"
 
 class BaseClass:
     def OPTIONS(self, *args, **kwargs):
