@@ -5169,7 +5169,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['texts']['feedback'],
-            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
+            '<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p></modalFeedback>'
         )
 
         self.assertNotEqual(
@@ -6134,13 +6134,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(RIGHT_ANSWER_GENUS)
+           str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertEqual(
-            item['answers'][0]['texts']['feedback'],
-            '<p>Answer submitted</p>'
-        )
+        self.assertIn('<p>Answer submitted</p>', item['answers'][0]['texts']['feedback'])
 
         self.assertNotEqual(
             item['id'],
@@ -6998,7 +6995,8 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertEqual('<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n <p>\n  <strong>\n   <span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">\n    Upload successful!\n   </span>\n   <br/>\n  </strong>\n </p>\n</modalFeedback>',
+                         data['feedback'])
 
     def test_empty_response_without_file_throws_error(self):
         url = '{0}/items'.format(self.url)
