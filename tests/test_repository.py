@@ -1,5 +1,7 @@
 import os
 
+from bs4 import BeautifulSoup
+
 from dlkit_edx.configs import FILESYSTEM_ASSET_CONTENT_TYPE
 from dlkit_edx.primordium import DataInputStream, Type, Id
 
@@ -27,9 +29,19 @@ class BaseRepositoryTestCase(BaseTestCase):
         content_form = self._repo.get_asset_content_form_for_create(asset.ident, [FILESYSTEM_ASSET_CONTENT_TYPE])
         content_form.display_name = 'test asset content'
         content_form.set_data(DataInputStream(self.test_file))
-        self._repo.create_asset_content(content_form)
+        ac = self._repo.create_asset_content(content_form)
+
+        # need to get the IDs to match, so update it like in the system
+        self.test_file.seek(0)
+        form = self._repo.get_asset_content_form_for_update(ac.ident)
+        form.set_data(DataInputStream(self.test_file))
+        self._repo.update_asset_content(form)
 
         return self._repo.get_asset(asset.ident)
+
+    @staticmethod
+    def _filename(file_object):
+        return file_object.name.split('/')[-1]
 
     def num_assets(self, val):
         self.assertEqual(
@@ -70,6 +82,26 @@ class AssetContentTests(BaseRepositoryTestCase):
 
         return new_offered
 
+    def create_item_with_image(self):
+        url = '{0}/items'.format(self.assessment_url)
+        self._image_in_question.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._image_in_question),
+                                           self._image_in_question.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_item_with_image_in_choices(self):
+        url = '{0}/items'.format(self.assessment_url)
+        self._images_in_choices.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._images_in_choices),
+                                           self._images_in_choices.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_upload_item(self):
         url = '{0}/items'.format(self.assessment_url)
         self._generic_upload_test_file.seek(0)
@@ -104,6 +136,9 @@ class AssetContentTests(BaseRepositoryTestCase):
 
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._logo_upload_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
+        self._replacement_image_file = open('{0}/tests/files/replacement_image.png'.format(ABS_PATH), 'r')
+        self._images_in_choices = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
+        self._image_in_question = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
 
     def tearDown(self):
         """
@@ -115,6 +150,9 @@ class AssetContentTests(BaseRepositoryTestCase):
 
         self._generic_upload_test_file.close()
         self._logo_upload_test_file.close()
+        self._replacement_image_file.close()
+        self._images_in_choices.close()
+        self._image_in_question.close()
 
     def test_can_get_asset_content_file(self):
         req = self.app.get(self.url)
@@ -147,6 +185,125 @@ class AssetContentTests(BaseRepositoryTestCase):
                 self.assertTrue('.sltng' in asset['assetContents'][0]['url'])
                 self.assertEqual('asset-content-genus-type%3Asltng%40ODL.MIT.EDU',
                                  asset['assetContents'][0]['genusTypeId'])
+
+    def test_can_update_asset_content_with_new_file(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        asset_content = self.asset.get_asset_contents().next()
+        original_genus_type = str(asset_content.genus_type)
+        original_file_name = asset_content.display_name.text
+        original_on_disk_name = asset_content.get_url()
+        original_id = str(asset_content.ident)
+
+        self._replacement_image_file.seek(0)
+        req = self.app.put(self.url,
+                           upload_files=[('inputFile',
+                                          self._filename(self._replacement_image_file),
+                                          self._replacement_image_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+        self.assertNotEqual(
+            original_genus_type,
+            asset_content['genusTypeId']
+        )
+        self.assertIn('png', asset_content['genusTypeId'])
+        self.assertNotEqual(
+            original_file_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            original_on_disk_name.split('.')[0],
+            asset_content['url'].split('.')[0]
+        )
+        self.assertEqual(
+            original_id,
+            asset_content['id']
+        )
+        self.assertIn(
+            self._replacement_image_file.name.split('/')[-1],
+            asset_content['displayName']['text']
+        )
+
+    def test_updated_asset_content_in_question_shows_up_properly_in_item_qti(self):
+        item = self.create_item_with_image()
+        taken, offered = self.create_taken_for_item(self._repo.ident, Id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.assessment_url,
+                                                              unquote(str(taken.ident)))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data']
+        soup = BeautifulSoup(data[0]['qti'], 'xml')
+        image = soup.find('img')
+
+        req = self.app.get(image['src'])
+        self.ok(req)
+        headers = req.header_dict
+        self.assertIn('image/png', headers['content-type'])
+        self.assertIn('.png', headers['content-disposition'])
+        original_content_length = headers['content-length']
+
+        content_url = image['src']
+        self._logo_upload_test_file.seek(0)
+        req = self.app.put(content_url,
+                           upload_files=[('inputFile',
+                                          self._filename(self._logo_upload_test_file),
+                                          self._logo_upload_test_file.read())])
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data']
+        soup = BeautifulSoup(data[0]['qti'], 'xml')
+        image = soup.find('img')
+
+        req = self.app.get(image['src'])
+        self.ok(req)
+        headers = req.header_dict
+        self.assertNotIn('image/png', headers['content-type'])
+        self.assertIn('.sltng', headers['content-disposition'])
+        self.assertNotEqual(original_content_length, headers['content-length'])
+
+    def test_updated_asset_content_in_choices_shows_up_properly_in_item_qti(self):
+        item = self.create_item_with_image_in_choices()
+        taken, offered = self.create_taken_for_item(self._repo.ident, Id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions?qti'.format(self.assessment_url,
+                                                              unquote(str(taken.ident)))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data']
+        soup = BeautifulSoup(data[0]['qti'], 'xml')
+        image = soup.find('img')
+
+        req = self.app.get(image['src'])
+        self.ok(req)
+        headers = req.header_dict
+        self.assertIn('image/png', headers['content-type'])
+        self.assertIn('.png', headers['content-disposition'])
+        original_content_length = headers['content-length']
+
+        content_url = image['src']
+        self._logo_upload_test_file.seek(0)
+        req = self.app.put(content_url,
+                           upload_files=[('inputFile',
+                                          self._filename(self._logo_upload_test_file),
+                                          self._logo_upload_test_file.read())])
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data']
+        soup = BeautifulSoup(data[0]['qti'], 'xml')
+        image = soup.find('img')
+
+        req = self.app.get(image['src'])
+        self.ok(req)
+        headers = req.header_dict
+        self.assertNotIn('image/png', headers['content-type'])
+        self.assertIn('.sltng', headers['content-disposition'])
+        self.assertNotEqual(original_content_length, headers['content-length'])
 
 
 class AssetUploadTests(BaseRepositoryTestCase):
