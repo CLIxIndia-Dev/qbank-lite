@@ -7116,7 +7116,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertEqual('<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n <p>\n  <strong>\n   <span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">\n    Upload successful!\n   </span>\n   <br/>\n  </strong>\n </p>\n</modalFeedback>',
+        self.assertEqual('<?xml version="1.0" encoding="utf-8"?>\n<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n <p>\n  <strong>\n   <span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">\n    Upload successful!\n   </span>\n   <br/>\n  </strong>\n </p>\n</modalFeedback>',
                          data['feedback'])
 
     def test_empty_response_without_file_throws_error(self):
