@@ -450,7 +450,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-            str(Type(**ANSWER_GENUS_TYPES['right-answer']))
+            str(RIGHT_ANSWER_GENUS)
         )
 
         item_id = unquote(item['id'])
@@ -459,7 +459,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
                                                  item_id)
         updated_payload = {
             'answers': [{
-                'genus': str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])),
+                'genus': str(WRONG_ANSWER_GENUS),
                 'id': answer_id,
                 'feedback': 'bazz',
                 'type': payload['answers'][0]['type']
@@ -476,7 +476,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             updated_payload['answers'][0]['genus']
         )
         self.assertEqual(
-            updated_answer['texts']['feedback'],
+            updated_answer['feedback']['text'],
             updated_payload['answers'][0]['feedback']
         )
 
@@ -497,9 +497,9 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             payload['answers'][0]['genus']
         )
 
-        self.assertNotIn(
-            'feedback',
-            item['answers'][0]['texts']
+        self.assertEqual(
+            item['answers'][0]['feedback']['text'],
+            ''
         )
 
         item_id = unquote(item['id'])
@@ -526,7 +526,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             updated_payload['answers'][0]['genus']
         )
         self.assertEqual(
-            updated_answer['texts']['feedback'],
+            updated_answer['feedback']['text'],
             updated_payload['answers'][0]['feedback']
         )
 
@@ -582,7 +582,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             str(Type(**ANSWER_GENUS_TYPES['wrong-answer']))
         )
         self.assertEqual(
-            item['answers'][0]['texts']['feedback'],
+            item['answers'][0]['feedback']['text'],
             payload['answers'][0]['feedback']
         )
 
@@ -600,7 +600,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         item = self.json(req)
 
         self.assertEqual(
-            item['answers'][0]['texts']['feedback'],
+            item['answers'][0]['feedback']['text'],
             payload['answers'][0]['feedback']
         )
 
@@ -3095,6 +3095,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
+    def create_question_with_images_in_feedback(self):
+        url = '{0}/items'.format(self.url)
+        self._image_in_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._image_in_feedback_test_file),
+                                           self._image_in_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -3120,6 +3130,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
+        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3131,6 +3142,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._number_of_feedback_test_file.close()
         self._mw_fill_in_the_blank_test_file.close()
         self._drag_and_drop_test_file.close()
+        self._image_in_feedback_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4294,6 +4306,50 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertNotIn('You are correct!', data['feedback'])
         self.assertIn('Please try again.', data['feedback'])
 
+    def test_images_in_correct_feedback_are_converted_to_urls(self):
+        mc_item = self.create_question_with_images_in_feedback()
+        expected_content_id = mc_item['answers'][0]['fileIds']['medium849946232588888784replacement_image_png']['assetContentId']
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['ida31f7834-716c-4f0d-96ec-d8d0ccc7a5ec'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('You did it!', data['feedback'])
+        self.assertIn('http://localhost', data['feedback'])
+        self.assertIn(expected_content_id, data['feedback'])
+        self.assertNotIn('Sorry, bad choice', data['feedback'])
+
+    def test_images_in_incorrect_feedback_are_converted_to_urls(self):
+        mc_item = self.create_question_with_images_in_feedback()
+        expected_content_id = mc_item['answers'][1]['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(mc_item['id']))
+        payload = {
+            'choiceIds': ['id49eb6d09-8c34-4e5d-8e31-77604208f872'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertNotIn('You did it!', data['feedback'])
+        self.assertIn('http://localhost', data['feedback'])
+        self.assertIn(expected_content_id, data['feedback'])
+        self.assertIn('Sorry, bad choice', data['feedback'])
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
@@ -4898,6 +4954,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
         self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
         self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
+        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -4926,6 +4983,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._audio_everywhere_test_file.close()
         self._audio_in_choices_test_file.close()
         self._mw_fitb_2_test_file.close()
+        self._image_in_feedback_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -5095,7 +5153,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['texts']['feedback'],
+            item['answers'][0]['feedback']['text'],
             '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
         )
 
@@ -5168,7 +5226,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['texts']['feedback'],
+            item['answers'][0]['feedback']['text'],
             '<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p></modalFeedback>'
         )
 
@@ -5226,7 +5284,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0]['texts'])
+        self.assertIn('feedback', item['answers'][0])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -5237,7 +5295,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1]['texts'])
+        self.assertIn('feedback', item['answers'][1])
 
         self.assertEqual(
             len(item['question']['choices']),
@@ -5347,6 +5405,69 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_can_upload_question_with_image_in_feedback(self):
+        url = '{0}/items'.format(self.url)
+        self._image_in_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._image_in_feedback_test_file),
+                                           self._image_in_feedback_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            3
+        )
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            1
+        )
+        self.assertIn('fileIds', item['answers'][0])
+        self.assertEqual(len(item['answers'][0]['fileIds'].keys()), 1)
+        self.assertIn('feedback', item['answers'][0])
+
+        image_asset_label = 'medium849946232588888784replacement_image_png'
+
+        self.assertEqual(
+            item['answers'][0]['feedback']['text'],
+            """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="AssetContent:{0}" width="614"/></p></modalFeedback>""".format(image_asset_label)
+        )
+
+        for index in [1, 2]:
+            self.assertEqual(
+                item['answers'][index]['genusTypeId'],
+                str(WRONG_ANSWER_GENUS)
+            )
+            self.assertEqual(
+                len(item['answers'][index]['choiceIds']),
+                1
+            )
+            self.assertIn('fileIds', item['answers'][index])
+            self.assertEqual(len(item['answers'][index]['fileIds'].keys()), 1)
+            self.assertIn('feedback', item['answers'][index])
+
+            image_asset_label = 'medium534315617922181373draggable_red_dot_png'
+
+            self.assertEqual(
+                item['answers'][index]['feedback']['text'],
+                """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="AssetContent:{0}" width="20"/></p></modalFeedback>""".format(image_asset_label)
+            )
 
     def test_audio_file_in_question_gets_saved(self):
         url = '{0}/items'.format(self.url)
@@ -5729,7 +5850,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             )
 
             self.assertIn(match[0],
-                          item['answers'][index]['texts']['feedback'])
+                          item['answers'][index]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -5762,7 +5883,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0]['texts'])
+        self.assertIn('feedback', item['answers'][0])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -5773,7 +5894,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1]['texts'])
+        self.assertIn('feedback', item['answers'][1])
 
         self.assertEqual(
             len(item['question']['choices']),
@@ -6137,7 +6258,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertIn('<p>Answer submitted</p>', item['answers'][0]['texts']['feedback'])
+        self.assertIn('<p>Answer submitted</p>', item['answers'][0]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6229,14 +6350,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             ['[_1_1_1_1_1_1']
         )
 
-        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('No, please listen to the story again.', item['answers'][1]['texts']['feedback'])
+        self.assertIn('No, please listen to the story again.', item['answers'][1]['feedback']['text'])
 
 
         self.assertNotEqual(
@@ -6383,14 +6504,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
             ['[_1_1_1']
         )
-        self.assertIn('Yes, you are correct.', item['answers'][0]['texts']['feedback'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('Please listem to the story and try again.', item['answers'][1]['texts']['feedback'])
+        self.assertIn('Please listem to the story and try again.', item['answers'][1]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6672,8 +6793,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
-        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+        self.assertIn('Correct!', item['answers'][0]['feedback']['text'])
+        self.assertIn('Incorrect ...', item['answers'][1]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6778,8 +6899,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('Correct!', item['answers'][0]['texts']['feedback'])
-        self.assertIn('Incorrect ...', item['answers'][1]['texts']['feedback'])
+        self.assertIn('Correct!', item['answers'][0]['feedback']['text'])
+        self.assertIn('Incorrect ...', item['answers'][1]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],

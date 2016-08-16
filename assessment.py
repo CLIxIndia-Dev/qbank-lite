@@ -449,13 +449,13 @@ class ItemsList(utilities.BaseClass):
                                     original_qti_id)
 
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-                    if len(media_files) > 0:
-                        q_form.load_from_qti_item(clean_qti_xml,
-                                                  media_files=media_files,
-                                                  keywords=keywords)
-                    else:
-                        q_form.load_from_qti_item(clean_qti_xml,
-                                                  keywords=keywords)
+                    if len(media_files) == 0:
+                        media_files = None
+
+                    q_form.load_from_qti_item(clean_qti_xml,
+                                              media_files=media_files,
+                                              keywords=keywords)
+
                     question = bank.create_question(q_form)
 
                     local_map = {
@@ -473,7 +473,8 @@ class ItemsList(utilities.BaseClass):
                     a_form.load_from_qti_item(clean_qti_xml,
                                               keywords=keywords,
                                               correct=True,
-                                              feedback_choice_id='correct')
+                                              feedback_choice_id='correct',
+                                              media_files=media_files)
                     answer = bank.create_answer(a_form)
 
                     # now let's do the incorrect answers with feedback, if available
@@ -492,7 +493,8 @@ class ItemsList(utilities.BaseClass):
                                 a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
-                                                          feedback_choice_id=wrong_answer['id'])
+                                                          feedback_choice_id=wrong_answer['id'],
+                                                          media_files=media_files)
 
                                 bank.create_answer(a_form)
                         else:
@@ -501,7 +503,8 @@ class ItemsList(utilities.BaseClass):
                             a_form.load_from_qti_item(clean_qti_xml,
                                                       keywords=keywords,
                                                       correct=False,
-                                                      feedback_choice_id='incorrect')
+                                                      feedback_choice_id='incorrect',
+                                                      media_files=media_files)
 
                             bank.create_answer(a_form)
                     elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
@@ -511,7 +514,8 @@ class ItemsList(utilities.BaseClass):
                         a_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords,
                                                   correct=False,
-                                                  feedback_choice_id='incorrect')
+                                                  feedback_choice_id='incorrect',
+                                                  media_files=media_files)
 
                         bank.create_answer(a_form)
 
@@ -1652,7 +1656,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:
@@ -1676,7 +1680,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:
@@ -1692,7 +1696,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                for answer_record in answer_match.object_map['recordTypeIds']):
                             feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                         else:
-                            feedback_strings.append(answer_match.feedback)
+                            feedback_strings.append(answer_match.feedback['text'])
                     except (KeyError, AttributeError):
                         pass
                     try:
@@ -1712,7 +1716,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:

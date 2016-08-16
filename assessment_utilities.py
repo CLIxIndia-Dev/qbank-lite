@@ -513,7 +513,9 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
         answer_form.genus_type = Type(answer['genus'])
         if answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
             if 'feedback' in answer:
-                answer_form._init_record(str(Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])))
+                record = answer_form.get_answer_form_record(Type(**ANSWER_RECORD_TYPES['answer-with-feedback']))
+                record._init_metadata()
+                record._init_map()
                 answer_form.set_feedback(str(answer['feedback']))
             if 'confusedLearningObjectiveIds' in answer:
                 if not isinstance(answer['confusedLearningObjectiveIds'], list):
