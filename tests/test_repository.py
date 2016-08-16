@@ -39,10 +39,6 @@ class BaseRepositoryTestCase(BaseTestCase):
 
         return self._repo.get_asset(asset.ident)
 
-    @staticmethod
-    def _filename(file_object):
-        return file_object.name.split('/')[-1]
-
     def num_assets(self, val):
         self.assertEqual(
             self._repo.get_assets().available(),
