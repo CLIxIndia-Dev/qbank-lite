@@ -26,6 +26,7 @@ CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
 INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
@@ -573,6 +574,9 @@ class ItemsList(utilities.BaseClass):
                         else:
                             afc = autils.update_answer_form(answer, afc)
 
+                        if 'genus' not in answer:
+                            answer['genus'] = str(RIGHT_ANSWER_GENUS)
+
                         afc = autils.set_answer_form_genus_and_feedback(answer, afc)
                         new_answer = bank.create_answer(afc)
 
@@ -938,8 +942,8 @@ class ItemDetails(utilities.BaseClass):
             local_data_map = self.data()
 
             if any(attr in local_data_map for attr in ['name', 'description', 'learningObjectiveIds',
-                                                    'attempts', 'markdown', 'showanswer',
-                                                    'weight', 'difficulty', 'discrimination']):
+                                                       'attempts', 'markdown', 'showanswer',
+                                                       'weight', 'difficulty', 'discrimination']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
 
                 form = utilities.set_form_basics(form, local_data_map)
@@ -980,10 +984,24 @@ class ItemDetails(utilities.BaseClass):
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
                         afu = bank.get_answer_form_for_update(a_id)
+
+                        if 'fileIds' in answer:
+                            # assumes the asset already exists in the system
+                            if str(FILES_ANSWER_RECORD) not in afu._my_map['recordTypeIds']:
+                                record = afu.get_answer_form_record(FILES_ANSWER_RECORD)
+                                record._init_metadata()
+                                record._init_map()
+                            for label, asset_data in answer['fileIds'].iteritems():
+                                afu.add_asset(asset_data['assetId'],
+                                              asset_content_id=asset_data['assetContentId'],
+                                              label=label,
+                                              asset_content_type=asset_data['assetContentTypeId'])
+
                         afu = autils.update_answer_form(answer, afu)
                         afu = autils.set_answer_form_genus_and_feedback(answer, afu)
                         bank.update_answer(afu)
                     else:
+                        # also let you add files here?
                         a_types = autils.get_answer_records(answer)
                         afc = bank.get_answer_form_for_create(utilities.clean_id(sub_id),
                                                               a_types)

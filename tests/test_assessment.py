@@ -347,6 +347,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
     def setUp(self):
         super(AnswerTypeTests, self).setUp()
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/items'
+        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'r')
 
     def tearDown(self):
         """
@@ -355,6 +356,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
         """
         super(AnswerTypeTests, self).tearDown()
+        self._audio_file.close()
 
     def test_can_explicitly_set_right_answer(self):
         payload = self.item_payload()
@@ -528,6 +530,153 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         self.assertEqual(
             updated_answer['feedback']['text'],
             updated_payload['answers'][0]['feedback']
+        )
+
+    def test_can_add_audio_file_to_wrong_feedback(self):
+        payload = self.item_payload()
+        payload['answers'][0].update({
+            'genus': str(Type(**ANSWER_GENUS_TYPES['wrong-answer']))
+        })
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        item_id = unquote(item['id'])
+        answer_id = unquote(item['answers'][0]['id'])
+        item_details_endpoint = '{0}/{1}'.format(self.url,
+                                                 item_id)
+        updated_payload = {
+            'answers': [{
+                'genus': str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])),
+                'id': answer_id,
+                'feedback': 'bazz',
+                'type': payload['answers'][0]['type']
+            }]
+        }
+
+        req = self.app.put(item_details_endpoint,
+                           params=json.dumps(updated_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        updated_answer = self.json(req)['answers'][0]
+
+        self.assertNotIn('fileIds', updated_answer)
+
+        assets_endpoint = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._audio_file.seek(0)
+        req = self.app.post(assets_endpoint,
+                            upload_files=[('inputFile',
+                                           self._filename(self._audio_file),
+                                           self._audio_file.read())])
+        self.ok(req)
+        asset = self.json(req)
+        label = asset['displayName']['text'].replace('.', '_')
+        asset_payload = {
+            'answers': [{
+                'id': updated_answer['id'],
+                'fileIds': {
+                },
+                'feedback': 'bazz with <audio autoplay="true"><source src="AssetContent:{0}"></audio>'.format(label),
+                'type': payload['answers'][0]['type']
+            }]
+        }
+        asset_payload['answers'][0]['fileIds'][label] = {
+            'assetId': asset['id'],
+            'assetContentId': asset['assetContents'][0]['id'],
+            'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+        }
+        req = self.app.put(item_details_endpoint,
+                           params=json.dumps(asset_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        req = self.app.get(item_details_endpoint)
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['answers'][0]['fileIds'],
+            asset_payload['answers'][0]['fileIds']
+        )
+        self.assertEqual(
+            item['answers'][0]['feedback']['text'],
+            asset_payload['answers'][0]['feedback']
+        )
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+    def test_can_add_audio_file_to_correct_feedback(self):
+        payload = self.item_payload()
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        item_id = unquote(item['id'])
+        answer_id = unquote(item['answers'][0]['id'])
+        item_details_endpoint = '{0}/{1}'.format(self.url,
+                                                 item_id)
+        updated_payload = {
+            'answers': [{
+                'genus': str(Type(**ANSWER_GENUS_TYPES['right-answer'])),
+                'id': answer_id,
+                'feedback': 'bazz',
+                'type': payload['answers'][0]['type']
+            }]
+        }
+
+        req = self.app.put(item_details_endpoint,
+                           params=json.dumps(updated_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        updated_answer = self.json(req)['answers'][0]
+
+        self.assertNotIn('fileIds', updated_answer)
+
+        assets_endpoint = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._audio_file.seek(0)
+        req = self.app.post(assets_endpoint,
+                            upload_files=[('inputFile',
+                                           self._filename(self._audio_file),
+                                           self._audio_file.read())])
+        self.ok(req)
+        asset = self.json(req)
+        label = asset['displayName']['text'].replace('.', '_')
+        asset_payload = {
+            'answers': [{
+                'id': updated_answer['id'],
+                'fileIds': {
+                },
+                'feedback': 'bazz with <audio autoplay="true"><source src="AssetContent:{0}"></audio>'.format(label),
+                'type': payload['answers'][0]['type']
+            }]
+        }
+        asset_payload['answers'][0]['fileIds'][label] = {
+            'assetId': asset['id'],
+            'assetContentId': asset['assetContents'][0]['id'],
+            'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+        }
+        req = self.app.put(item_details_endpoint,
+                           params=json.dumps(asset_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(item_details_endpoint)
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(
+            item['answers'][0]['fileIds'],
+            asset_payload['answers'][0]['fileIds']
+        )
+        self.assertEqual(
+            item['answers'][0]['feedback']['text'],
+            asset_payload['answers'][0]['feedback']
+        )
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
         )
 
     def test_can_add_wrong_answers_when_updating_item(self):
