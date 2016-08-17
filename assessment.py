@@ -690,6 +690,14 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
         """
         List children of a node
         """
+        def update_bank_names(node_list):
+            for node in node_list:
+                bank = am.get_bank(utilities.clean_id(node['id']))
+                node['displayName'] = {
+                    'text': bank.display_name.text
+                }
+                update_bank_names(node['childNodes'])
+
         try:
             am = autils.get_assessment_manager()
             if 'descendants' in web.input():
@@ -697,8 +705,13 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
             else:
                 descendant_levels = 1
             nodes = am.get_bank_nodes(utilities.clean_id(bank_id),
-                                                              0, descendant_levels, False)
-            data = utilities.extract_items(nodes.get_child_bank_nodes())
+                                      0, descendant_levels, False)
+            if 'display_names' in web.input():
+                data = json.loads(utilities.extract_items(nodes.get_child_bank_nodes()))
+                update_bank_names(data)
+                data = json.dumps(data)
+            else:
+                data = utilities.extract_items(nodes.get_child_bank_nodes())
             return data
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
