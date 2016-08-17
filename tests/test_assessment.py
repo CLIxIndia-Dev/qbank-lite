@@ -3007,6 +3007,48 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['id'] == str(second_bank.ident))
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
 
+    def test_display_names_flag_shows_in_hierarchy_descendants(self):
+        second_bank = create_test_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        third_bank = create_test_bank()
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(third_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children?descendants=2&display_names'
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)[0]
+        self.assertTrue(len(data['childNodes']) == 1)
+        self.assertTrue(data['id'] == str(second_bank.ident))
+        self.assertTrue(data['displayName']['text'] == second_bank.display_name.text)
+        self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
+        self.assertTrue(data['childNodes'][0]['displayName']['text'] == third_bank.display_name.text)
+
 
 class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
