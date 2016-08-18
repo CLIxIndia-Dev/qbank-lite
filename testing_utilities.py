@@ -139,6 +139,10 @@ def get_valid_contents(tag):
 class BaseTestCase(TestCase):
     """
     """
+    @staticmethod
+    def _filename(file_object):
+        return file_object.name.split('/')[-1]
+
     def code(self, _req, _code):
         self.assertEqual(_req.status, _code)
 

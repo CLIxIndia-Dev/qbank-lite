@@ -6,12 +6,11 @@ import web
 from bson.errors import InvalidId
 
 from dlkit_edx.errors import *
+from dlkit_edx.primitives import DataInputStream
 
 import repository_utilities as rutils
 import utilities
 
-
-# TODO: Fix so assets don't require the repository ID
 
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.argv[0])
@@ -159,6 +158,42 @@ class AssetContentDetails(utilities.BaseClass):
 
             with open(asset_url, 'r') as ac_file:
                 yield ac_file.read()
+        except (PermissionDenied, NotFound, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def PUT(self, repository_id, asset_id, content_id):
+        """ replace the asset content data ... keep the same name (ugh),
+        but hacking this in for the Onyx workflow for CLIx.
+
+        They want to author in Onyx with high-res images but then replace
+        them with the right-sized images via a script. So we'll enable
+        this endpoint and let the script find / replace the right
+        asset content.
+        """
+        try:
+            x = web.input(inputFile={})
+            rm = rutils.get_repository_manager()
+            als = rm.get_asset_lookup_session()
+            als.use_federated_repository_view()
+            asset = als.get_asset(utilities.clean_id(asset_id))
+            asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
+
+            input_file = x['inputFile'].file
+            file_name = x['inputFile'].filename
+            repository = rm.get_repository(utilities.clean_id(repository_id))
+            form = repository.get_asset_content_form_for_update(asset_content.ident)
+
+            data = DataInputStream(input_file)
+            data.name = file_name
+
+            form.set_genus_type(rutils.get_asset_content_genus_type(file_name))
+            form.display_name = file_name
+
+            form.set_data(data)
+
+            repository.update_asset_content(form)
+            return utilities.convert_dl_object(repository.get_asset(asset.ident))
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

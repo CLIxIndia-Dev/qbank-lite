@@ -26,6 +26,7 @@ CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
 INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
@@ -437,7 +438,10 @@ class ItemsList(utilities.BaseClass):
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
-                        form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
+                        try:
+                            form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
+                        except UnicodeEncodeError:
+                            form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
                         # and also archive the parent
@@ -449,13 +453,13 @@ class ItemsList(utilities.BaseClass):
                                     original_qti_id)
 
                     q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-                    if len(media_files) > 0:
-                        q_form.load_from_qti_item(clean_qti_xml,
-                                                  media_files=media_files,
-                                                  keywords=keywords)
-                    else:
-                        q_form.load_from_qti_item(clean_qti_xml,
-                                                  keywords=keywords)
+                    if len(media_files) == 0:
+                        media_files = None
+
+                    q_form.load_from_qti_item(clean_qti_xml,
+                                              media_files=media_files,
+                                              keywords=keywords)
+
                     question = bank.create_question(q_form)
 
                     local_map = {
@@ -473,7 +477,8 @@ class ItemsList(utilities.BaseClass):
                     a_form.load_from_qti_item(clean_qti_xml,
                                               keywords=keywords,
                                               correct=True,
-                                              feedback_choice_id='correct')
+                                              feedback_choice_id='correct',
+                                              media_files=media_files)
                     answer = bank.create_answer(a_form)
 
                     # now let's do the incorrect answers with feedback, if available
@@ -492,7 +497,8 @@ class ItemsList(utilities.BaseClass):
                                 a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
-                                                          feedback_choice_id=wrong_answer['id'])
+                                                          feedback_choice_id=wrong_answer['id'],
+                                                          media_files=media_files)
 
                                 bank.create_answer(a_form)
                         else:
@@ -501,7 +507,8 @@ class ItemsList(utilities.BaseClass):
                             a_form.load_from_qti_item(clean_qti_xml,
                                                       keywords=keywords,
                                                       correct=False,
-                                                      feedback_choice_id='incorrect')
+                                                      feedback_choice_id='incorrect',
+                                                      media_files=media_files)
 
                             bank.create_answer(a_form)
                     elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
@@ -511,7 +518,8 @@ class ItemsList(utilities.BaseClass):
                         a_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords,
                                                   correct=False,
-                                                  feedback_choice_id='incorrect')
+                                                  feedback_choice_id='incorrect',
+                                                  media_files=media_files)
 
                         bank.create_answer(a_form)
 
@@ -568,6 +576,9 @@ class ItemsList(utilities.BaseClass):
                             afc = autils.update_answer_form(answer, afc, new_question)
                         else:
                             afc = autils.update_answer_form(answer, afc)
+
+                        if 'genus' not in answer:
+                            answer['genus'] = str(RIGHT_ANSWER_GENUS)
 
                         afc = autils.set_answer_form_genus_and_feedback(answer, afc)
                         new_answer = bank.create_answer(afc)
@@ -686,6 +697,14 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
         """
         List children of a node
         """
+        def update_bank_names(node_list):
+            for node in node_list:
+                bank = am.get_bank(utilities.clean_id(node['id']))
+                node['displayName'] = {
+                    'text': bank.display_name.text
+                }
+                update_bank_names(node['childNodes'])
+
         try:
             am = autils.get_assessment_manager()
             if 'descendants' in web.input():
@@ -693,8 +712,13 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
             else:
                 descendant_levels = 1
             nodes = am.get_bank_nodes(utilities.clean_id(bank_id),
-                                                              0, descendant_levels, False)
-            data = utilities.extract_items(nodes.get_child_bank_nodes())
+                                      0, descendant_levels, False)
+            if 'display_names' in web.input():
+                data = json.loads(utilities.extract_items(nodes.get_child_bank_nodes()))
+                update_bank_names(data)
+                data = json.dumps(data)
+            else:
+                data = utilities.extract_items(nodes.get_child_bank_nodes())
             return data
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -921,8 +945,8 @@ class ItemDetails(utilities.BaseClass):
             local_data_map = self.data()
 
             if any(attr in local_data_map for attr in ['name', 'description', 'learningObjectiveIds',
-                                                    'attempts', 'markdown', 'showanswer',
-                                                    'weight', 'difficulty', 'discrimination']):
+                                                       'attempts', 'markdown', 'showanswer',
+                                                       'weight', 'difficulty', 'discrimination']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
 
                 form = utilities.set_form_basics(form, local_data_map)
@@ -963,10 +987,24 @@ class ItemDetails(utilities.BaseClass):
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
                         afu = bank.get_answer_form_for_update(a_id)
+
+                        if 'fileIds' in answer:
+                            # assumes the asset already exists in the system
+                            if str(FILES_ANSWER_RECORD) not in afu._my_map['recordTypeIds']:
+                                record = afu.get_answer_form_record(FILES_ANSWER_RECORD)
+                                record._init_metadata()
+                                record._init_map()
+                            for label, asset_data in answer['fileIds'].iteritems():
+                                afu.add_asset(asset_data['assetId'],
+                                              asset_content_id=asset_data['assetContentId'],
+                                              label=label,
+                                              asset_content_type=asset_data['assetContentTypeId'])
+
                         afu = autils.update_answer_form(answer, afu)
                         afu = autils.set_answer_form_genus_and_feedback(answer, afu)
                         bank.update_answer(afu)
                     else:
+                        # also let you add files here?
                         a_types = autils.get_answer_records(answer)
                         afc = bank.get_answer_form_for_create(utilities.clean_id(sub_id),
                                                               a_types)
@@ -1652,7 +1690,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:
@@ -1676,7 +1714,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:
@@ -1692,7 +1730,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                for answer_record in answer_match.object_map['recordTypeIds']):
                             feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                         else:
-                            feedback_strings.append(answer_match.feedback)
+                            feedback_strings.append(answer_match.feedback['text'])
                     except (KeyError, AttributeError):
                         pass
                     try:
@@ -1712,7 +1750,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                        for answer_record in answer.object_map['recordTypeIds']):
                                     feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                                 else:
-                                    feedback_strings.append(answer.feedback)
+                                    feedback_strings.append(answer.feedback['text'])
                             except (KeyError, AttributeError):
                                 pass
                             try:

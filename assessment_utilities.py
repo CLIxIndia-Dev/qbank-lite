@@ -21,6 +21,7 @@ from urllib import quote
 import repository_utilities as rutils
 import utilities
 
+ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])
 EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
 EDX_IMAGE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-image-asset'])
 EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
@@ -36,6 +37,7 @@ PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
+RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
 
 def add_file_ids_to_form(form, file_ids):
@@ -295,7 +297,7 @@ def get_answer_records(answer):
     # record types for feedback
     a_type = Type(answer['type'])
     if 'genus' in answer and answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
-        a_types = [a_type, Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])]
+        a_types = [a_type, ANSWER_WITH_FEEDBACK]
     else:
         a_types = [a_type]
     return a_types
@@ -511,25 +513,19 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
     if 'genus' in answer:
         answer_form.genus_type = Type(answer['genus'])
-        if answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
-            if 'feedback' in answer:
-                answer_form._init_record(str(Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])))
-                answer_form.set_feedback(str(answer['feedback']))
-            if 'confusedLearningObjectiveIds' in answer:
-                if not isinstance(answer['confusedLearningObjectiveIds'], list):
-                    los = [answer['confusedLearningObjectiveIds']]
-                else:
-                    los = answer['confusedLearningObjectiveIds']
-                answer_form.set_confused_learning_objective_ids(los)
-    else:
-        # default is correct answer, if not supplied
-        answer_form.set_genus_type(Type(**ANSWER_GENUS_TYPES['right-answer']))
-        try:
-            # remove the feedback components
-            del answer_form._my_map['texts']['feedback']
-            del answer_form._my_map['recordTypeIds'][str(Type(**ANSWER_RECORD_TYPES['answer-with-feedback']))]
-        except KeyError:
-            pass
+
+    if 'feedback' in answer:
+        if str(ANSWER_WITH_FEEDBACK) not in answer_form._my_map['recordTypeIds']:
+            record = answer_form.get_answer_form_record(ANSWER_WITH_FEEDBACK)
+            record._init_metadata()
+            record._init_map()
+        answer_form.set_feedback(str(answer['feedback']))
+    if 'confusedLearningObjectiveIds' in answer:
+        if not isinstance(answer['confusedLearningObjectiveIds'], list):
+            los = [answer['confusedLearningObjectiveIds']]
+        else:
+            los = answer['confusedLearningObjectiveIds']
+        answer_form.set_confused_learning_objective_ids(los)
     return answer_form
 
 def set_assessment_offerings(bank, offerings, assessment_id, update=False):
