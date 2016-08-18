@@ -5146,6 +5146,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
         self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
+        self._telugu_test_file = open('{0}/tests/files/telugu_question_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -5175,6 +5176,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._audio_in_choices_test_file.close()
         self._mw_fitb_2_test_file.close()
         self._image_in_feedback_test_file.close()
+        self._telugu_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -7140,6 +7142,34 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_upload_non_english_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._telugu_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._telugu_test_file),
+                                           self._telugu_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn(u'మీ గ్రూప్ తో కలిసి', item['learningObjectiveIds'][0])
+        self.assertIn(u'అదేపనినిత్రిభుజంతోచేయడానికిప్రయత్నించండి',
+                      item['answers'][0]['feedback']['text'])
+        self.assertIn(u'ఒక నక్షత్ర ఆకారం',
+                      item['answers'][1]['feedback']['text'])
+        self.assertIn(u'అగ్గిపుల్లల(ఉపయోగించబడిన) ఒక సెట్మరియుసైకిల్',
+                      item['question']['text']['text'])
 
     def test_video_tags_appear_in_qti(self):
         url = '{0}/items'.format(self.url)
