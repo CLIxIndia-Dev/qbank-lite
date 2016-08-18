@@ -438,7 +438,10 @@ class ItemsList(utilities.BaseClass):
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
-                        form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
+                        try:
+                            form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
+                        except UnicodeEncodeError:
+                            form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
                         # and also archive the parent
