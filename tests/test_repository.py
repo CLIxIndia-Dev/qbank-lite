@@ -277,7 +277,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         headers = req.header_dict
         self.assertIn('image/png', headers['content-type'])
-        self.assertIn('.png', headers['content-disposition'])
+        self.assertIn('.png', headers['content-disposition'].lower())
         original_content_length = headers['content-length']
 
         content_url = image['src']
