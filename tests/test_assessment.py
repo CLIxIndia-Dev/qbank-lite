@@ -46,6 +46,7 @@ QTI_ANSWER_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ANSWER_GENUS_TYPES['qti-uploa
 QTI_ANSWER_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ANSWER_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-survey'])
 QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
@@ -57,6 +58,7 @@ QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-in
 QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
 QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-survey'])
 QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
 QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
 QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
@@ -3278,6 +3280,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
+    def create_mc_survey_item(self):
+        url = '{0}/items'.format(self.url)
+        self._survey_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._survey_question_test_file),
+                                           self._survey_question_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_mw_sentence_item(self):
         url = '{0}/items'.format(self.url)
         self._mw_sentence_test_file.seek(0)
@@ -3322,6 +3334,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
+        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3334,6 +3347,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file.close()
         self._drag_and_drop_test_file.close()
         self._image_in_feedback_test_file.close()
+        self._survey_question_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4270,6 +4284,29 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('Listen carefully', data['feedback'])
         self.assertEqual(data['feedback'].count('Listen carefully'), 1)
 
+    def test_all_answers_correct_for_survey_question(self):
+        survey_item = self.create_mc_survey_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(survey_item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     unquote(survey_item['id']))
+        choice_ids = ['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
+                      'id31392307-c87e-476b-8f92-b0f12ed66300',
+                      'id8188b5cd-89b0-4140-b12a-aed5426bd81b']
+        for choice_id in choice_ids:
+            payload = {
+                'choiceIds': [choice_id],
+                'type': 'answer-type%3Aqti-choice-interaction-survey%40ODL.MIT.EDU'
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['correct'])
+            self.assertIn('Thank you for your participation.', data['feedback'])
+            self.assertNotIn('Incorrect ...', data['feedback'])
+
     def test_can_submit_right_answer_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
@@ -5147,6 +5184,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
         self._telugu_test_file = open('{0}/tests/files/telugu_question_test_file.zip'.format(ABS_PATH), 'r')
+        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -5177,6 +5215,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fitb_2_test_file.close()
         self._image_in_feedback_test_file.close()
         self._telugu_test_file.close()
+        self._survey_question_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -7026,7 +7065,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['question']['id']
         )
         self.assertNotIn('?', item['question']['id'])
-        print item['question']['id']
         self.assertEqual(
             item['question']['id'].split('%40')[-1],
             'qti-numeric-response'
@@ -7170,6 +7208,82 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                       item['answers'][1]['feedback']['text'])
         self.assertIn(u'అగ్గిపుల్లల(ఉపయోగించబడిన) ఒక సెట్మరియుసైకిల్',
                       item['question']['text']['text'])
+
+    def test_can_upload_survey_question_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._survey_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._survey_question_test_file),
+                                           self._survey_question_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS)
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            3
+        )
+        choice_ids = [c['id'] for c in item['question']['choices']]
+
+        self.assertEqual(
+            len(item['answers']),
+            3
+        )
+        for answer in item['answers']:
+            self.assertEqual(
+                answer['genusTypeId'],
+                str(RIGHT_ANSWER_GENUS)
+            )
+            self.assertIn('Thank you for your participation.', answer['feedback']['text'])
+            self.assertIn(answer['choiceIds'][0], choice_ids)
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Did you eat breakfast today?
+  </p>
+<choiceInteraction maxChoices="1" responseIdentifier="RESPONSE_1" shuffle="true">
+<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+<p>
+     Yes
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>
+     No
+    </p>
+</simpleChoice>
+<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+<p>
+     I don\'t remember
+    </p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
 
     def test_video_tags_appear_in_qti(self):
         url = '{0}/items'.format(self.url)
