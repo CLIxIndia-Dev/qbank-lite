@@ -3322,6 +3322,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
+    def create_unshuffled_mc_item(self):
+        url = '{0}/items'.format(self.url)
+        self._unshuffled_mc_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unshuffled_mc_question_test_file),
+                                           self._unshuffled_mc_question_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def setUp(self):
         super(MultipleChoiceAndMWTests, self).setUp()
 
@@ -3335,6 +3345,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
+        self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3348,6 +3359,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file.close()
         self._image_in_feedback_test_file.close()
         self._survey_question_test_file.close()
+        self._unshuffled_mc_question_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4614,6 +4626,75 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('http://localhost', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
         self.assertIn('Sorry, bad choice', data['feedback'])
+
+    def test_mc_choices_are_shuffled_if_flag_set(self):
+        survey_item = self.create_mc_survey_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(survey_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['data'][0]['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count > 0)
+
+    def test_mc_choices_are_not_shuffled_if_flag_not_set(self):
+        unshuffled_item = self.create_unshuffled_mc_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(unshuffled_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order == data['data'][0]['choices']:
+                different_order_count += 1
+
+        # they should all be equal
+        self.assertTrue(different_order_count == 10)
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
