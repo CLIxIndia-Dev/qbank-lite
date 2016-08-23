@@ -438,10 +438,11 @@ class ItemsList(utilities.BaseClass):
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
-                        try:
-                            form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
-                        except UnicodeEncodeError:
-                            form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
+                        # let's use unicode by default ...
+                        # try:
+                        #     form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
+                        # except UnicodeEncodeError:
+                        form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
                     if add_provenance_parent:
                         form.set_provenance(str(parent_item.ident))
                         # and also archive the parent
@@ -488,12 +489,12 @@ class ItemsList(utilities.BaseClass):
                         right_answers = answer.object_map['choiceIds']
                         wrong_answers = [c for c in choices if c['id'] not in right_answers]
 
-                        # for now only support a generic wrong answer feedback for
-                        # mc multi-select ... otherwise have to do scoring somehow
-                        if (len(wrong_answers) > 0 and
-                                str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
+                        # survey questions should mark all choices as correct,
+                        # because Onyx only lets you pick one ... so let's fix that ...
+                        if autils.is_survey(local_map):
                             for wrong_answer in wrong_answers:
                                 a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                # force to True in load_from_qti_item, once the choiceId is set
                                 a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
@@ -502,15 +503,29 @@ class ItemsList(utilities.BaseClass):
 
                                 bank.create_answer(a_form)
                         else:
-                            # create a generic one
-                            a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                            a_form.load_from_qti_item(clean_qti_xml,
-                                                      keywords=keywords,
-                                                      correct=False,
-                                                      feedback_choice_id='incorrect',
-                                                      media_files=media_files)
+                            # for now only support a generic wrong answer feedback for
+                            # mc multi-select ... otherwise have to do scoring somehow
+                            if (len(wrong_answers) > 0 and
+                                    str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
+                                for wrong_answer in wrong_answers:
+                                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                    a_form.load_from_qti_item(clean_qti_xml,
+                                                              keywords=keywords,
+                                                              correct=False,
+                                                              feedback_choice_id=wrong_answer['id'],
+                                                              media_files=media_files)
 
-                            bank.create_answer(a_form)
+                                    bank.create_answer(a_form)
+                            else:
+                                # create a generic one
+                                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                a_form.load_from_qti_item(clean_qti_xml,
+                                                          keywords=keywords,
+                                                          correct=False,
+                                                          feedback_choice_id='incorrect',
+                                                          media_files=media_files)
+
+                                bank.create_answer(a_form)
                     elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
                                                       str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
                         # create a generic one
@@ -1482,7 +1497,6 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             questions = bank.get_questions(first_section.ident)
-
             if 'qti' in web.input():
                 data = []
                 for question in questions:
@@ -1849,7 +1863,8 @@ class ItemVideoTagReplacement(utilities.BaseClass):
 
             if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
                 # this is so bad. Don't do this normally.
-                form = bank.get_question_form_for_update(question.ident)
+                # use item.ident to avoid issues with magic sessions
+                form = bank.get_question_form_for_update(item.ident)
                 form._for_update = False
                 record = form.get_question_form_record(QUESTION_WITH_FILES)
                 record._init_metadata()
@@ -1857,7 +1872,8 @@ class ItemVideoTagReplacement(utilities.BaseClass):
                 form._for_update = True
                 bank.update_question(form)
 
-            form = bank.get_question_form_for_update(question.ident)
+            # use item.ident to avoid issues with magic sessions
+            form = bank.get_question_form_for_update(item.ident)
 
             # first, update the text with just the new markup
             updated_text = question_text.replace('[type]{video}', params['html'])

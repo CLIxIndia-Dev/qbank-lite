@@ -83,7 +83,7 @@ FILESYSTEM_1 = {
             'displayName': 'Which magic item lookup sessions to try',
             'description': 'To handle magic IDs.',
             'values': [
-                {'value': 'records.assessment.qti.numeric_response_records.MagicNumericResponseItemLookupSession', 'priority': 1}
+                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
     },
