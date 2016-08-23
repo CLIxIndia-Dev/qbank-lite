@@ -3322,6 +3322,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
+    def create_unshuffled_mc_item(self):
+        url = '{0}/items'.format(self.url)
+        self._unshuffled_mc_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unshuffled_mc_question_test_file),
+                                           self._unshuffled_mc_question_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def setUp(self):
         super(MultipleChoiceAndMWTests, self).setUp()
 
@@ -3335,6 +3345,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
+        self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3348,6 +3359,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._drag_and_drop_test_file.close()
         self._image_in_feedback_test_file.close()
         self._survey_question_test_file.close()
+        self._unshuffled_mc_question_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4266,9 +4278,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_only_one_feedback_provided(self):
         item = self.create_mc_item_for_feedback_testing()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['a'],
             'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
@@ -4287,9 +4307,19 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_all_answers_correct_for_survey_question(self):
         survey_item = self.create_mc_survey_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(survey_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(survey_item['id']))
+                                                                     question_id)
         choice_ids = ['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
                       'id31392307-c87e-476b-8f92-b0f12ed66300',
                       'id8188b5cd-89b0-4140-b12a-aed5426bd81b']
@@ -4538,9 +4568,19 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         mc_item = self.create_question_with_images_in_feedback()
         expected_content_id = mc_item['answers'][0]['fileIds']['medium849946232588888784replacement_image_png']['assetContentId']
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['ida31f7834-716c-4f0d-96ec-d8d0ccc7a5ec'],
             'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
@@ -4560,9 +4600,18 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         mc_item = self.create_question_with_images_in_feedback()
         expected_content_id = mc_item['answers'][1]['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id49eb6d09-8c34-4e5d-8e31-77604208f872'],
             'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
@@ -4577,6 +4626,75 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('http://localhost', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
         self.assertIn('Sorry, bad choice', data['feedback'])
+
+    def test_mc_choices_are_shuffled_if_flag_set(self):
+        survey_item = self.create_mc_survey_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(survey_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['data'][0]['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count > 0)
+
+    def test_mc_choices_are_not_shuffled_if_flag_not_set(self):
+        unshuffled_item = self.create_unshuffled_mc_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(unshuffled_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order == data['data'][0]['choices']:
+                different_order_count += 1
+
+        # they should all be equal
+        self.assertTrue(different_order_count == 10)
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
@@ -5262,6 +5380,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
 
+        choice_interaction = item_body.choiceInteraction.extract()
+
         image_1_asset_label = 'medium8701311014467393642draggable_green_dot_png'
         image_2_asset_label = 'medium3854799028001516110draggable_h1i_PNG'
         image_1_asset_id = item['question']['fileIds'][image_1_asset_label]['assetId']
@@ -5274,33 +5394,66 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>
    Which of the following is a circle?
   </p>
-<choiceInteraction maxChoices="1" responseIdentifier="RESPONSE_1" shuffle="true">
-<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
-<p>
-<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="20"/>
-</p>
-</simpleChoice>
-<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
-<p>
-     |__|
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
-<p>
-<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="26"/>
-</p>
-</simpleChoice>
-</choiceInteraction>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
-                      image_1_asset_id,
-                      image_1_asset_content_id,
-                      image_2_asset_id,
-                      image_2_asset_content_id)
+
+</itemBody>"""
 
         self.assertEqual(
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+        self.assertEqual(
+            len(choice_interaction.find_all('simpleChoice')),
+            3
+        )
+        self.assertEqual(
+            choice_interaction['maxChoices'],
+            "1"
+        )
+        self.assertEqual(
+            choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            choice_interaction['shuffle'],
+            'true'
+        )
+
+        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+
+        expected_choices = {
+            "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="20"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_1_asset_id,
+                          image_1_asset_content_id),
+            "ida86a26e0-a563-4e48-801a-ba9d171c24f7": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>
+     |__|
+    </p>
+</simpleChoice>""",
+            "id32b596f4-d970-4d1e-a667-3ca762c002c5": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="26"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_2_asset_id,
+                          image_2_asset_content_id)
+        }
+
+        for choice in choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_xml_preserved(self):
         url = '{0}/items'.format(self.url)
@@ -5808,9 +5961,18 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertFalse(qti.responseProcessing)
 
     def test_with_taken_can_get_individual_question_qti(self):
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(self._taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/qti'.format(self.url,
                                                                   unquote(str(self._taken.ident)),
-                                                                  unquote(str(self._item.ident)))
+                                                                  question_id)
         req = self.app.get(url)
         self.ok(req)
 
@@ -5881,10 +6043,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         expected_string_start = '/api/v1/repository/repositories/'
-        self.assertIn(expected_string_start,
-                      qti.itemBody.choiceInteraction.simpleChoice.p.img['src'])
-        self.assertIn(expected_string_start,
-                      qti.itemBody.choiceInteraction.contents[5].p.img['src'])
+        for choice in qti.itemBody.choiceInteraction.find_all('simpleChoice'):
+            if choice.find('img'):
+                self.assertIn(expected_string_start,
+                              choice.img['src'])
 
     def test_can_get_qti_items_in_assessment(self):
         url = '{0}/assessments/{1}/items?qti'.format(self.url,
@@ -6069,20 +6231,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 item['answers'][i]['genusTypeId'],
                 str(WRONG_ANSWER_GENUS)
             )
+        expected_matches = {
+            "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985": "<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>",
+            "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f": "<p>Listen again and answer.</p>",
+            "id8e65e4e1-e891-4c30-a35c-5cc43df18710": "<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>",
+            "ida1986000-f320-4346-b289-7310974afd1a": "<p>Zo has hurt himself.</p>"
+        }
 
-        expected_matches = (('<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>', "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985"),
-                            ("<p>Listen again and answer.</p>", "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f"),
-                            ("<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>", "id8e65e4e1-e891-4c30-a35c-5cc43df18710"),
-                            ("<p>Zo has hurt himself.</p>", "ida1986000-f320-4346-b289-7310974afd1a"))
-
-        for index, match in enumerate(expected_matches):
-            self.assertEqual(
-                item['answers'][index]['choiceIds'][0],
-                match[1]
-            )
-
-            self.assertIn(match[0],
-                          item['answers'][index]['feedback']['text'])
+        for answer in item['answers']:
+            answer_choice = answer['choiceIds'][0]
+            self.assertIn(expected_matches[answer_choice],
+                          answer['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6414,7 +6573,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     <br/>
 </strong>
 </p>
-<choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="true">
+<choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="false">
 <simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
 <p>
 <img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="186"/>
@@ -6460,7 +6619,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
-
 
     def test_can_upload_short_answer(self):
         url = '{0}/items'.format(self.url)
@@ -7257,33 +7415,61 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = item_qti.itemBody
 
+        choice_interaction = item_body.choiceInteraction.extract()
+
         expected_string = """<itemBody>
 <p>
    Did you eat breakfast today?
   </p>
-<choiceInteraction maxChoices="1" responseIdentifier="RESPONSE_1" shuffle="true">
-<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
-<p>
-     Yes
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
-<p>
-     No
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
-<p>
-     I don\'t remember
-    </p>
-</simpleChoice>
-</choiceInteraction>
+
 </itemBody>"""
 
         self.assertEqual(
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(choice_interaction.find_all('simpleChoice')),
+            3
+        )
+        self.assertEqual(
+            choice_interaction['maxChoices'],
+            "1"
+        )
+        self.assertEqual(
+            choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            choice_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "id5f1fc52a-a04e-4fa1-b855-51da24967a31": """<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+<p>
+     Yes
+    </p>
+</simpleChoice>""",
+            "id31392307-c87e-476b-8f92-b0f12ed66300": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>
+     No
+    </p>
+</simpleChoice>""",
+            "id8188b5cd-89b0-4140-b12a-aed5426bd81b": """<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+<p>
+     I don\'t remember
+    </p>
+</simpleChoice>"""
+        }
+
+        for choice in choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_video_tags_appear_in_qti(self):
         url = '{0}/items'.format(self.url)

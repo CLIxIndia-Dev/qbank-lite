@@ -1497,7 +1497,6 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             questions = bank.get_questions(first_section.ident)
-
             if 'qti' in web.input():
                 data = []
                 for question in questions:
@@ -1864,7 +1863,8 @@ class ItemVideoTagReplacement(utilities.BaseClass):
 
             if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
                 # this is so bad. Don't do this normally.
-                form = bank.get_question_form_for_update(question.ident)
+                # use item.ident to avoid issues with magic sessions
+                form = bank.get_question_form_for_update(item.ident)
                 form._for_update = False
                 record = form.get_question_form_record(QUESTION_WITH_FILES)
                 record._init_metadata()
@@ -1872,7 +1872,8 @@ class ItemVideoTagReplacement(utilities.BaseClass):
                 form._for_update = True
                 bank.update_question(form)
 
-            form = bank.get_question_form_for_update(question.ident)
+            # use item.ident to avoid issues with magic sessions
+            form = bank.get_question_form_for_update(item.ident)
 
             # first, update the text with just the new markup
             updated_text = question_text.replace('[type]{video}', params['html'])
