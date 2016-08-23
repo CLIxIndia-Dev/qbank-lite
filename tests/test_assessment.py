@@ -799,9 +799,16 @@ class AnswerTypeTests(BaseAssessmentTestCase):
 
         taken, offered = self.create_taken_for_item(self._bank.ident, item_id)
 
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(unquote(str(self._bank.ident)),
+                                                                                   unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
         url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions/{2}/submit'.format(unquote(str(self._bank.ident)),
                                                                                               unquote(str(taken.ident)),
-                                                                                              unquote(item_id))
+                                                                                              unquote(question_id))
         right_answer_payload = {
             'choiceIds': [right_choice_id]
         }
@@ -5029,22 +5036,24 @@ class NumericAnswerTests(BaseAssessmentTestCase):
     def test_getting_same_question_twice_returns_same_parameter_values_simple_numeric(self):
         nr_item = self.create_simple_numeric_response_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(nr_item['id']))
-        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
-                                                          unquote(str(taken.ident)))
+        url = '{0}assessmentstaken/{1}/questions'.format(self.url,
+                                                         unquote(str(taken.ident)))
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
         question_1_id = data['data'][0]['id']
 
+        # deprecate this part of the test ... we have no access to the internal
+        # magic ID because of the unique assessment-session question IDs
         # make sure the text matches the ID params
-        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
-        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
-        expected_expression = '{0} + {1}'.format(question_1_params['var1'],
-                                                 question_1_params['var2'])
-        self.assertEqual(
-            question_expression,
-            expected_expression
-        )
+        # question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        # question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        # expected_expression = '{0} + {1}'.format(question_1_params['var1'],
+        #                                          question_1_params['var2'])
+        # self.assertEqual(
+        #     question_expression,
+        #     expected_expression
+        # )
 
         url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
                                                               unquote(str(taken.ident)),
@@ -5192,15 +5201,17 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         question_1_id = data['data'][0]['id']
 
+        # deprecate this part of the test ... we have no access to the internal
+        # magic ID because of the unique assessment-session question IDs
         # make sure the text matches the ID params
-        question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
-        question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
-        expected_expression = '{0} + {1}'.format("%.4f" % (question_1_params['var1'],),
-                                                 question_1_params['var2'])
-        self.assertEqual(
-            question_expression,
-            expected_expression
-        )
+        # question_1_params = json.loads(unquote(Id(question_1_id).identifier).split('?')[-1])
+        # question_expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        # expected_expression = '{0} + {1}'.format("%.4f" % (question_1_params['var1'],),
+        #                                          question_1_params['var2'])
+        # self.assertEqual(
+        #     question_expression,
+        #     expected_expression
+        # )
 
         url = '{0}/assessmentstaken/{1}/questions/{2}'.format(self.url,
                                                               unquote(str(taken.ident)),

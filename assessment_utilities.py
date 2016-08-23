@@ -356,6 +356,7 @@ def get_question_status(bank, section, question_id):
     """
     try:
         student_response = bank.get_response(section.ident, question_id)
+        student_response.object_map
     except (NotFound, IllegalState):
         student_response = None
 
