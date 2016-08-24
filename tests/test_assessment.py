@@ -3329,6 +3329,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
+    def create_unshuffled_fitb_item(self):
+        url = '{0}/items'.format(self.url)
+        self._unshuffled_inline_choice_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unshuffled_inline_choice_question_test_file),
+                                           self._unshuffled_inline_choice_question_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_unshuffled_mc_item(self):
         url = '{0}/items'.format(self.url)
         self._unshuffled_mc_question_test_file.seek(0)
@@ -3372,6 +3382,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
         self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
         self._unshuffled_order_interaction_question_test_file = open('{0}/tests/files/order_interaction_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
+        self._unshuffled_inline_choice_question_test_file = open('{0}/tests/files/fitb_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3387,6 +3398,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._survey_question_test_file.close()
         self._unshuffled_mc_question_test_file.close()
         self._unshuffled_order_interaction_question_test_file.close()
+        self._unshuffled_inline_choice_question_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4384,9 +4396,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_right_answer_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'inlineRegions': {
                 'RESPONSE_1': {
@@ -4412,9 +4425,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_region_does_matter_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'inlineRegions': {
                 'RESPONSE_1': {
@@ -4440,9 +4454,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_wrong_answer_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'inlineRegions': {
                 'RESPONSE_1': {
@@ -4468,9 +4483,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'inlineRegions': {
                 'RESPONSE_1': {
@@ -4496,9 +4512,11 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_submitting_too_few_answers_returns_incorrect_mw_fill_in_the_blank(self):
         mc_item = self.create_mw_fitb_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'inlineRegions': {
                 'RESPONSE_1': {
@@ -4823,6 +4841,75 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
 
         self.assertTrue(different_order_count > 0)
+
+    def test_inline_choice_interaction_shuffled_if_flag_set(self):
+        mw_item = self.create_mw_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mw_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['data'][0]['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count > 0)
+
+    def test_inline_choice_interaction_not_shuffled_if_flag_not_set(self):
+        unshuffled_item = self.create_unshuffled_fitb_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(unshuffled_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        same_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order == data['data'][0]['choices']:
+                same_order_count += 1
+
+        # they should all be equal
+        self.assertTrue(same_order_count == 10)
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
@@ -6941,6 +7028,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
+
+        inline_choice_interaction_1 = item_body.inlineChoiceInteraction.extract()
+        inline_choice_interaction_2 = item_body.inlineChoiceInteraction.extract()
+
         audio_asset_label = 'ee_u1l01a01r04__mp3'
         image_asset_label = 'medium2741930469600907330bus_png'
         audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
@@ -6962,28 +7053,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
      are
     </p>
 </p>
-<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
-<inlineChoice identifier="[_1_1_1_1_1_1_1">
-<p class="prep">
-      on
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_1_1_1_1_1_1_1_1">
-<p class="under">
-      under
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_2_1_1_1_1_1_1_1">
-<p class="verb">
-      lost
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_3_1_1_1_1_1_1_1">
-<p class="prep">
-      on top of
-     </p>
-</inlineChoice>
-</inlineChoiceInteraction>
+
 <p>
 <p class="noun">
      the bus
@@ -6992,28 +7062,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
      in the
     </p>
 </p>
-<inlineChoiceInteraction responseIdentifier="RESPONSE_2" shuffle="true">
-<inlineChoice identifier="[_1_1_1_1_1_1">
-<p class="noun">
-      city
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_1_1_1_1_1_1_1">
-<p class="noun">
-      town
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_2_1_1_1_1_1_1">
-<p class="noun">
-      station
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_3_1_1_1_1_1_1">
-<p class="noun">
-      airport
-     </p>
-</inlineChoice>
-</inlineChoiceInteraction>
+
    .
   </p>
 <p>
@@ -7033,6 +7082,92 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(inline_choice_interaction_1.find_all('inlineChoice')),
+            4
+        )
+        self.assertEqual(
+            inline_choice_interaction_1['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            inline_choice_interaction_1['shuffle'],
+            'true'
+        )
+
+        expected_choices_region_1 = {
+            "[_1_1_1_1_1_1_1": """<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="prep">
+      on
+     </p>
+</inlineChoice>""",
+            "[_1_1_1_1_1_1_1_1": """<inlineChoice identifier="[_1_1_1_1_1_1_1_1">
+<p class="under">
+      under
+     </p>
+</inlineChoice>""",
+            "[_2_1_1_1_1_1_1_1": """<inlineChoice identifier="[_2_1_1_1_1_1_1_1">
+<p class="verb">
+      lost
+     </p>
+</inlineChoice>""",
+            "[_3_1_1_1_1_1_1_1": """<inlineChoice identifier="[_3_1_1_1_1_1_1_1">
+<p class="prep">
+      on top of
+     </p>
+</inlineChoice>"""
+        }
+
+        for choice in inline_choice_interaction_1.find_all('inlineChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices_region_1[choice_id]
+            )
+
+        self.assertEqual(
+            len(inline_choice_interaction_2.find_all('inlineChoice')),
+            4
+        )
+        self.assertEqual(
+            inline_choice_interaction_2['responseIdentifier'],
+            'RESPONSE_2'
+        )
+        self.assertEqual(
+            inline_choice_interaction_2['shuffle'],
+            'true'
+        )
+
+        expected_choices_region_2 = {
+            "[_1_1_1_1_1_1": """<inlineChoice identifier="[_1_1_1_1_1_1">
+<p class="noun">
+      city
+     </p>
+</inlineChoice>""",
+            "[_1_1_1_1_1_1_1": """<inlineChoice identifier="[_1_1_1_1_1_1_1">
+<p class="noun">
+      town
+     </p>
+</inlineChoice>""",
+            "[_2_1_1_1_1_1_1": """<inlineChoice identifier="[_2_1_1_1_1_1_1">
+<p class="noun">
+      station
+     </p>
+</inlineChoice>""",
+            "[_3_1_1_1_1_1_1": """<inlineChoice identifier="[_3_1_1_1_1_1_1">
+<p class="noun">
+      airport
+     </p>
+</inlineChoice>"""
+        }
+
+        for choice in inline_choice_interaction_2.find_all('inlineChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices_region_2[choice_id]
+            )
 
     def test_can_upload_mw_fill_in_the_blank_2(self):
         """mostly to test that the words post-<inlineChoiceInteraction> are wrapped properly"""
@@ -7095,6 +7230,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
         item_body = qti_xml.itemBody
 
+        inline_choice_interaction = item_body.inlineChoiceInteraction.extract()
+
         expected_string = """<itemBody>
 <p>
 <p>
@@ -7102,33 +7239,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
      Raju's
     </p>
 </p>
-<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="true">
-<inlineChoice identifier="[_1_1">
-<p class="noun">
-      gifts
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_1_1_1">
-<p class="noun">
-      bags
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_2_1_1">
-<p class="noun">
-      bicycles
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_3_1_1">
-<p class="noun">
-      lunches
-     </p>
-</inlineChoice>
-<inlineChoice identifier="[_4_1_1">
-<p class="noun">
-      flowers
-     </p>
-</inlineChoice>
-</inlineChoiceInteraction>
+
 <p>
 <p class="verb">
      are
@@ -7147,6 +7258,54 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(inline_choice_interaction.find_all('inlineChoice')),
+            5
+        )
+        self.assertEqual(
+            inline_choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            inline_choice_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "[_1_1": """<inlineChoice identifier="[_1_1">
+<p class="noun">
+      gifts
+     </p>
+</inlineChoice>""",
+            "[_1_1_1": """<inlineChoice identifier="[_1_1_1">
+<p class="noun">
+      bags
+     </p>
+</inlineChoice>""",
+            "[_2_1_1": """<inlineChoice identifier="[_2_1_1">
+<p class="noun">
+      bicycles
+     </p>
+</inlineChoice>""",
+            "[_3_1_1": """<inlineChoice identifier="[_3_1_1">
+<p class="noun">
+      lunches
+     </p>
+</inlineChoice>""",
+            "[_4_1_1": """<inlineChoice identifier="[_4_1_1">
+<p class="noun">
+      flowers
+     </p>
+</inlineChoice>"""
+        }
+
+        for choice in inline_choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_description_saved_if_provided(self):
         url = '{0}/items'.format(self.url)
