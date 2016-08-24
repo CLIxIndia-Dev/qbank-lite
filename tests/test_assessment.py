@@ -3339,6 +3339,24 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
+    def create_unshuffled_order_interaction_item(self):
+        url = '{0}/items'.format(self.url)
+        self._unshuffled_order_interaction_question_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unshuffled_order_interaction_question_test_file),
+                                           self._unshuffled_order_interaction_question_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def get_question_id(self, taken):
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        return data['data'][0]['id']
+
     def setUp(self):
         super(MultipleChoiceAndMWTests, self).setUp()
 
@@ -3353,6 +3371,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
         self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
+        self._unshuffled_order_interaction_question_test_file = open('{0}/tests/files/order_interaction_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3367,6 +3386,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._image_in_feedback_test_file.close()
         self._survey_question_test_file.close()
         self._unshuffled_mc_question_test_file.close()
+        self._unshuffled_order_interaction_question_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4084,9 +4104,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_right_answer_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
@@ -4109,9 +4132,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_wrong_answer_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
@@ -4134,9 +4160,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_cannot_submit_too_many_choices_even_if_partially_correct_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id51b2feca-d407-46d5-b548-d6645a021008',
                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
@@ -4161,9 +4190,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_submitting_too_few_answers_returns_incorrect_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['a',
                           'b'],
@@ -4487,9 +4524,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_right_answer_drag_and_drop(self):
         mc_item = self.create_drag_and_drop_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+        question_id = self.get_question_id(taken)
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
                           'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
@@ -4509,9 +4547,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_can_submit_wrong_answer_drag_and_drop(self):
         mc_item = self.create_drag_and_drop_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
                           'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',  # swapped the order
@@ -4531,9 +4572,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_cannot_submit_too_many_choices_even_if_partially_correct_drag_and_drop(self):
         mc_item = self.create_drag_and_drop_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        question_id = self.get_question_id(taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
                           'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
@@ -4554,9 +4598,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def test_submitting_too_few_answers_returns_incorrect_drag_and_drop(self):
         mc_item = self.create_drag_and_drop_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(taken.ident)),
-                                                                     unquote(mc_item['id']))
+                                                                     question_id)
         payload = {
             'choiceIds': ['a',
                           'b'],
@@ -4680,7 +4732,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
         original_order = data['data'][0]['choices']
 
-        different_order_count = 0
+        same_order_count = 0
         taken_map = taken.object_map
         for i in range(0, 10):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
@@ -4698,10 +4750,79 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             self.ok(req)
             data = self.json(req)
             if original_order == data['data'][0]['choices']:
-                different_order_count += 1
+                same_order_count += 1
 
         # they should all be equal
-        self.assertTrue(different_order_count == 10)
+        self.assertTrue(same_order_count == 10)
+
+    def test_order_interaction_choices_are_not_shuffled_if_flag_not_set(self):
+        unshuffled_item = self.create_unshuffled_order_interaction_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(unshuffled_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        same_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order == data['data'][0]['choices']:
+                same_order_count += 1
+
+        # they should all be equal
+        self.assertTrue(same_order_count == 10)
+
+    def test_order_interaction_choices_are_shuffled_if_flag_set(self):
+        mw_item = self.create_mw_sentence_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(mw_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        original_order = data['data'][0]['choices']
+
+        different_order_count = 0
+        taken_map = taken.object_map
+        for i in range(0, 10):
+            delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                                 taken_map['id'])
+            req = self.app.delete(delete_taken_url)
+            self.code(req, 202)
+            create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
+                                                                                    unquote(str(offered.ident)))
+            req = self.app.post(create_taken_url)
+            self.ok(req)
+            taken_map = self.json(req)
+            questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                        taken_map['id'])
+            req = self.app.get(questions_url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['data'][0]['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count > 0)
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
@@ -5733,6 +5854,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         item_body = item_qti.itemBody
 
+        order_interaction = item_body.orderInteraction.extract()
+
         audio_asset_label = 'ee_u1l01a01r05__mp3'
         image_asset_label = 'medium8081173379968782030intersection_png'
         audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
@@ -5754,43 +5877,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>
 <img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
 </p>
-<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
-<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
-<p class="noun">
-     Raju
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
-<p class="verb">
-     left
-    </p>
-</simpleChoice>
-<simpleChoice identifier="idcccac9f8-3b85-4a2f-a95c-1922dec5d04a">
-<p class="noun">
-     the bags
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0">
-<p class="adverb">
-     under
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id78ce22bf-559f-44a4-95ee-156f222ad510">
-<p class="noun">
-     the seat
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id3045d860-24b4-4b30-9ca1-72408a3bcc9b">
-<p class="prep">
-     on
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id2cad48be-2782-4625-9669-dfcb2062bf3c">
-<p class="noun">
-     the bus
-    </p>
-</simpleChoice>
-</orderInteraction>
+
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
                       audio_asset_id,
                       audio_asset_content_id,
@@ -5801,6 +5888,64 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(order_interaction.find_all('simpleChoice')),
+            7
+        )
+        self.assertEqual(
+            order_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            order_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "id51b2feca-d407-46d5-b548-d6645a021008": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class="noun">
+     Raju
+    </p>
+</simpleChoice>""",
+            "id881a8e9c-844b-4394-be62-d28a5fda5296": """<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>""",
+            "idcccac9f8-3b85-4a2f-a95c-1922dec5d04a": """<simpleChoice identifier="idcccac9f8-3b85-4a2f-a95c-1922dec5d04a">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>""",
+            "id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0": """<simpleChoice identifier="id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>""",
+            "id78ce22bf-559f-44a4-95ee-156f222ad510": """<simpleChoice identifier="id78ce22bf-559f-44a4-95ee-156f222ad510">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>""",
+            "id3045d860-24b4-4b30-9ca1-72408a3bcc9b": """<simpleChoice identifier="id3045d860-24b4-4b30-9ca1-72408a3bcc9b">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>""",
+            "id2cad48be-2782-4625-9669-dfcb2062bf3c": """<simpleChoice identifier="id2cad48be-2782-4625-9669-dfcb2062bf3c">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>"""
+        }
+
+        for choice in order_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_can_upload_question_with_image_in_feedback(self):
         url = '{0}/items'.format(self.url)
@@ -6409,6 +6554,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         item_body = item_qti.itemBody
 
+        order_interaction = item_body.orderInteraction.extract()
+
         audio_asset_label = 'ee_u1l01a01r04__mp3'
         asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
         asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
@@ -6422,73 +6569,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
-<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
-<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
-<p class="noun">
-     the bus
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
-<p class="noun">
-     the airport
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
-<p class="noun">
-     the bags
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
-<p class="verb">
-     are
-    </p>
-</simpleChoice>
-<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
-<p class="adverb">
-     under
-    </p>
-</simpleChoice>
-<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
-<p class="prep">
-     on
-    </p>
-</simpleChoice>
-<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
-<p class="adverb">
-     on top of
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
-<p class="noun">
-     Raju's
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
-<p class="verb">
-     left
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
-<p class="noun">
-     the seat
-    </p>
-</simpleChoice>
-<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
-<p class="noun">
-     the city
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
-<p class="noun">
-     the bicycle
-    </p>
-</simpleChoice>
-<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
-<p class="verb">
-     dropped
-    </p>
-</simpleChoice>
-</orderInteraction>
+
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
                       asset_id,
                       asset_content_id)
@@ -6497,6 +6578,94 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(order_interaction.find_all('simpleChoice')),
+            13
+        )
+        self.assertEqual(
+            order_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            order_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "id14a6824a-79f2-4c00-ac6a-b41cbb64db45": """<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>""",
+            "id969e920d-6d22-4d06-b4ac-40a821e350c6": """<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
+<p class="noun">
+     the airport
+    </p>
+</simpleChoice>""",
+            "id820fae90-3794-40d1-bee0-daa36da223b3": """<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>""",
+            "id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60": """<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
+<p class="verb">
+     are
+    </p>
+</simpleChoice>""",
+            "idf1583dac-fb7a-4365-aa0d-f64e5ab61029": """<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>""",
+            "idd8449f3e-820f-46f8-9529-7e019fceaaa6": """<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>""",
+            "iddd689e9d-0cd0-478d-9d37-2856f866a757": """<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
+<p class="adverb">
+     on top of
+    </p>
+</simpleChoice>""",
+            "id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf": """<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
+<p class="noun">
+     Raju's
+    </p>
+</simpleChoice>""",
+            "id41288bb9-e76e-4313-bf57-2101edfe3a76": """<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>""",
+            "id4435ccd8-df65-45e7-8d82-6c077473d8d4": """<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>""",
+            "idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1": """<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
+<p class="noun">
+     the city
+    </p>
+</simpleChoice>""",
+            "id472afb75-4aa9-4daa-a163-075798ee57ab": """<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
+<p class="noun">
+     the bicycle
+    </p>
+</simpleChoice>""",
+            "id8c68713f-8e39-446b-a6c8-df25dfb8118e": """<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
+<p class="verb">
+     dropped
+    </p>
+</simpleChoice>"""
+        }
+
+        for choice in order_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_can_upload_mc_multi_select(self):
         url = '{0}/items'.format(self.url)
@@ -7057,6 +7226,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         item_body = item_qti.itemBody
 
+        order_interaction = item_body.orderInteraction.extract()
+
+        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
         audio_asset_label = 'audioTestFile__mp3'
         image_1_asset_label = 'medium6529396219987445959Picture1_png'
         image_2_asset_label = 'medium5957728225939996885Picture2_png'
@@ -7082,60 +7254,66 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
 </audio>
 </p>
-<orderInteraction responseIdentifier="RESPONSE_1" shuffle="true">
-<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
-<p class="">
-<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
-<p>
-<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
-</p>
-</simpleChoice>
-</p>
-</simpleChoice>
-<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
-<p class="">
-<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
-<p>
-<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="100"/>
-</p>
-</simpleChoice>
-</p>
-</simpleChoice>
-<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
-<p class="">
-<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
-<p>
-<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="100"/>
-</p>
-</simpleChoice>
-</p>
-</simpleChoice>
-<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
-<p class="">
-<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
-<p>
-<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{9}/contents/{10}" width="100"/>
-</p>
-</simpleChoice>
-</p>
-</simpleChoice>
-</orderInteraction>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+
+</itemBody>""".format(repository_id,
                       audio_asset_id,
-                      audio_asset_content_id,
-                      image_1_asset_id,
-                      image_1_asset_content_id,
-                      image_2_asset_id,
-                      image_2_asset_content_id,
-                      image_3_asset_id,
-                      image_3_asset_content_id,
-                      image_4_asset_id,
-                      image_4_asset_content_id)
+                      audio_asset_content_id)
 
         self.assertEqual(
             str(item_body),
             expected_string
         )
+
+        self.assertEqual(
+            len(order_interaction.find_all('simpleChoice')),
+            4
+        )
+        self.assertEqual(
+            order_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            order_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="100"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_1_asset_id,
+                          image_1_asset_content_id),
+            "id127df214-2a19-44da-894a-853948313dae": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="100"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_2_asset_id,
+                          image_2_asset_content_id),
+            "iddcbf40ab-782e-4d4f-9020-6b8414699a72": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="100"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_3_asset_id,
+                          image_3_asset_content_id),
+            "ide576c9cc-d20e-4ba3-8881-716100b796a0": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="100"/>
+</p>
+</simpleChoice>""".format(repository_id,
+                          image_4_asset_id,
+                          image_4_asset_content_id)
+        }
+
+        for choice in order_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_can_upload_simple_numeric_response_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -7578,6 +7756,14 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
+    def get_question_id(self, taken):
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        return data['data'][0]['id']
+
     def create_taken_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -7669,9 +7855,12 @@ class FileUploadTests(BaseAssessmentTestCase):
     def test_can_submit_file_to_mw_sandbox(self):
         sandbox = self.create_mw_sandbox_item()
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+
+        question_id = self.get_question_id(self._taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(self._taken.ident)),
-                                                                     unquote(sandbox['id']))
+                                                                     question_id)
         self._audio_recording_test_file.seek(0)
         req = self.app.post(url,
                             upload_files=[('submission', 'myRecording.wav', self._audio_recording_test_file.read())])
@@ -7683,9 +7872,12 @@ class FileUploadTests(BaseAssessmentTestCase):
     def test_can_do_empty_response_for_mw_sandbox(self):
         sandbox = self.create_mw_sandbox_item()
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(sandbox['id']))
+
+        question_id = self.get_question_id(self._taken)
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      unquote(str(self._taken.ident)),
-                                                                     unquote(sandbox['id']))
+                                                                     question_id)
         req = self.app.post(url)
         self.ok(req)
         data = self.json(req)
