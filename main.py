@@ -13,6 +13,14 @@ from waitress import serve
 # http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.argv[0])
+    # hack to get runtime working on ubuntu-based version,
+    # because otherwise it reports just /var/www as the runtime path ...
+    # and we don't want to add webapps/ to the configs.py file,
+    # otherwise that breaks on local-Windows versions (because
+    # the saved file paths in Assets.json shows "url": "webapps/CLIx/datastore"
+    # when we only need "url": "CLIx/datastore") ...
+    if ABS_PATH.startswith('/var/www'):
+        ABS_PATH = '{0}/webapps'.format(ABS_PATH)
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
