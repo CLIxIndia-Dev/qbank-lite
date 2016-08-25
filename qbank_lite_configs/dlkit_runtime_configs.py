@@ -2,7 +2,7 @@ from dlkit.primordium.type.primitives import Type
 
 from dlkit_edx.utilities import impl_key_dict
 
-DATA_STORE_PATH = 'CLIx/datastore'
+DATA_STORE_PATH = 'webapps/CLIx/datastore'
 
 FILESYSTEM_ASSET_CONTENT_TYPE = Type(**
                               {
