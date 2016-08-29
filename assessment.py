@@ -1641,7 +1641,11 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                             'answer-record-type')
             try:
-                local_data_map['files'] = {x['submission'].filename: x['submission'].file}
+                filename = x['submission'].filename
+                extension = web.ctx.env['CONTENT_TYPE'].split('/')[-1]  # make assumption about mimetype
+                if extension not in filename:
+                    filename = '{0}.{1}'.format(filename, extension)
+                local_data_map['files'] = {filename: x['submission'].file}
             except AttributeError:
                 if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
                     # TODO: for now, take empty response for MW Sandbox
