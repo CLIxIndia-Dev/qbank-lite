@@ -156,7 +156,7 @@ class AssetContentDetails(utilities.BaseClass):
             filename = asset_url.split('/')[-1]
             web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
 
-            with open(asset_url, 'r') as ac_file:
+            with open(asset_url, 'rb') as ac_file:
                 yield ac_file.read()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
