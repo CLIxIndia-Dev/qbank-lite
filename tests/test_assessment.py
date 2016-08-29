@@ -4248,6 +4248,133 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
         self.assertNotIn('Please try again!', data['feedback'])
 
+    def test_can_edit_choice_images_via_rest_mc(self):
+        """the image reloading script can strip out the height and width attributes"""
+        mc_item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(mc_item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        payload = {
+            'type': mc_item['genusTypeId'],
+            'question': {
+                'choices': []
+            }
+        }
+
+        for choice in data['question']['choices']:
+            choice_xml = BeautifulSoup(choice['text'], 'xml')
+
+            if choice_xml.find('img'):
+                self.assertIn('height=', choice['text'])
+                self.assertIn('width=', choice['text'])
+                for img in choice_xml.find_all('img'):
+                    del img['height']
+                    del img['width']
+                payload['question']['choices'].append({
+                    'id': choice['id'],
+                    'text': str(choice_xml.simpleChoice)
+                })
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        for choice in data['question']['choices']:
+            choice_xml = BeautifulSoup(choice['text'], 'xml')
+
+            if choice_xml.find('img'):
+                self.assertNotIn('height=', choice['text'])
+                self.assertNotIn('width=', choice['text'])
+
+    def test_can_edit_question_images_via_rest_fitb(self):
+        """the image reloading script can strip out the height and width attributes"""
+        mw_item = self.create_mw_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(mw_item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        payload = {
+            'type': mw_item['genusTypeId'],
+            'question': {
+                'questionString': ''
+            }
+        }
+
+        question_xml = BeautifulSoup(data['question']['text']['text'], 'xml')
+        self.assertIn('height=', data['question']['text']['text'])
+        self.assertIn('width=', data['question']['text']['text'])
+
+        for img in question_xml.find_all('img'):
+            del img['height']
+            del img['width']
+        payload['question']['questionString'] = str(question_xml.itemBody)
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertNotIn('height=', data['question']['text']['text'])
+        self.assertNotIn('width=', data['question']['text']['text'])
+
+    def test_can_edit_feedback_images_via_rest_mc(self):
+        """the image reloading script can strip out the height and width attributes"""
+        mc_item = self.create_question_with_images_in_feedback()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(mc_item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        payload = {
+            'type': mc_item['genusTypeId'],
+            'answers': []
+        }
+
+        for answer in data['answers']:
+            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
+            self.assertIn('height=', answer['feedback']['text'])
+            self.assertIn('width=', answer['feedback']['text'])
+
+            for img in answer_xml.find_all('img'):
+                del img['height']
+                del img['width']
+            payload['answers'].append({
+                'id': answer['id'],
+                'feedback': str(answer_xml.modalFeedback),
+                'type': mc_item['genusTypeId'].replace('assessment-item', 'answer')
+            })
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        for answer in data['answers']:
+            self.assertNotIn('height=', answer['feedback']['text'])
+            self.assertNotIn('width=', answer['feedback']['text'])
+
     def test_order_does_not_matter_mc_multi_select(self):
         mc_item = self.create_mc_multi_select_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
@@ -7975,6 +8102,26 @@ class FileUploadTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('Answer submitted', data['feedback'])
+
+    def test_can_send_file_with_no_extension_for_audio_rt(self):
+        url = '{0}/items'.format(self.url)
+        self._audio_recording_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._audio_recording_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        self._audio_response_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission', 'submissionFile', self._audio_response_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('Answer submitted', data['feedback'])
+        # TODO: no way to check if that file now has an extension, on disk?
 
     def test_can_send_generic_file_response_for_generic_file_upload(self):
         url = '{0}/items'.format(self.url)

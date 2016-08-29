@@ -649,6 +649,8 @@ def update_answer_form(answer, form, question=None):
             form.set_decimal_value(float(answer['decimalValue']))
         if 'tolerance' in answer:
             form.set_tolerance_value(float(answer['tolerance']))
+    elif 'qti' in answer['type']:
+        pass
     else:
         raise Unsupported()
 
@@ -862,6 +864,22 @@ def update_question_form(question, form, create=False):
         else:
             if 'questionString' in question:
                 form.set_text(str(question['questionString']))
+    elif 'qti' in question['type']:
+        if 'questionString' in question:
+            form.set_text(str(question['questionString']))
+        if 'choices' in question:
+            for choice in question['choices']:
+                if 'id' in choice:
+                    form.edit_choice(choice['id'], choice['text'])
+                else:
+                    form.add_choice(choice['text'])
+        if 'inlineRegions' in question:
+            for region, region_data in question['inlineRegions'].iteritems():
+                for choice in region_data['choices']:
+                    if 'id' in choice:
+                        form.edit_choice(choice['id'], choice['text'], region)
+                    else:
+                        form.add_choice(choice['text'], region)
     else:
         raise Unsupported()
 

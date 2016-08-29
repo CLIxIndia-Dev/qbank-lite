@@ -993,7 +993,7 @@ class ItemDetails(utilities.BaseClass):
                 if 'rerandomize' in local_data_map and 'rerandomize' not in question:
                     question['rerandomize'] = local_data_map['rerandomize']
 
-                qfu = bank.get_question_form_for_update(q_id)
+                qfu = bank.get_question_form_for_update(updated_item.ident)
                 qfu = autils.update_question_form(question, qfu)
                 updated_question = bank.update_question(qfu)
 
@@ -1640,8 +1640,16 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     local_data_map['type'] = question.object_map['recordTypeIds'][0]
                     local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                             'answer-record-type')
+
             try:
-                local_data_map['files'] = {x['submission'].filename: x['submission'].file}
+                filename = x['submission'].filename
+                if '.' not in filename:
+                    extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype
+                    if extension not in ['mp3', 'wav']:
+                        extension = 'wav'  # this is horrible ...
+                    if extension not in filename:
+                        filename = '{0}.{1}'.format(filename, extension)
+                local_data_map['files'] = {filename: x['submission'].file}
             except AttributeError:
                 if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
                     # TODO: for now, take empty response for MW Sandbox
