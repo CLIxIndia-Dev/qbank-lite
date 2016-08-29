@@ -1643,11 +1643,12 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             try:
                 filename = x['submission'].filename
-                extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype
-                if extension not in ['mp3', 'wav']:
-                    extension = 'wav'  # this is horrible ...
-                if extension not in filename:
-                    filename = '{0}.{1}'.format(filename, extension)
+                if '.' not in filename:
+                    extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype
+                    if extension not in ['mp3', 'wav']:
+                        extension = 'wav'  # this is horrible ...
+                    if extension not in filename:
+                        filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
             except AttributeError:
                 if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
