@@ -790,7 +790,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         item = self.json(req)
 
         self.assertEqual(
-            item['texts']['solution']['text'],
+            item['texts']['solution'],
             payload['solution']
         )
 
@@ -821,7 +821,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(
-            data['feedback']['text'],
+            data['feedback'],
             payload['solution']
         )
 
