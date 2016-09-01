@@ -4802,7 +4802,11 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
     def test_images_in_incorrect_feedback_are_converted_to_urls(self):
         mc_item = self.create_question_with_images_in_feedback()
-        expected_content_id = mc_item['answers'][1]['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
+
+        wrong_choice_id = 'id49eb6d09-8c34-4e5d-8e31-77604208f872'
+
+        matching_wrong_choice = [a for a in mc_item['answers'] if a['choiceIds'][0] == wrong_choice_id][0]
+        expected_content_id = matching_wrong_choice['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
 
         questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
@@ -4817,7 +4821,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                                                                      unquote(str(taken.ident)),
                                                                      question_id)
         payload = {
-            'choiceIds': ['id49eb6d09-8c34-4e5d-8e31-77604208f872'],
+            'choiceIds': [wrong_choice_id],
             'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
         }
         req = self.app.post(url,

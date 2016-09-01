@@ -1691,7 +1691,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     answers = bank.get_answers(first_section.ident, question.ident)
 
                     exact_answer_match = None
-                    default_wrong_answer_match = None
+                    default_answer_match = None
                     for answer in answers:
                         correct_submissions = 0
                         answer_choice_ids = list(answer.get_choice_ids())
@@ -1704,14 +1704,18 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         if not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS):
                             # take the first wrong answer by default ... just in case
                             # we don't have an exact match
-                            default_wrong_answer_match = answer
+                            default_answer_match = answer
+                        elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
+                            default_answer_match = answer
+
+                        # try to find an exact answer match, first
                         if (correct_submissions == number_choices and
                                 len(submissions) == number_choices):
                             exact_answer_match = answer
 
                     # now that we have either an exact match or a default (wrong) answer
                     # let's calculate the feedback and the confused LOs
-                    answer_to_use = default_wrong_answer_match
+                    answer_to_use = default_answer_match
                     if exact_answer_match is not None:
                         answer_to_use = exact_answer_match
                     try:
