@@ -924,12 +924,12 @@ def update_response_form(response, form):
                 ac_genus_type = Type(identifier=extension,
                                      namespace='asset-content-genus-type',
                                      authority='ODL.MIT.EDU')
-
+                label = file_label.replace('.', '_')
                 try:
-                    form.add_file(data_package, file_label)
+                    form.add_file(data_package, label)
                 except AttributeError:
                     form.set_file(asset_data=data_package,
-                                  asset_name=file_label,
+                                  asset_name=label,
                                   asset_content_type=ac_genus_type)
                     break
         except KeyError:
