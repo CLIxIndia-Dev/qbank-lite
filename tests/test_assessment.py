@@ -790,7 +790,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         item = self.json(req)
 
         self.assertEqual(
-            item['texts']['solution'],
+            item['texts']['solution']['text'],
             payload['solution']
         )
 
@@ -821,7 +821,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(
-            data['feedback'],
+            data['feedback']['text'],
             payload['solution']
         )
 
@@ -4802,7 +4802,11 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
     def test_images_in_incorrect_feedback_are_converted_to_urls(self):
         mc_item = self.create_question_with_images_in_feedback()
-        expected_content_id = mc_item['answers'][1]['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
+
+        wrong_choice_id = 'id49eb6d09-8c34-4e5d-8e31-77604208f872'
+
+        matching_wrong_choice = [a for a in mc_item['answers'] if a['choiceIds'][0] == wrong_choice_id][0]
+        expected_content_id = matching_wrong_choice['fileIds']['medium534315617922181373draggable_red_dot_png']['assetContentId']
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
 
         questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
@@ -4817,7 +4821,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                                                                      unquote(str(taken.ident)),
                                                                      question_id)
         payload = {
-            'choiceIds': ['id49eb6d09-8c34-4e5d-8e31-77604208f872'],
+            'choiceIds': [wrong_choice_id],
             'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
@@ -5040,6 +5044,18 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
+    def _grab_expression(self, text):
+        soup = BeautifulSoup(text, 'xml')
+        numeric_choice_wrapper = None
+        interaction = soup.itemBody.textEntryInteraction
+        for parent in interaction.parents:
+            if parent.name == 'p':
+                numeric_choice_wrapper = parent
+                break
+
+        numeric_choice_line_str = _stringify(numeric_choice_wrapper)
+        return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -5123,8 +5139,10 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
-        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
+        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._float_numeric_response_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        # self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/'
 
@@ -5260,7 +5278,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5290,7 +5308,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5319,7 +5337,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5349,7 +5367,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5416,7 +5434,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5446,7 +5464,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5476,7 +5494,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5506,7 +5524,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = data['data'][0]['text']['text'].split(':')[-1].split('=')[0].strip()
+        expression = self._grab_expression(data['data'][0]['text']['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5566,6 +5584,18 @@ class NumericAnswerTests(BaseAssessmentTestCase):
 
 
 class QTIEndpointTests(BaseAssessmentTestCase):
+    def _grab_expression(self, text):
+        soup = BeautifulSoup(text, 'xml')
+        numeric_choice_wrapper = None
+        interaction = soup.itemBody.textEntryInteraction
+        for parent in interaction.parents:
+            if parent.name == 'p':
+                numeric_choice_wrapper = parent
+                break
+
+        numeric_choice_line_str = _stringify(numeric_choice_wrapper)
+        return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -5640,8 +5670,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
-        self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
+        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        # self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
         self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
         self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
         self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
@@ -7685,9 +7717,18 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         # make sure some random integers are inserted that meet the requirements
-        item_body_str = str(item_body)
-        var1 = int(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
-        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+        numeric_choice_wrapper = None
+        interaction = item_body.textEntryInteraction
+        for parent in interaction.parents:
+            if parent.name == 'p':
+                numeric_choice_wrapper = parent
+                break
+
+        numeric_choice_line_str = _stringify(numeric_choice_wrapper)
+        expression = numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
+
+        var1 = int(expression[0:expression.index('+')].strip())
+        var2 = int(expression[expression.index('+') + 1::].strip())
 
         self.assertTrue(1 <= var1 <= 10)
         self.assertTrue(1 <= var2 <= 10)
@@ -7794,9 +7835,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         # make sure some random numbers are inserted that meet the requirements
-        item_body_str = str(item_body)
-        var1 = float(item_body_str[item_body_str.index(':') + 1:item_body_str.index('+')].strip())
-        var2 = int(item_body_str[item_body_str.index('+') + 1:item_body_str.index('=')].strip())
+        expression = self._grab_expression(str(item_body))
+        var1 = float(expression[0:expression.index('+')].strip())
+        var2 = int(expression[expression.index('+') + 1::].strip())
 
         self.assertTrue(1.0 <= var1 <= 10.0)
         self.assertTrue(1 <= var2 <= 10)

@@ -1690,6 +1690,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
 
+                    exact_answer_match = None
+                    default_answer_match = None
                     for answer in answers:
                         correct_submissions = 0
                         answer_choice_ids = list(answer.get_choice_ids())
@@ -1699,29 +1701,35 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 if autils.is_multiple_choice(local_data_map):
                                     if str(choice_id) in submissions:
                                         correct_submissions += 1
-                                elif autils.is_ordered_choice(local_data_map):
-                                    if str(choice_id) == submissions[index]:
-                                        correct_submissions += 1
+                        if not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS):
+                            # take the first wrong answer by default ... just in case
+                            # we don't have an exact match
+                            default_answer_match = answer
+                        elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
+                            default_answer_match = answer
 
-                        if ((correct_submissions == number_choices and
-                                len(submissions) == number_choices)
-                                or  # is a wrong answer
-                                (not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
-                            try:
-                                if any('qti' in answer_record
-                                       for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                                else:
-                                    feedback_strings.append(answer.feedback['text'])
-                            except (KeyError, AttributeError):
-                                pass
-                            try:
-                                confused_los += answer.confused_learning_objective_ids
-                            except (KeyError, AttributeError):
-                                pass
+                        # try to find an exact answer match, first
+                        if (correct_submissions == number_choices and
+                                len(submissions) == number_choices):
+                            exact_answer_match = answer
 
-                            # only take the first feedback / confused LO for now
-                            break
+                    # now that we have either an exact match or a default (wrong) answer
+                    # let's calculate the feedback and the confused LOs
+                    answer_to_use = default_answer_match
+                    if exact_answer_match is not None:
+                        answer_to_use = exact_answer_match
+                    try:
+                        if any('qti' in answer_record
+                               for answer_record in answer_to_use.object_map['recordTypeIds']):
+                            feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
+                        else:
+                            feedback_strings.append(answer_to_use.feedback['text'])
+                    except (KeyError, AttributeError):
+                        pass
+                    try:
+                        confused_los += answer_to_use.confused_learning_objective_ids
+                    except (KeyError, AttributeError):
+                        pass
                 elif (autils.is_file_submission(local_data_map) or
                         autils.is_short_answer(local_data_map)):
                     # right now assume one "correct" answer with generic feedback
