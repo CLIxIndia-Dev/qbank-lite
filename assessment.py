@@ -1679,6 +1679,10 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
                 feedback = taken.get_solution_for_question(
                     utilities.clean_id(question_id))['explanation']
+                if isinstance(feedback, basestring):
+                    feedback = {
+                        'text': feedback
+                    }
                 return_data.update({
                     'feedback': feedback
                 })
