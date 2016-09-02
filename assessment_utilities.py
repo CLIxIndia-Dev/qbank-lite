@@ -433,14 +433,16 @@ def is_multiple_choice(response):
                               'multi-choice-with-files-and-feedback',
                               'qti-choice-interaction',
                               'qti-choice-interaction-multi-select',
-                              'qti-choice-interaction-survey'])
+                              'qti-choice-interaction-survey',
+                              'qti-choice-interaction-multi-select-survey'])
     else:
         return any(mc in response['type'] for mc in ['multi-choice-ortho',
                                                      'multi-choice-edx',
                                                      'multi-choice-with-files-and-feedback',
                                                      'qti-choice-interaction',
                                                      'qti-choice-interaction-multi-select',
-                                                     'qti-choice-interaction-survey'])
+                                                     'qti-choice-interaction-survey',
+                                                     'qti-choice-interaction-multi-select-survey'])
 
 def is_mw_sandbox(response):
     if isinstance(response['type'], list):
@@ -480,9 +482,11 @@ def is_survey(response):
     if isinstance(response['type'], list):
         return any(mc in r
                    for r in response['type']
-                   for mc in ['qti-choice-interaction-survey'])
+                   for mc in ['qti-choice-interaction-survey',
+                              'qti-choice-interaction-multi-select-survey'])
     else:
-        return any(mc in response['type'] for mc in ['qti-choice-interaction-survey'])
+        return any(mc in response['type'] for mc in ['qti-choice-interaction-survey',
+                                                     'qti-choice-interaction-multi-select-survey'])
 
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
@@ -963,7 +967,7 @@ def validate_response(response, answers):
     correct = False
     # for longer submissions / multi-answer questions, need to make
     # sure that all of them match...
-    if is_file_submission(response) or is_short_answer(response):
+    if is_file_submission(response) or is_short_answer(response) or is_survey(response):
         return True  # always say True because the file was accepted
 
     submission = get_response_submissions(response)
