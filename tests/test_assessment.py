@@ -3528,27 +3528,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)['data']
         order_1 = data[0]['choices']
 
-        req2 = self.app.get(taken_url)
-        self.ok(req)
-        data2 = self.json(req2)['data']
-        order_2 = data2[0]['choices']
+        num_different = 0
 
-        try:
-            self.assertNotEqual(
-                order_1,
-                order_2
-            )
-        except AssertionError:
-            # try again...it's random, so there is a slight chance it matches.
-            # assume the probability of two matches in a row is slight.
-            req3 = self.app.get(taken_url)
+        for i in range(0, 15):
+            req2 = self.app.get(taken_url)
             self.ok(req)
-            data3 = self.json(req3)['data']
-            order_3 = data3[0]['choices']
-            self.assertNotEqual(
-                order_1,
-                order_3
-            )
+            data2 = self.json(req2)['data']
+            order_2 = data2[0]['choices']
+
+            if order_1 != order_2:
+                num_different += 1
+        self.assertTrue(num_different > 0)
 
     def test_edx_multi_choice_answer_index_too_high(self):
         items_endpoint = '{0}/items'.format(self.url)
@@ -4556,6 +4546,46 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for choice_id in choice_ids:
             payload = {
                 'choiceIds': [choice_id],
+                'type': 'answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU'
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['correct'])
+            self.assertIn('Thank you for your participation.', data['feedback'])
+            self.assertNotIn('Incorrect ...', data['feedback'])
+
+    def test_all_answer_combos_correct_for_multi_select_survey_question(self):
+        survey_item = self.create_mc_multi_select_survey_item()
+        taken, offered = self.create_taken_for_item(self._bank.ident, Id(survey_item['id']))
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+
+        question_id = data['data'][0]['id']
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+        # choice_ids = ['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
+        #               'id31392307-c87e-476b-8f92-b0f12ed66300',
+        #               'id8188b5cd-89b0-4140-b12a-aed5426bd81b']
+        test_payloads = [['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
+                          'id31392307-c87e-476b-8f92-b0f12ed66300'],
+                         ['id8188b5cd-89b0-4140-b12a-aed5426bd81b',
+                          'id5f1fc52a-a04e-4fa1-b855-51da24967a31'],
+                         ['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
+                         'id31392307-c87e-476b-8f92-b0f12ed66300',
+                         'id8188b5cd-89b0-4140-b12a-aed5426bd81b']]
+        for choice_payload in test_payloads:
+            payload = {
+                'choiceIds': choice_payload,
                 'type': 'answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU'
             }
             req = self.app.post(url,
