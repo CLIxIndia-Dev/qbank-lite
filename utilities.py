@@ -165,47 +165,47 @@ def allow_cors(func):
         return results
     return wrapper
 
-def activate_managers(session, username='student@tiss.edu'):
-    """
-    Create initial managers and store them in the session
-    """
-    managers = [('am', 'ASSESSMENT'),
-                ('logm', 'LOGGING'),
-                ('rm', 'REPOSITORY')]
-
-    for manager in managers:
-        nickname = manager[0]
-        service_name = manager[1]
-
-        condition = PROXY_SESSION.get_proxy_condition()
-        dummy_request = TestRequest(username=username, authenticated=True)
-        condition.set_http_request(dummy_request)
-
-        if 'HTTP_X_API_LOCALE' in web.ctx.env:
-            language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
-            if language_code in ['en', 'hi', 'te']:
-                if language_code == 'en':
-                    language_code = 'ENG'
-                    script_code = 'LATN'
-                elif language_code == 'hi':
-                    language_code = 'HIN'
-                    script_code = 'DEVA'
-                else:
-                    language_code = 'TEL'
-                    script_code = 'TELU'
-            else:
-                language_code = DEFAULT_LANGUAGE_TYPE.identifier
-                script_code = DEFAULT_SCRIPT_TYPE.identifier
-
-            locale = InitializableLocale(language_type_identifier=language_code,
-                                         script_type_identifier=script_code)
-
-            condition.set_locale(locale)
-
-        proxy = PROXY_SESSION.get_proxy(condition)
-        session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
-                                                                     proxy=proxy)
-    return session
+# def activate_managers(session, username='student@tiss.edu'):
+#     """
+#     Create initial managers and store them in the session
+#     """
+#     managers = [('am', 'ASSESSMENT'),
+#                 ('logm', 'LOGGING'),
+#                 ('rm', 'REPOSITORY')]
+#
+#     for manager in managers:
+#         nickname = manager[0]
+#         service_name = manager[1]
+#
+#         condition = PROXY_SESSION.get_proxy_condition()
+#         dummy_request = TestRequest(username=username, authenticated=True)
+#         condition.set_http_request(dummy_request)
+#
+#         if 'HTTP_X_API_LOCALE' in web.ctx.env:
+#             language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
+#             if language_code in ['en', 'hi', 'te']:
+#                 if language_code == 'en':
+#                     language_code = 'ENG'
+#                     script_code = 'LATN'
+#                 elif language_code == 'hi':
+#                     language_code = 'HIN'
+#                     script_code = 'DEVA'
+#                 else:
+#                     language_code = 'TEL'
+#                     script_code = 'TELU'
+#             else:
+#                 language_code = DEFAULT_LANGUAGE_TYPE.identifier
+#                 script_code = DEFAULT_SCRIPT_TYPE.identifier
+#
+#             locale = InitializableLocale(language_type_identifier=language_code,
+#                                          script_type_identifier=script_code)
+#
+#             condition.set_locale(locale)
+#
+#         proxy = PROXY_SESSION.get_proxy(condition)
+#         session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
+#                                                                      proxy=proxy)
+#     return session
 
 def clean_id(_id):
     """
@@ -283,7 +283,7 @@ def set_form_basics(form, data):
 
     if any(_name in data for _name in name_keys):
         try:
-            form.add_display_name(_grab_first_match(name_keys))
+            form.add_display_name(create_display_text(_grab_first_match(name_keys)))
         except AttributeError:
             # to support legacy data
             form.display_name = _grab_first_match(name_keys)
@@ -293,9 +293,13 @@ def set_form_basics(form, data):
         new_name = create_display_text(data['editName'][1])
         form.edit_display_name(old_name, new_name)
 
+    if 'removeName' in data:
+        old_name = create_display_text(data['removeName'])
+        form.clear_display_name(old_name)
+
     if any(_desc in data for _desc in description_keys):
         try:
-            form.add_description(_grab_first_match(description_keys))
+            form.add_description(create_display_text(_grab_first_match(description_keys)))
         except AttributeError:
             # to support legacy data
             form.description = _grab_first_match(description_keys)
@@ -304,6 +308,10 @@ def set_form_basics(form, data):
         old_description = create_display_text(data['editDescription'][0])
         new_description = create_display_text(data['editDescription'][1])
         form.edit_description(old_description, new_description)
+
+    if 'removeDescription' in data:
+        old_description = create_display_text(data['removeDescription'])
+        form.clear_description(old_description)
 
     if any(_genus in data for _genus in genus_keys):
         form.set_genus_type(Type(_grab_first_match(genus_keys)))

@@ -8767,55 +8767,530 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         return {'content-type': 'application/json',
                 'x-api-locale': 'te'}
 
+    def create_mc_feedback_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mc_feedback_test_file),
+                                           self._mc_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mc_multi_select_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mc_multi_select_test_file),
+                                           self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def setUp(self):
         super(MultiLanguageTests, self).setUp()
+
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
+
         self._english_text = 'english'
         self._hindi_text = u'हिंदी'
         self._telugu_text = u'తెలుగు'
+
+        self._english_language_type = '639-2%3AENG%40ISO'
+        self._english_script_type = '15924%3ALATN%40ISO'
+
+        self._hindi_language_type = '639-2%3AHIN%40ISO'
+        self._hindi_script_type = '15924%3ADEVA%40ISO'
+
+        self._telugu_language_type = '639-2%3ATEL%40ISO'
+        self._telugu_script_type = '15924%3ATELU%40ISO'
+
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
         super(MultiLanguageTests, self).tearDown()
 
-    def test_can_set_multiple_display_texts(self):
+        self._mw_sentence_test_file.close()
+        self._mc_feedback_test_file.close()
+        self._mc_multi_select_test_file.close()
+        self._short_answer_test_file.close()
+        self._generic_upload_test_file.close()
+        self._simple_numeric_response_test_file.close()
+        self._floating_point_numeric_input_test_file.close()
+        self._mw_fitb_2_test_file.close()
 
-        self.fail('finish writing the test')
+    def test_can_set_multiple_display_texts(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_set_multiple_descriptions(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_remove_a_display_name(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeName': data['displayNames'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_remove_a_description(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeDescription': data['descriptions'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())  # this header should be ignored because we're passing in the entire DisplayText
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_replace_a_display_name(self):
-        self.fail("finish writing the test")
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'editName': [data['displayNames'][0], self._telugu_text]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][0]['text'], self._telugu_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_replace_a_description(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
-    def test_setting_proxy_header_gets_item_in_specified_language(self):
-        self.fail('finish writing the test')
+        payload = {
+            'editDescription': [data['descriptions'][0], self._telugu_text]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())  # now this header matters, because we're passing in a string only
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][0]['text'], self._telugu_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
-    def test_english_default_if_header_language_code_not_available(self):
-        self.fail('finish writing the test')
+    def test_item_details_has_all_languages_for_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
 
-    def test_first_available_if_header_language_code_and_english_not_available(self):
-        self.fail('finish writing the test')
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+
+    def test_setting_proxy_header_gets_display_name_in_specified_language(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayName']['text'], self._hindi_text)
+        self.assertEqual(data['displayName']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayName']['scriptTypeId'], self._hindi_script_type)
+
+    def test_english_default_display_name_if_header_language_code_not_available(self):
+        item = self.create_mc_multi_select_item()
+        original_display_name = item['displayName']['text']
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayName']['text'], original_display_name)
+        self.assertEqual(data['displayName']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayName']['scriptTypeId'], self._english_script_type)
+
+    def test_first_available_display_name_if_header_language_code_and_english_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeName': data['displayNames'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_item_details_has_all_languages_for_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+
+    def test_setting_proxy_header_gets_description_in_specified_language(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['description']['text'], self._hindi_text)
+        self.assertEqual(data['description']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['description']['scriptTypeId'], self._hindi_script_type)
+
+    def test_english_default_description_if_header_language_code_not_available(self):
+        item = self.create_mc_multi_select_item()
+        original_description = item['description']['text']
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['description']['text'], original_description)
+        self.assertEqual(data['description']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['description']['scriptTypeId'], self._english_script_type)
+
+    def test_first_available_description_if_header_language_code_and_english_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeDescription': data['descriptions'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_set_multiple_question_texts(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_remove_a_question_text(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'question': {
+                'removeQuestionString': data['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_replace_a_question_text(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._telugu_text,
+                'oldQuestionString': data['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_query_items_by_display_name(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_feedback_item()
+        set_trace()
+        url = '{0}/items?displayName=ee_u1l01a04q03'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], item['id'])
+
+        url = '{0}/items?displayName=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
 
     def test_can_set_multiple_answer_feedbacks(self):
         self.fail('finish writing the test')
@@ -8827,6 +9302,8 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.fail('finish writing the test')
 
     def test_can_set_choice_texts(self):
+        # TODO: make sure that multiLanguageChoices and choices are both keys that appear
+        # in question dictionary
         self.fail("finish writing the test")
 
     def test_can_remove_choice_texts(self):
