@@ -10,7 +10,7 @@ from dlkit.mongo import types
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
     OperationFailed, Unsupported
-from dlkit_edx.primitives import IntitializableLocale
+from dlkit_edx.primitives import InitializableLocale
 from dlkit_edx.primordium import Id, Type, DisplayText
 from dlkit_edx.proxy_example import TestRequest
 
@@ -40,6 +40,15 @@ class BaseClass:
             return {}
 
 def create_display_text(text_string, language_code=None):
+    if isinstance(text_string, dict):
+        return DisplayText(display_text_map=text_string)
+
+    # check the web headers to see if it was included
+    header_language_code = web.ctx.env.get('HTTP_X_API_LOCALE', None)
+
+    if language_code is None and header_language_code is not None:
+        language_code = header_language_code
+
     if language_code is None:
         return DisplayText(display_text_map={
             'text': text_string,
@@ -56,10 +65,10 @@ def create_display_text(text_string, language_code=None):
             elif language_code == 'hi':
                 language_code = 'HIN'
                 script_code = 'DEVA'
-            elif language_code == 'te':
+            else:
                 language_code = 'TEL'
                 script_code = 'TELU'
-            locale = IntitializableLocale(language_type_identifier=language_code,
+            locale = InitializableLocale(language_type_identifier=language_code,
                                           script_type_identifier=script_code)
             language_type_id = locale.language_type
             script_type_id = locale.script_type
@@ -171,6 +180,28 @@ def activate_managers(session, username='student@tiss.edu'):
         condition = PROXY_SESSION.get_proxy_condition()
         dummy_request = TestRequest(username=username, authenticated=True)
         condition.set_http_request(dummy_request)
+
+        if 'HTTP_X_API_LOCALE' in web.ctx.env:
+            language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
+            if language_code in ['en', 'hi', 'te']:
+                if language_code == 'en':
+                    language_code = 'ENG'
+                    script_code = 'LATN'
+                elif language_code == 'hi':
+                    language_code = 'HIN'
+                    script_code = 'DEVA'
+                else:
+                    language_code = 'TEL'
+                    script_code = 'TELU'
+            else:
+                language_code = DEFAULT_LANGUAGE_TYPE.identifier
+                script_code = DEFAULT_SCRIPT_TYPE.identifier
+
+            locale = InitializableLocale(language_type_identifier=language_code,
+                                         script_type_identifier=script_code)
+
+            condition.set_locale(locale)
+
         proxy = PROXY_SESSION.get_proxy(condition)
         session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
                                                                      proxy=proxy)
@@ -251,10 +282,28 @@ def set_form_basics(form, data):
     genus_keys = ['genus', 'genusTypeId', 'genusType', 'genus_type_id', 'genus_type']
 
     if any(_name in data for _name in name_keys):
-        form.display_name = _grab_first_match(name_keys)
+        try:
+            form.add_display_name(_grab_first_match(name_keys))
+        except AttributeError:
+            # to support legacy data
+            form.display_name = _grab_first_match(name_keys)
+
+    if 'editName' in data:
+        old_name = create_display_text(data['editName'][0])
+        new_name = create_display_text(data['editName'][1])
+        form.edit_display_name(old_name, new_name)
 
     if any(_desc in data for _desc in description_keys):
-        form.description = _grab_first_match(description_keys)
+        try:
+            form.add_description(_grab_first_match(description_keys))
+        except AttributeError:
+            # to support legacy data
+            form.description = _grab_first_match(description_keys)
+
+    if 'editDescription' in data:
+        old_description = create_display_text(data['editDescription'][0])
+        new_description = create_display_text(data['editDescription'][1])
+        form.edit_description(old_description, new_description)
 
     if any(_genus in data for _genus in genus_keys):
         form.set_genus_type(Type(_grab_first_match(genus_keys)))

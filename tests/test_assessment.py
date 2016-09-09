@@ -78,6 +78,12 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 
+MULTI_LANGUAGE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
+
+
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
@@ -4252,7 +4258,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
         self.assertNotIn('Please try again!', data['feedback'])
 
-    def test_can_edit_choice_images_via_rest_mc(self):
+    def test_can_edit_multi_language_choice_images_via_rest_mc(self):
         """the image reloading script can strip out the height and width attributes"""
         mc_item = self.create_mc_multi_select_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -4270,18 +4276,20 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         }
 
         for choice in data['question']['choices']:
-            choice_xml = BeautifulSoup(choice['text'], 'xml')
+            for text in choice['texts']:
+                choice_xml = BeautifulSoup(text['text'], 'xml')
 
-            if choice_xml.find('img'):
-                self.assertIn('height=', choice['text'])
-                self.assertIn('width=', choice['text'])
-                for img in choice_xml.find_all('img'):
-                    del img['height']
-                    del img['width']
-                payload['question']['choices'].append({
-                    'id': choice['id'],
-                    'text': str(choice_xml.simpleChoice)
-                })
+                if choice_xml.find('img'):
+                    self.assertIn('height=', text['text'])
+                    self.assertIn('width=', text['text'])
+                    for img in choice_xml.find_all('img'):
+                        del img['height']
+                        del img['width']
+                    payload['question']['choices'].append({
+                        'id': choice['id'],
+                        'oldText': text['text'],
+                        'newText': str(choice_xml.simpleChoice)
+                    })
 
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -4293,11 +4301,12 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         for choice in data['question']['choices']:
-            choice_xml = BeautifulSoup(choice['text'], 'xml')
+            for text in choice['texts']:
+                choice_xml = BeautifulSoup(text['text'], 'xml')
 
-            if choice_xml.find('img'):
-                self.assertNotIn('height=', choice['text'])
-                self.assertNotIn('width=', choice['text'])
+                if choice_xml.find('img'):
+                    self.assertNotIn('height=', text['text'])
+                    self.assertNotIn('width=', text['text'])
 
     def test_can_edit_question_images_via_rest_fitb(self):
         """the image reloading script can strip out the height and width attributes"""
@@ -4312,18 +4321,20 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         payload = {
             'type': mw_item['genusTypeId'],
             'question': {
-                'questionString': ''
+                'oldQuestionString': '',
+                'newQuestionString': ''
             }
         }
 
-        question_xml = BeautifulSoup(data['question']['text']['text'], 'xml')
-        self.assertIn('height=', data['question']['text']['text'])
-        self.assertIn('width=', data['question']['text']['text'])
+        question_xml = BeautifulSoup(data['question']['texts'][0]['text'], 'xml')
+        self.assertIn('height=', data['question']['texts'][0]['text'])
+        self.assertIn('width=', data['question']['texts'][0]['text'])
 
         for img in question_xml.find_all('img'):
             del img['height']
             del img['width']
-        payload['question']['questionString'] = str(question_xml.itemBody)
+        payload['question']['newQuestionString'] = str(question_xml.itemBody)
+        payload['question']['oldQuestionString'] = data['question']['texts'][0]
 
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -4334,8 +4345,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        self.assertNotIn('height=', data['question']['text']['text'])
-        self.assertNotIn('width=', data['question']['text']['text'])
+        self.assertNotIn('height=', data['question']['texts'][0]['text'])
+        self.assertNotIn('width=', data['question']['texts'][0]['text'])
 
     def test_can_edit_feedback_images_via_rest_mc(self):
         """the image reloading script can strip out the height and width attributes"""
@@ -4353,16 +4364,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         }
 
         for answer in data['answers']:
-            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
-            self.assertIn('height=', answer['feedback']['text'])
-            self.assertIn('width=', answer['feedback']['text'])
+            answer_xml = BeautifulSoup(answer['feedbacks'][0]['text'], 'xml')
+            self.assertIn('height=', answer['feedbacks'][0]['text'])
+            self.assertIn('width=', answer['feedbacks'][0]['text'])
 
             for img in answer_xml.find_all('img'):
                 del img['height']
                 del img['width']
             payload['answers'].append({
                 'id': answer['id'],
-                'feedback': str(answer_xml.modalFeedback),
+                'newFeedback': str(answer_xml.modalFeedback),
+                'oldFeedback': answer['feedbacks'][0],
                 'type': mc_item['genusTypeId'].replace('assessment-item', 'answer')
             })
 
@@ -4376,8 +4388,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         for answer in data['answers']:
-            self.assertNotIn('height=', answer['feedback']['text'])
-            self.assertNotIn('width=', answer['feedback']['text'])
+            self.assertNotIn('height=', answer['feedbacks'][0]['text'])
+            self.assertNotIn('width=', answer['feedbacks'][0]['text'])
 
     def test_order_does_not_matter_mc_multi_select(self):
         mc_item = self.create_mc_multi_select_item()
@@ -5355,7 +5367,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5385,7 +5397,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5414,7 +5426,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5444,7 +5456,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5492,13 +5504,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         req = self.app.get(url)
         self.ok(req)
         data1 = self.json(req)
-        q1 = data1['text']['text']
+        q1 = data1['texts'][0]['text']
+        self.assertNotEqual(q1, '')
 
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
             data2 = self.json(req)
-            q2 = data2['text']['text']
+            q2 = data2['texts'][0]['text']
             self.assertEqual(q1, q2)
 
     def test_can_submit_right_answer_float_numeric(self):
@@ -5511,7 +5524,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5541,7 +5554,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5571,7 +5584,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5601,7 +5614,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5650,13 +5663,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         req = self.app.get(url)
         self.ok(req)
         data1 = self.json(req)
-        q1 = data1['text']['text']
+        q1 = data1['texts'][0]['text']
+        self.assertNotEqual(q1, '')
 
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
             data2 = self.json(req)
-            q2 = data2['text']['text']
+            q2 = data2['texts'][0]['text']
             self.assertEqual(q1, q2)
 
 
@@ -5697,19 +5711,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             bank_id = utilities.clean_id(bank_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_item_form_for_create([QTI_ITEM_RECORD])
+        form = bank.get_item_form_for_create([QTI_ITEM_RECORD,
+                                              MULTI_LANGUAGE_ITEM_RECORD])
         form.display_name = 'a test item!'
         form.description = 'for testing with'
         form.load_from_qti_item(self._test_xml)
         new_item = bank.create_item(form)
 
         form = bank.get_question_form_for_create(item_id=new_item.ident,
-                                                 question_record_types=[QTI_QUESTION_RECORD])
+                                                 question_record_types=[QTI_QUESTION_RECORD,
+                                                                        MULTI_LANGUAGE_QUESTION_RECORD])
         form.load_from_qti_item(self._test_xml)
         bank.create_question(form)
 
         form = bank.get_answer_form_for_create(item_id=new_item.ident,
-                                               answer_record_types=[QTI_ANSWER_RECORD])
+                                               answer_record_types=[QTI_ANSWER_RECORD,
+                                                                    MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
+                                                                    FILES_ANSWER_RECORD])
         form.load_from_qti_item(self._test_xml)
         bank.create_answer(form)
 
@@ -5733,7 +5751,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         super(QTIEndpointTests, self).setUp()
 
         self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'r')
-        self._test_xml = BeautifulSoup(self._test_file.read(), 'lxml-xml').prettify()
+        self._test_xml = BeautifulSoup(self._test_file.read(), 'xml').prettify()
 
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
@@ -5948,7 +5966,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
+        expected = BeautifulSoup(item['question']['texts'][0]['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -5995,7 +6013,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
         )
 
@@ -6068,7 +6086,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             '<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p></modalFeedback>'
         )
 
@@ -6126,7 +6144,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -6137,7 +6156,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1])
+        self.assertIn('feedbacks', item['answers'][1])
+        self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
         self.assertEqual(
             len(item['question']['choices']),
@@ -6145,15 +6165,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         for choice in item['question']['choices']:
-            self.assertIn('<p class="', choice['text'])
-            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
-                self.assertIn('"noun"', choice['text'])
-            elif any(p in choice['text'] for p in ['on']):
-                self.assertIn('"prep"', choice['text'])
-            elif 'left' in choice['text']:
-                self.assertIn('"verb"', choice['text'])
-            elif 'under' in choice['text']:
-                self.assertIn('"adverb"', choice['text'])
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n in text['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p in text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif 'left' in text['text']:
+                    self.assertIn('"verb"', text['text'])
+                elif 'under' in text['text']:
+                    self.assertIn('"adverb"', text['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6306,12 +6328,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('fileIds', item['answers'][0])
         self.assertEqual(len(item['answers'][0]['fileIds'].keys()), 1)
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         image_asset_label = 'medium849946232588888784replacement_image_png'
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="AssetContent:{0}" width="614"/></p></modalFeedback>""".format(image_asset_label)
         )
 
@@ -6326,12 +6349,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             )
             self.assertIn('fileIds', item['answers'][index])
             self.assertEqual(len(item['answers'][index]['fileIds'].keys()), 1)
-            self.assertIn('feedback', item['answers'][index])
+            self.assertIn('feedbacks', item['answers'][index])
+            self.assertTrue(len(item['answers'][index]['feedbacks']) == 1)
 
             image_asset_label = 'medium534315617922181373draggable_red_dot_png'
 
             self.assertEqual(
-                item['answers'][index]['feedback']['text'],
+                item['answers'][index]['feedbacks'][0]['text'],
                 """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="AssetContent:{0}" width="20"/></p></modalFeedback>""".format(image_asset_label)
             )
 
@@ -6722,7 +6746,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         for answer in item['answers']:
             answer_choice = answer['choiceIds'][0]
             self.assertIn(expected_matches[answer_choice],
-                          answer['feedback']['text'])
+                          answer['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6770,7 +6794,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -6781,7 +6806,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1])
+        self.assertIn('feedbacks', item['answers'][1])
+        self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
         self.assertEqual(
             len(item['question']['choices']),
@@ -6789,22 +6815,24 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         for choice in item['question']['choices']:
-            self.assertIn('<p class="', choice['text'])
-            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
-                self.assertIn('"noun"', choice['text'])
-            elif any(p in choice['text'] for p in ['on']):
-                self.assertIn('"prep"', choice['text'])
-            elif 'left' in choice['text']:
-                self.assertIn('"verb"', choice['text'])
-            elif 'under' in choice['text']:
-                self.assertIn('"adverb"', choice['text'])
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n in text['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p in text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif 'left' in text['text']:
+                    self.assertIn('"verb"', text['text'])
+                elif 'under' in text['text']:
+                    self.assertIn('"adverb"', text['text'])
 
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
         )
 
-        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['text']['text'])
+        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['texts'][0]['text'])
 
     def test_learning_objectives_are_parsed_and_saved(self):
         url = '{0}/items'.format(self.url)
@@ -6851,18 +6879,20 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         for choice in item['question']['choices']:
-            self.assertIn('<p class="', choice['text'])
-            if any(n == choice['text'] for n in ['the bags', 'the bus',
-                                                 'the bridge', "Raju's",
-                                                 'the seat', 'the airport',
-                                                 'the city', 'the bicycle']):
-                self.assertIn('"noun"', choice['text'])
-            elif any(p == choice['text'] for p in ['on']):
-                self.assertIn('"prep"', choice['text'])
-            elif any(v == choice['text'] for v in ['are', 'left', 'dropped']):
-                self.assertIn('"verb"', choice['text'])
-            elif any(av == choice['text'] for av in ['under', 'on top of']):
-                self.assertIn('"adverb"', choice['text'])
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n == text['text'] for n in ['the bags', 'the bus',
+                                                     'the bridge', "Raju's",
+                                                     'the seat', 'the airport',
+                                                     'the city', 'the bicycle']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p == text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif any(v == text['text'] for v in ['are', 'left', 'dropped']):
+                    self.assertIn('"verb"', text['text'])
+                elif any(av == text['text'] for av in ['under', 'on top of']):
+                    self.assertIn('"adverb"', text['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7168,7 +7198,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7260,14 +7290,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             ['[_1_1_1_1_1_1']
         )
 
-        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('No, please listen to the story again.', item['answers'][1]['feedback']['text'])
+        self.assertIn('No, please listen to the story again.', item['answers'][1]['feedbacks'][0]['text'])
 
 
         self.assertNotEqual(
@@ -7462,14 +7492,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
             ['[_1_1_1']
         )
-        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('Please listem to the story and try again.', item['answers'][1]['feedback']['text'])
+        self.assertIn('Please listem to the story and try again.', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7784,8 +7814,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7898,8 +7928,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7971,11 +8001,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertIn(u'మీ గ్రూప్ తో కలిసి', item['learningObjectiveIds'][0])
         self.assertIn(u'అదేపనినిత్రిభుజంతోచేయడానికిప్రయత్నించండి',
-                      item['answers'][0]['feedback']['text'])
+                      item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn(u'ఒక నక్షత్ర ఆకారం',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'అగ్గిపుల్లల(ఉపయోగించబడిన) ఒక సెట్మరియుసైకిల్',
-                      item['question']['text']['text'])
+                      item['question']['texts'][0]['text'])
 
     def test_can_upload_survey_question_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -8011,7 +8041,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 answer['genusTypeId'],
                 str(RIGHT_ANSWER_GENUS)
             )
-            self.assertIn('Thank you for your participation.', answer['feedback']['text'])
+            self.assertIn('Thank you for your participation.', answer['feedbacks'][0]['text'])
             self.assertIn(answer['choiceIds'][0], choice_ids)
 
         self.assertNotEqual(
@@ -8115,7 +8145,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 answer['genusTypeId'],
                 str(RIGHT_ANSWER_GENUS)
             )
-            self.assertIn('Thank you for your participation.', answer['feedback']['text'])
+            self.assertIn('Thank you for your participation.', answer['feedbacks'][0]['text'])
             self.assertIn(answer['choiceIds'][0], choice_ids)
 
         self.assertNotEqual(
@@ -8578,10 +8608,10 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        self.assertIn('<video', data['question']['text']['text'])
-        self.assertIn('</video>', data['question']['text']['text'])
-        self.assertIn('<aside class="transcript">', data['question']['text']['text'])
-        self.assertIn('</aside>', data['question']['text']['text'])
+        self.assertIn('<video', data['question']['texts'][0]['text'])
+        self.assertIn('</video>', data['question']['texts'][0]['text'])
+        self.assertIn('<aside class="transcript">', data['question']['texts'][0]['text'])
+        self.assertIn('</aside>', data['question']['texts'][0]['text'])
 
     def test_video_source_in_html_replaced_with_asset_content_reference(self):
         item = self.create_video_question()
@@ -8598,7 +8628,7 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         source = soup.find('source')
         self.assertEqual('AssetContent:video-js-test_mp4', source['src'])
         self.assertIn(
@@ -8625,7 +8655,7 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         track = soup.find('track', label="English")
         self.assertEqual('AssetContent:video-js-test-en_vtt', track['src'])
         self.assertIn(
@@ -8722,15 +8752,33 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
 
 
 class MultiLanguageTests(BaseAssessmentTestCase):
+    @staticmethod
+    def _english_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'en'}
+
+    @staticmethod
+    def _hindi_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'hi'}
+
+    @staticmethod
+    def _telugu_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'te'}
+
     def setUp(self):
         super(MultiLanguageTests, self).setUp()
-
+        self._english_text = 'english'
+        self._hindi_text = u'हिंदी'
+        self._telugu_text = u'తెలుగు'
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
     def tearDown(self):
         super(MultiLanguageTests, self).tearDown()
 
     def test_can_set_multiple_display_texts(self):
+
         self.fail('finish writing the test')
 
     def test_can_set_multiple_descriptions(self):

@@ -538,6 +538,11 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
             record._init_metadata()
             record._init_map()
         answer_form.set_feedback(str(answer['feedback']))
+    elif 'oldFeedback' in answer and 'newFeedback' in answer:
+        old_feedback = utilities.create_display_text(answer['oldFeedback'])
+        new_feedback = utilities.create_display_text(answer['newFeedback'])
+        answer_form.edit_feedback(old_feedback, new_feedback)
+
     if 'confusedLearningObjectiveIds' in answer:
         if not isinstance(answer['confusedLearningObjectiveIds'], list):
             los = [answer['confusedLearningObjectiveIds']]
@@ -873,20 +878,46 @@ def update_question_form(question, form, create=False):
                 form.set_text(str(question['questionString']))
     elif 'qti' in question['type']:
         if 'questionString' in question:
-            form.set_text(str(question['questionString']))
+            try:
+                form.add_text(utilities.create_display_text(question['questionString']))
+            except AttributeError:
+                # to support legacy data
+                form.set_text(str(question['questionString']))
+        elif 'oldQuestionString' in question and 'newQuestionString' in question:
+            old_text = utilities.create_display_text(question['oldQuestionString'])
+            new_text = utilities.create_display_text(question['newQuestionString'])
+            form.edit_text(old_text, new_text)
         if 'choices' in question:
             for choice in question['choices']:
-                if 'id' in choice:
-                    form.edit_choice(choice['id'], choice['text'])
+                if 'id' in choice and 'oldText' in choice and 'newText' in choice:
+                    old_choice = utilities.create_display_text(choice['oldText'])
+                    new_choice = utilities.create_display_text(choice['newText'])
+                    form.edit_choice(old_choice, new_choice, choice['id'])
+                elif 'id' in choice:
+                    # support legacy formats
+                    form.edit_choice(choice['id'], str(choice['text']))
                 else:
-                    form.add_choice(choice['text'])
+                    try:
+                        form.add_choice(utilities.create_display_text(choice['text']))
+                    except InvalidArgument:
+                        form.add_choice(str(choice['text']))
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
+                if region not in form.my_osid_object_form._my_map['choices']:
+                    form.add_inline_region(region)
                 for choice in region_data['choices']:
-                    if 'id' in choice:
-                        form.edit_choice(choice['id'], choice['text'], region)
+                    if 'id' in choice and 'oldText' in choice and 'newText' in choice:
+                        old_choice = utilities.create_display_text(choice['oldText'])
+                        new_choice = utilities.create_display_text(choice['newText'])
+                        form.edit_choice(old_choice, new_choice, choice['id'], region)
+                    elif 'id' in choice:
+                        # support legacy formats
+                        form.edit_choice(choice['id'], str(choice['text']))
                     else:
-                        form.add_choice(choice['text'], region)
+                        try:
+                            form.add_choice(utilities.create_display_text(choice['text']), region)
+                        except InvalidArgument:
+                            form.add_choice(str(choice['text']), region)
     else:
         raise Unsupported()
 
@@ -938,7 +969,9 @@ def update_response_form(response, form):
                 try:
                     form.add_file(data_package,
                                   label,
-                                  asset_type=asset_genus_type)
+                                  asset_type=asset_genus_type,
+                                  asset_content_type=ac_genus_type,
+                                  asset_name=label)
                 except AttributeError:
                     form.set_file(asset_data=data_package,
                                   asset_name=label,
