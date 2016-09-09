@@ -5321,7 +5321,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(
-            data['feedback'],
+            data['feedback']['text'],
             'No feedback available.'
         )
 
@@ -5341,7 +5341,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertFalse(data['correct'])
         self.assertEqual(
-            data['feedback'],
+            data['feedback']['text'],
             'No feedback available.'
         )
 
@@ -8340,7 +8340,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_can_send_file_with_no_extension_for_audio_rt(self):
         url = '{0}/items'.format(self.url)
@@ -8359,7 +8359,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
         # TODO: no way to check if that file now has an extension, on disk?
 
     def test_can_send_generic_file_response_for_generic_file_upload(self):
@@ -8412,7 +8412,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_can_do_empty_response_for_mw_sandbox(self):
         sandbox = self.create_mw_sandbox_item()
@@ -8427,7 +8427,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
@@ -8500,7 +8500,7 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
 
 class VideoTagReplacementTests(BaseAssessmentTestCase):
@@ -8767,4 +8767,49 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.fail('finish writing the test')
 
     def test_can_query_items_by_display_name(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_multiple_answer_feedbacks(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_an_answer_feedback(self):
+        self.fail('finish writing the test')
+
+    def test_can_replace_an_answer_feedback(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_choice_texts(self):
+        self.fail("finish writing the test")
+
+    def test_can_remove_choice_texts(self):
+        self.fail('finish writing the test')
+
+    def test_can_replace_choice_text(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_inline_choice_texts(self):
+        self.fail('finish writing the tests')
+
+    def test_can_remove_inline_choice_texts(self):
+        self.fail('finish writing the test')
+
+    def test_can_replace_inline_choice_text(self):
+        self.fail('finish writing the test')
+
+    def test_answer_feedback_from_taken_follows_proxy_locale(self):
+        self.fail('finish writing the test')
+
+    def test_answer_feedback_english_default_if_header_language_code_not_available(self):
+        self.fail('finish writing the test')
+
+    def test_answer_feedback_first_available_if_header_language_code_and_english_not_available(self):
+        self.fail('finish writing the test')
+
+    def test_setting_proxy_header_gets_item_in_specified_language_in_taken(self):
+        self.fail('finish writing the test')
+
+    def test_english_default_if_header_language_code_not_available_in_taken(self):
+        self.fail('finish writing the test')
+
+    def test_first_available_if_header_language_code_and_english_not_available_in_taken(self):
         self.fail('finish writing the test')

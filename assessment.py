@@ -90,20 +90,18 @@ class AssessmentBanksList(utilities.BaseClass):
         """
         List all available assessment banks
         """
-        def _unescaped(string):
-            return ':' in string and '@' in string
         try:
             am = autils.get_assessment_manager()
             inputs = web.input()
             if 'displayName' in inputs or 'genusTypeId' in inputs:
                 querier = am.get_bank_query()
                 if 'displayName' in inputs:
-                    if _unescaped(inputs['displayName']):
+                    if autils._unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(inputs['displayName'], match=True)
                 if 'genusTypeId' in inputs:
-                    if (_unescaped(inputs['genusTypeId'])):
+                    if (autils._unescaped(inputs['genusTypeId'])):
                         querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(inputs['genusTypeId'], match=True)
@@ -320,7 +318,23 @@ class ItemsList(utilities.BaseClass):
                 raise PermissionDenied
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
-            items = assessment_bank.get_items()
+
+            inputs = web.input()
+            if 'displayName' in inputs or 'genusTypeId' in inputs:
+                querier = assessment_bank.get_item_query()
+                if 'displayName' in inputs:
+                    if autils._unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'genusTypeId' in inputs:
+                    if (autils._unescaped(inputs['genusTypeId'])):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                items = assessment_bank.get_items_by_query(querier)
+            else:
+                items = assessment_bank.get_items()
 
             if 'qti' in web.input():
                 data = []
@@ -433,7 +447,15 @@ class ItemsList(utilities.BaseClass):
                                               PROVENANCE_ITEM_RECORD,
                                               WRONG_ANSWER_ITEM]
                     form = bank.get_item_form_for_create(items_records_list)
-                    form.display_name = soup.assessmentItem['title']
+
+                    # in order to support multi-languages, let's keep the title
+                    # but minus the last language code
+                    # i.e. ee_u1l01a01q01_en
+                    # keep ee_u1l01a01q01 as the item name
+                    item_name = soup.assessmentItem['title']
+                    if any(lang_code in item_name for lang_code in ['en', 'hi', 'te']):
+                        item_name = '_'.join(item_name.split('_')[0:-1])
+                    form.display_name = item_name
                     form.description = description or 'QTI AssessmentItem'
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
@@ -1666,8 +1688,9 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             correct = autils.validate_response(local_data_map, answers)
 
-            feedback = 'No feedback available.'
-
+            feedback = {
+                'text': 'No feedback available.'
+            }
             return_data = {
                 'correct': correct,
                 'feedback': feedback

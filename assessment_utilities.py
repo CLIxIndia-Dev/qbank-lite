@@ -40,6 +40,9 @@ WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
 
+def _unescaped(string):
+    return ':' in string and '@' in string
+
 def add_file_ids_to_form(form, file_ids):
     """
     Add existing asset_ids to a form
