@@ -41,6 +41,9 @@ WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
+# Multilanguage records
+MULTI_LANGUAGE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-language'])
+
 
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
@@ -441,11 +444,13 @@ class ItemsList(utilities.BaseClass):
                     # record, because need that to go through the magical items
                     if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
                         items_records_list = [QTI_ITEM,
-                                              PROVENANCE_ITEM_RECORD]
+                                              PROVENANCE_ITEM_RECORD,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
                     else:
                         items_records_list = [QTI_ITEM,
                                               PROVENANCE_ITEM_RECORD,
-                                              WRONG_ANSWER_ITEM]
+                                              WRONG_ANSWER_ITEM,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
                     form = bank.get_item_form_for_create(items_records_list)
 
                     # in order to support multi-languages, let's keep the title
@@ -453,10 +458,16 @@ class ItemsList(utilities.BaseClass):
                     # i.e. ee_u1l01a01q01_en
                     # keep ee_u1l01a01q01 as the item name
                     item_name = soup.assessmentItem['title']
+                    language_code = None
                     if any(lang_code in item_name for lang_code in ['en', 'hi', 'te']):
+                        language_code = item_name.split('_')[-1]
                         item_name = '_'.join(item_name.split('_')[0:-1])
-                    form.display_name = item_name
-                    form.description = description or 'QTI AssessmentItem'
+
+                    form.add_display_name(utilities.create_display_text(item_name,
+                                                                        language_code))
+
+                    form.add_description(utilities.create_display_text(description or 'QTI AssessmentItem',
+                                                                       language_code))
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:

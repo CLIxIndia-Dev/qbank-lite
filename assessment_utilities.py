@@ -932,12 +932,19 @@ def update_response_form(response, form):
                                      namespace='asset-content-genus-type',
                                      authority='ODL.MIT.EDU')
                 label = file_label.replace('.', '_')
+                asset_genus_type = Type(identifier='student-submission',
+                                        namespace='asset-genus-type',
+                                        authority='ODL.MIT.EDU')
                 try:
-                    form.add_file(data_package, label)
+                    form.add_file(data_package,
+                                  label,
+                                  asset_type=asset_genus_type)
                 except AttributeError:
                     form.set_file(asset_data=data_package,
                                   asset_name=label,
+                                  asset_type=asset_genus_type,
                                   asset_content_type=ac_genus_type)
+                finally:
                     break
         except KeyError:
             pass  # perhaps no file passed in?

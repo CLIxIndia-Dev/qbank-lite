@@ -5,14 +5,22 @@ import web
 
 from urllib import quote
 
+from dlkit.mongo import types
+
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
-    OperationFailed
-from dlkit_edx.primordium import Id, Type
+    OperationFailed, Unsupported
+from dlkit_edx.primitives import IntitializableLocale
+from dlkit_edx.primordium import Id, Type, DisplayText
 from dlkit_edx.proxy_example import TestRequest
+
+DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
+DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
+DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
 
 
 CORS_HEADERS = "Content-Type,Authorization,X-Api-Proxy,X-Api-Key,request-line,X-Api-Locale"
+
 
 class BaseClass:
     def OPTIONS(self, *args, **kwargs):
@@ -30,6 +38,41 @@ class BaseClass:
             return json.loads(web.data())
         except (ValueError, TypeError):
             return {}
+
+def create_display_text(text_string, language_code=None):
+    if language_code is None:
+        return DisplayText(display_text_map={
+            'text': text_string,
+            'languageTypeId': str(DEFAULT_LANGUAGE_TYPE),
+            'formatTypeId': str(DEFAULT_FORMAT_TYPE),
+            'scriptTypeId': str(DEFAULT_SCRIPT_TYPE)
+        })
+    else:
+        language_code = language_code.lower()
+        if language_code in ['en', 'hi', 'te']:
+            if language_code == 'en':
+                language_code = 'ENG'
+                script_code = 'LATN'
+            elif language_code == 'hi':
+                language_code = 'HIN'
+                script_code = 'DEVA'
+            elif language_code == 'te':
+                language_code = 'TEL'
+                script_code = 'TELU'
+            locale = IntitializableLocale(language_type_identifier=language_code,
+                                          script_type_identifier=script_code)
+            language_type_id = locale.language_type
+            script_type_id = locale.script_type
+        else:
+            language_type_id = DEFAULT_LANGUAGE_TYPE
+            script_type_id = DEFAULT_SCRIPT_TYPE
+
+        return DisplayText(display_text_map={
+            'text': text_string,
+            'languageTypeId': str(language_type_id),
+            'formatTypeId': str(DEFAULT_FORMAT_TYPE),
+            'scriptTypeId': str(script_type_id)
+        })
 
 def format_response_mit_type(func):
     """wrap original response in a {"format": "MIT-CLIx-OEA", "data": "<foo>"} object
