@@ -6,7 +6,7 @@ block_cipher = None
 a = Analysis(['main.py'],
              pathex=['/Users/cjshaw/Documents/Projects/CLIx/qbank-lite'],
              binaries=None,
-             datas=[],
+             datas=[('unplatform/*', 'unplatform')],
              hiddenimports=['_cffi_backend',
                             'dlkit',
                             'dlkit.filesystem',
