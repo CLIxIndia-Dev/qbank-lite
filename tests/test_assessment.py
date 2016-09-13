@@ -5372,8 +5372,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Correct!', data['feedback'])
-        self.assertNotIn('Incorrect ...', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
+        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
@@ -5401,8 +5401,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_empty_string_evaluates_as_wrong_answer_simple_numeric(self):
         nr_item = self.create_simple_numeric_response_item()
@@ -5431,8 +5431,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
 
     def test_cannot_submit_non_integer_to_simple_numeric(self):
@@ -5460,8 +5460,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_getting_same_question_twice_returns_same_parameter_values_simple_numeric(self):
         nr_item = self.create_simple_numeric_response_item()
@@ -5528,8 +5528,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Correct!', data['feedback'])
-        self.assertNotIn('Incorrect ...', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
+        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -5558,8 +5558,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_empty_string_evaluates_as_wrong_answer_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -5588,8 +5588,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_cannot_submit_non_float_to_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -5618,8 +5618,8 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertNotIn('Correct!', data['feedback'])
-        self.assertIn('Incorrect ...', data['feedback'])
+        # self.assertNotIn('Correct!', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_getting_same_question_twice_returns_same_parameter_values_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -5996,7 +5996,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['feedback']['text'],
-            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>Answer submitted</p>\n</modalFeedback>'
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
         )
 
         self.assertNotEqual(
@@ -7153,7 +7153,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertIn('<p>Answer submitted</p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7769,8 +7769,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('Correct!', item['answers'][0]['feedback']['text'])
-        self.assertIn('Incorrect ...', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7883,8 +7883,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('Correct!', item['answers'][0]['feedback']['text'])
-        self.assertIn('Incorrect ...', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -8325,7 +8325,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_can_send_file_with_no_extension_for_audio_rt(self):
         url = '{0}/items'.format(self.url)
@@ -8344,7 +8344,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
         # TODO: no way to check if that file now has an extension, on disk?
 
     def test_can_send_generic_file_response_for_generic_file_upload(self):
@@ -8397,7 +8397,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
     def test_can_do_empty_response_for_mw_sandbox(self):
         sandbox = self.create_mw_sandbox_item()
@@ -8412,7 +8412,7 @@ class FileUploadTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
@@ -8483,9 +8483,10 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
         self.ok(req)
+
         data = self.json(req)
         self.assertTrue(data['correct'])
-        self.assertIn('Answer submitted', data['feedback'])
+        self.assertIn('<p/>', data['feedback'])
 
 
 class VideoTagReplacementTests(BaseAssessmentTestCase):
