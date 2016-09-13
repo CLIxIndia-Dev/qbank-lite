@@ -9278,7 +9278,6 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
     def test_can_query_items_by_display_name(self):
         item = self.create_mc_feedback_item()
-        set_trace()
         url = '{0}/items?displayName=ee_u1l01a04q03'.format(self.url)
         req = self.app.get(url)
         self.ok(req)
@@ -9293,6 +9292,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(len(data), 0)
 
     def test_can_set_multiple_answer_feedbacks(self):
+        # TODO: make sure that feedbacks and feedback both appear in the dictionary
         self.fail('finish writing the test')
 
     def test_can_remove_an_answer_feedback(self):
