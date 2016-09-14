@@ -4413,7 +4413,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             payload['answers'].append({
                 'id': answer['id'],
                 'feedback': str(answer_xml.modalFeedback),
-                'type': mc_item['genusTypeId'].replace('assessment-item', 'answer')
+                'type': mc_item['genusTypeId'].replace('item-genus-type', 'answer')
             })
 
         req = self.app.put(url,
