@@ -12,7 +12,7 @@ from waitress import serve
 
 # http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
 if getattr(sys, 'frozen', False):
-    ABS_PATH = os.path.dirname(sys.argv[0])
+    ABS_PATH = os.path.dirname(sys.executable)
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
@@ -41,7 +41,7 @@ class index:
 
 class version:
     def GET(self):
-        return '0.76'
+        return '0.80'
 
 class video_test:
     def GET(self):

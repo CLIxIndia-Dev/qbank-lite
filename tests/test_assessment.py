@@ -3347,6 +3347,16 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         taken = bank.create_assessment_taken(form)
         return taken, new_offered
 
+    def create_unicode_feedback_item(self):
+        url = '{0}/items'.format(self.url)
+        self._unicode_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unicode_feedback_test_file),
+                                           self._unicode_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def create_unshuffled_fitb_item(self):
         url = '{0}/items'.format(self.url)
         self._unshuffled_inline_choice_question_test_file.seek(0)
@@ -3402,6 +3412,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
         self._unshuffled_order_interaction_question_test_file = open('{0}/tests/files/order_interaction_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
         self._unshuffled_inline_choice_question_test_file = open('{0}/tests/files/fitb_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
+        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -3419,6 +3430,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._unshuffled_mc_question_test_file.close()
         self._unshuffled_order_interaction_question_test_file.close()
         self._unshuffled_inline_choice_question_test_file.close()
+        self._unicode_feedback_test_file.close()
 
     def verify_answers(self, _data, _a_strs, _a_types):
         """
@@ -4390,6 +4402,43 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for answer in data['answers']:
             self.assertNotIn('height=', answer['feedbacks'][0]['text'])
             self.assertNotIn('width=', answer['feedbacks'][0]['text'])
+
+    def test_can_edit_unicode_feedback_via_rest_mc(self):
+        """the audio feedback script can send back unicode values"""
+        mc_item = self.create_unicode_feedback_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(mc_item['id']))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        payload = {
+            'type': mc_item['genusTypeId'],
+            'answers': []
+        }
+
+        for answer in data['answers']:
+            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
+            audio_tag = answer_xml.new_tag('audio')
+            answer_xml.modalFeedback.append(audio_tag)
+            payload['answers'].append({
+                'id': answer['id'],
+                'feedback': str(answer_xml.modalFeedback),
+                'type': mc_item['genusTypeId'].replace('item-genus-type', 'answer')
+            })
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        for answer in data['answers']:
+            self.assertIn('<audio/>', answer['feedback']['text'])
 
     def test_order_does_not_matter_mc_multi_select(self):
         mc_item = self.create_mc_multi_select_item()
@@ -5384,7 +5433,11 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+<<<<<<< HEAD
         # self.assertIn('Correct!', data['feedback'])
+=======
+        self.assertIn('<p/>', data['feedback'])
+>>>>>>> master
         # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_simple_numeric(self):
@@ -5541,7 +5594,11 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+<<<<<<< HEAD
         # self.assertIn('Correct!', data['feedback'])
+=======
+        self.assertIn('<p/>', data['feedback'])
+>>>>>>> master
         # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_float_numeric(self):
@@ -5777,6 +5834,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._telugu_test_file = open('{0}/tests/files/telugu_question_test_file.zip'.format(ABS_PATH), 'r')
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
         self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -5809,6 +5867,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._telugu_test_file.close()
         self._survey_question_test_file.close()
         self._multi_select_survey_question_test_file.close()
+        self._unicode_feedback_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -6013,7 +6072,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
+<<<<<<< HEAD
             item['answers'][0]['feedbacks'][0]['text'],
+=======
+            item['answers'][0]['feedback']['text'],
+>>>>>>> master
             '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
         )
 
@@ -7198,7 +7261,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
+<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+=======
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+>>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -7814,8 +7881,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
+<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
+=======
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+>>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -7928,8 +8000,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
+<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
+=======
+        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+>>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -8006,6 +8083,41 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                       item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'అగ్గిపుల్లల(ఉపయోగించబడిన) ఒక సెట్మరియుసైకిల్',
                       item['question']['texts'][0]['text'])
+
+    def test_can_upload_unicode_in_feedback_in_qti_file(self):
+        url = '{0}/items'.format(self.url)
+        self._unicode_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._unicode_feedback_test_file),
+                                           self._unicode_feedback_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn(u'Very good! That is correct!',
+                      item['answers'][0]['feedback']['text'])
+        self.assertIn(u'Recall the audio. Were Kanasu, Zo and Sahir playing?',
+                      item['answers'][1]['feedback']['text'])
+        self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
+                      item['answers'][1]['feedback']['text'])
+        self.assertIn(u'Doesn\'t Kanasu say she is bored of walking',
+                      item['answers'][2]['feedback']['text'])
+        self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
+                      item['answers'][2]['feedback']['text'])
+        self.assertIn(u'Are Kanasu, Zo and Sahir planning to leave?',
+                      item['answers'][3]['feedback']['text'])
+        self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
+                      item['answers'][3]['feedback']['text'])
 
     def test_can_upload_survey_question_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -8528,6 +8640,7 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
         self.ok(req)
+
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])

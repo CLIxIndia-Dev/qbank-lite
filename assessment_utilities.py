@@ -3,6 +3,8 @@ import os
 import re
 import web
 
+from bs4 import BeautifulSoup
+
 from dlkit.mongo import types
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
@@ -566,7 +568,12 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
             record = answer_form.get_answer_form_record(ANSWER_WITH_FEEDBACK)
             record._init_metadata()
             record._init_map()
-        answer_form.set_feedback(str(answer['feedback']))
+
+        if 'modalFeedback' in answer['feedback']:
+            feedback_xml = BeautifulSoup(answer['feedback'], 'xml')
+            answer_form.set_feedback(str(feedback_xml.modalFeedback))
+        else:
+            answer_form.set_feedback(u'{0}'.format(answer['feedback']).encode('utf8'))
     elif 'oldFeedback' in answer and 'newFeedback' in answer:
         old_feedback = utilities.create_display_text(answer['oldFeedback'])
         new_feedback = utilities.create_display_text(answer['newFeedback'])
