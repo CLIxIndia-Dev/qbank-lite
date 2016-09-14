@@ -325,13 +325,19 @@ class ItemsList(utilities.BaseClass):
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
 
             inputs = web.input()
-            if 'displayName' in inputs or 'genusTypeId' in inputs:
+            if any(term in inputs for term in ['displayName', 'displayNames',
+                                               'genusTypeId']):
                 querier = assessment_bank.get_item_query()
                 if 'displayName' in inputs:
                     if autils._unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(inputs['displayName'], match=True)
+                if 'displayNames' in inputs:
+                    if autils._unescaped(inputs['displayNames']):
+                        querier.match_display_names(quote(inputs['displayNames'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_names(inputs['displayNames'], match=True)
                 if 'genusTypeId' in inputs:
                     if (autils._unescaped(inputs['genusTypeId'])):
                         querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
@@ -1955,7 +1961,7 @@ class ItemVideoTagReplacement(utilities.BaseClass):
 
                 # third, replace the source attributes in the markup with
                 # the AssetContent placeholders
-                soup = BeautifulSoup(updated_text, 'lxml-xml')
+                soup = BeautifulSoup(updated_text, 'xml')
                 new_media_regex = re.compile('^(?!AssetContent).*$')
                 for new_media in soup.find_all(src=new_media_regex):
                     original_file_name = new_media['src']

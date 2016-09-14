@@ -4287,7 +4287,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             }
         }
 
-        for choice in data['question']['choices']:
+        for choice in data['question']['multiLanguageChoices']:
             for text in choice['texts']:
                 choice_xml = BeautifulSoup(text['text'], 'xml')
 
@@ -4312,13 +4312,19 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        for choice in data['question']['choices']:
+        for choice in data['question']['multiLanguageChoices']:
             for text in choice['texts']:
                 choice_xml = BeautifulSoup(text['text'], 'xml')
 
                 if choice_xml.find('img'):
                     self.assertNotIn('height=', text['text'])
                     self.assertNotIn('width=', text['text'])
+        for choice in data['question']['choices']:
+            choice_xml = BeautifulSoup(choice['text'], 'xml')
+
+            if choice_xml.find('img'):
+                self.assertNotIn('height=', choice['text'])
+                self.assertNotIn('width=', choice['text'])
 
     def test_can_edit_question_images_via_rest_fitb(self):
         """the image reloading script can strip out the height and width attributes"""
@@ -4419,12 +4425,13 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         }
 
         for answer in data['answers']:
-            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
+            answer_xml = BeautifulSoup(answer['feedbacks'][0]['text'], 'xml')
             audio_tag = answer_xml.new_tag('audio')
             answer_xml.modalFeedback.append(audio_tag)
             payload['answers'].append({
                 'id': answer['id'],
-                'feedback': str(answer_xml.modalFeedback),
+                'newFeedback': str(answer_xml.modalFeedback),
+                'oldFeedback': answer['feedbacks'][0],
                 'type': mc_item['genusTypeId'].replace('item-genus-type', 'answer')
             })
 
@@ -4438,7 +4445,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         for answer in data['answers']:
-            self.assertIn('<audio/>', answer['feedback']['text'])
+            self.assertIn('<audio/>', answer['feedbacks'][0]['text'])
 
     def test_order_does_not_matter_mc_multi_select(self):
         mc_item = self.create_mc_multi_select_item()
@@ -5433,12 +5440,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-<<<<<<< HEAD
-        # self.assertIn('Correct!', data['feedback'])
-=======
         self.assertIn('<p/>', data['feedback'])
->>>>>>> master
-        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
@@ -5594,12 +5596,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
-<<<<<<< HEAD
-        # self.assertIn('Correct!', data['feedback'])
-=======
         self.assertIn('<p/>', data['feedback'])
->>>>>>> master
-        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -6072,11 +6069,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-<<<<<<< HEAD
             item['answers'][0]['feedbacks'][0]['text'],
-=======
-            item['answers'][0]['feedback']['text'],
->>>>>>> master
             '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
         )
 
@@ -6227,7 +6220,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             7
         )
 
-        for choice in item['question']['choices']:
+        for choice in item['question']['multiLanguageChoices']:
             self.assertTrue(len(choice['texts']) == 1)
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
@@ -6239,6 +6232,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                     self.assertIn('"verb"', text['text'])
                 elif 'under' in text['text']:
                     self.assertIn('"adverb"', text['text'])
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p in choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif 'left' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6877,7 +6880,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             7
         )
 
-        for choice in item['question']['choices']:
+        for choice in item['question']['multiLanguageChoices']:
             self.assertTrue(len(choice['texts']) == 1)
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
@@ -6889,6 +6892,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                     self.assertIn('"verb"', text['text'])
                 elif 'under' in text['text']:
                     self.assertIn('"adverb"', text['text'])
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p in choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif 'left' in choice['text']:
+                self.assertIn('"verb"', choice['text'])
+            elif 'under' in choice['text']:
+                self.assertIn('"adverb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -6941,7 +6954,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             13
         )
 
-        for choice in item['question']['choices']:
+        for choice in item['question']['multiLanguageChoices']:
             self.assertTrue(len(choice['texts']) == 1)
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
@@ -6956,6 +6969,19 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                     self.assertIn('"verb"', text['text'])
                 elif any(av == text['text'] for av in ['under', 'on top of']):
                     self.assertIn('"adverb"', text['text'])
+        for choice in item['question']['choices']:
+            self.assertIn('<p class="', choice['text'])
+            if any(n == choice['text'] for n in ['the bags', 'the bus',
+                                                 'the bridge', "Raju's",
+                                                 'the seat', 'the airport',
+                                                 'the city', 'the bicycle']):
+                self.assertIn('"noun"', choice['text'])
+            elif any(p == choice['text'] for p in ['on']):
+                self.assertIn('"prep"', choice['text'])
+            elif any(v == choice['text'] for v in ['are', 'left', 'dropped']):
+                self.assertIn('"verb"', choice['text'])
+            elif any(av == choice['text'] for av in ['under', 'on top of']):
+                self.assertIn('"adverb"', choice['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7261,11 +7287,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
-<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
-=======
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
->>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -7881,13 +7903,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
-=======
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
->>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -8000,13 +8017,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-<<<<<<< HEAD
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
-=======
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
->>>>>>> master
 
         self.assertNotEqual(
             item['id'],
@@ -8105,19 +8117,19 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertIn(u'Very good! That is correct!',
-                      item['answers'][0]['feedback']['text'])
+                      item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn(u'Recall the audio. Were Kanasu, Zo and Sahir playing?',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'Doesn\'t Kanasu say she is bored of walking',
-                      item['answers'][2]['feedback']['text'])
+                      item['answers'][2]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][2]['feedback']['text'])
+                      item['answers'][2]['feedbacks'][0]['text'])
         self.assertIn(u'Are Kanasu, Zo and Sahir planning to leave?',
-                      item['answers'][3]['feedback']['text'])
+                      item['answers'][3]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][3]['feedback']['text'])
+                      item['answers'][3]['feedbacks'][0]['text'])
 
     def test_can_upload_survey_question_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -9391,14 +9403,14 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
     def test_can_query_items_by_display_name(self):
         item = self.create_mc_feedback_item()
-        url = '{0}/items?displayName=ee_u1l01a04q03'.format(self.url)
+        url = '{0}/items?displayNames=ee_u1l01a04q03'.format(self.url)
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['id'], item['id'])
 
-        url = '{0}/items?displayName=foo'.format(self.url)
+        url = '{0}/items?displayNames=foo'.format(self.url)
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
