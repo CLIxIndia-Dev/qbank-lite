@@ -1040,6 +1040,19 @@ class ItemDetails(utilities.BaseClass):
 
                 qfu = bank.get_question_form_for_update(updated_item.ident)
                 qfu = autils.update_question_form(question, qfu)
+
+                if 'fileIds' in question:
+                    # assumes the asset already exists in the system
+                    if str(FILES_ANSWER_RECORD) not in qfu._my_map['recordTypeIds']:
+                        record = qfu.get_question_form_record(FILES_ANSWER_RECORD)
+                        record._init_metadata()
+                        record._init_map()
+                    for label, asset_data in question['fileIds'].iteritems():
+                        qfu.add_asset(asset_data['assetId'],
+                                      asset_content_id=asset_data['assetContentId'],
+                                      label=label,
+                                      asset_content_type=asset_data['assetContentTypeId'])
+
                 updated_question = bank.update_question(qfu)
 
             if 'answers' in local_data_map:

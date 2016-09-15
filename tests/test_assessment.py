@@ -8966,6 +8966,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
         self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
         self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
+        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'r')
 
         self._english_text = 'english'
         self._hindi_text = u'हिंदी'
@@ -8993,6 +8994,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self._simple_numeric_response_test_file.close()
         self._floating_point_numeric_input_test_file.close()
         self._mw_fitb_2_test_file.close()
+        self._audio_file.close()
 
     def test_can_set_multiple_display_texts(self):
         item = self.create_mc_multi_select_item()
@@ -10174,3 +10176,86 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
         self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
         self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+    def test_can_add_media_files_to_question(self):
+        item = self.create_mc_multi_select_item()
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        assets_endpoint = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._audio_file.seek(0)
+        req = self.app.post(assets_endpoint,
+                            upload_files=[('inputFile',
+                                           self._filename(self._audio_file),
+                                           self._audio_file.read())])
+        self.ok(req)
+        asset = self.json(req)
+        label = asset['displayName']['text'].replace('.', '_')
+
+        self.assertNotIn(label, item['question']['fileIds'].keys())
+
+        asset_payload = {
+            'question': {
+                'fileIds': {
+                },
+                'type': 'qti'
+            }
+        }
+        asset_payload['question']['fileIds'][label] = {
+            'assetId': asset['id'],
+            'assetContentId': asset['assetContents'][0]['id'],
+            'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(asset_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn(label, data['question']['fileIds'].keys())
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetId'],
+            asset['id']
+        )
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetContentId'],
+            asset['assetContents'][0]['id']
+        )
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetContentTypeId'],
+            asset['assetContents'][0]['genusTypeId']
+        )
