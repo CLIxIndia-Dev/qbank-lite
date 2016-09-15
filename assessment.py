@@ -1840,9 +1840,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                             # only take the first feedback / confused LO for now
                             break
             if len(feedback_strings) > 0:
-                feedback = '; '.join(feedback_strings)
                 return_data.update({
-                    'feedback': feedback
+                    'feedback': feedback_strings[0]
                 })
             if len(confused_los) > 0:
                 return_data.update({

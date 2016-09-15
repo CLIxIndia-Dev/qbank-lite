@@ -569,15 +569,21 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
             record._init_metadata()
             record._init_map()
 
-        if 'modalFeedback' in answer['feedback']:
-            feedback_xml = BeautifulSoup(answer['feedback'], 'xml')
-            answer_form.set_feedback(str(feedback_xml.modalFeedback))
-        else:
-            answer_form.set_feedback(u'{0}'.format(answer['feedback']).encode('utf8'))
+        try:
+            answer_form.add_feedback(utilities.create_display_text(answer['feedback']))
+        except AttributeError:
+            if 'modalFeedback' in answer['feedback']:
+                feedback_xml = BeautifulSoup(answer['feedback'], 'xml')
+                answer_form.set_feedback(str(feedback_xml.modalFeedback))
+            else:
+                answer_form.set_feedback(u'{0}'.format(answer['feedback']).encode('utf8'))
     elif 'oldFeedback' in answer and 'newFeedback' in answer:
         old_feedback = utilities.create_display_text(answer['oldFeedback'])
         new_feedback = utilities.create_display_text(answer['newFeedback'])
         answer_form.edit_feedback(old_feedback, new_feedback)
+    elif 'removeFeedback' in answer:
+        old_feedback = utilities.create_display_text(answer['removeFeedback'])
+        answer_form.clear_feedback(old_feedback)
 
     if 'confusedLearningObjectiveIds' in answer:
         if not isinstance(answer['confusedLearningObjectiveIds'], list):
@@ -936,8 +942,12 @@ def update_question_form(question, form, create=False):
                     old_choice = utilities.create_display_text(choice['removeText'])
                     form.clear_choice(old_choice, choice['id'])
                 elif 'id' in choice:
-                    # support legacy formats
-                    form.edit_choice(choice['id'], str(choice['text']))
+                    try:
+                        form.add_choice(utilities.create_display_text(choice['text']),
+                                        identifier=choice['id'])
+                    except AttributeError:
+                        # support legacy formats
+                        form.edit_choice(choice['id'], str(choice['text']))
                 else:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']))
@@ -956,8 +966,13 @@ def update_question_form(question, form, create=False):
                         old_choice = utilities.create_display_text(choice['removeText'])
                         form.clear_choice(old_choice, choice['id'], region)
                     elif 'id' in choice:
-                        # support legacy formats
-                        form.edit_choice(choice['id'], str(choice['text']))
+                        try:
+                            form.add_choice(utilities.create_display_text(choice['text']),
+                                            region,
+                                            identifier=choice['id'])
+                        except AttributeError:
+                            # support legacy formats
+                            form.edit_choice(choice['id'], str(choice['text']))
                     else:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']), region)
