@@ -9993,10 +9993,184 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertIn(self._telugu_text, data['feedback'])
 
     def test_setting_proxy_header_gets_item_in_specified_language_in_taken(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 3)
+        self.assertEqual(data['question']['texts'][2]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][2]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][2]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['question']['texts'][0]['text'], self._english_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._hindi_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._hindi_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
 
     def test_english_default_if_header_language_code_not_available_in_taken(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._english_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
 
     def test_first_available_if_header_language_code_and_english_not_available_in_taken(self):
-        self.fail('finish writing the test')
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        payload = {
+            'question': {
+                'newQuestionString': self._telugu_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._telugu_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
