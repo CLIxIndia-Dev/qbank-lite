@@ -9013,6 +9013,23 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
+    def test_sending_an_existing_language_replaces_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._english_script_type)
+
     def test_can_set_multiple_descriptions(self):
         item = self.create_mc_multi_select_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -9029,6 +9046,23 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
         self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_sending_an_existing_language_replaces_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._english_script_type)
 
     def test_can_remove_a_display_name(self):
         item = self.create_mc_multi_select_item()
@@ -9370,6 +9404,26 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
 
+    def test_sending_an_existing_language_replaces_question_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
     def test_can_remove_a_question_text(self):
         item = self.create_mc_multi_select_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -9489,6 +9543,27 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['answers'][0]['feedback']['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['answers'][0]['feedback']['scriptTypeId'], self._hindi_script_type)
 
+    def test_sending_an_existing_language_replaces_answer_feedback(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 1)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._english_script_type)
+
     def test_can_remove_an_answer_feedback(self):
         item = self.create_mc_multi_select_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -9585,6 +9660,29 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['question']['choices'][0]['text'], self._hindi_text)
         self.assertEqual(data['question']['choices'][0]['id'],
                          data['question']['multiLanguageChoices'][0]['id'])
+
+    def test_sending_an_existing_language_replaces_choice_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['choices'][0]['id'],
+                    'text': self._hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._english_script_type)
 
     def test_can_remove_choice_texts(self):
         item = self.create_mc_multi_select_item()
@@ -9700,6 +9798,36 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
 
         self.assertEqual(matching_choice['text'], self._hindi_text)
+
+    def test_sending_an_existing_language_replaces_inline_choice_text(self):
+        item = self.create_fitb_item()
+        region = "RESPONSE_1"
+        desired_choice_id = item['question']['multiLanguageChoices'][region][0]['id']
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'text': self._hindi_text
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._english_script_type)
 
     def test_can_remove_inline_choice_texts(self):
         item = self.create_fitb_item()
@@ -10259,3 +10387,14 @@ class MultiLanguageTests(BaseAssessmentTestCase):
             data['question']['fileIds'][label]['assetContentTypeId'],
             asset['assetContents'][0]['genusTypeId']
         )
+
+    def test_item_display_name_has_no_language_code(self):
+        item = self.create_mc_feedback_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        self.assertEqual(item['displayName']['text'], 'ee_u1l01a04q03')
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['displayName']['text'], 'ee_u1l01a04q03')
