@@ -9691,12 +9691,12 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        matching_choice = [c for c in data['question']['multiLanguageChoices'][region] if c['id'] == desired_choice_id][0]
-        self.assertEqual(len(matching_choice['texts']), 2)
-        self.assertEqual(matching_choice['texts'][1]['text'], self._hindi_text)
-        self.assertEqual(matching_choice['texts'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(matching_choice['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
 
+        # because the choices are randomized
         matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
 
         self.assertEqual(matching_choice['text'], self._hindi_text)
@@ -9745,12 +9745,12 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        matching_choice = [c for c in data['question']['multiLanguageChoices'][region] if c['id'] == desired_choice_id][0]
-        self.assertEqual(len(matching_choice['texts']), 1)
-        self.assertEqual(matching_choice['texts'][0]['text'], self._hindi_text)
-        self.assertEqual(matching_choice['texts'][0]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(matching_choice['texts'][0]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._hindi_script_type)
 
+        # because the choices are randomized
         matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
 
         self.assertEqual(matching_choice['text'], self._hindi_text)
@@ -9800,15 +9800,15 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        matching_choice = [c for c in data['question']['multiLanguageChoices'][region] if c['id'] == desired_choice_id][0]
-        self.assertEqual(len(matching_choice['texts']), 2)
-        self.assertEqual(matching_choice['texts'][0]['text'], self._telugu_text)
-        self.assertEqual(matching_choice['texts'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(matching_choice['texts'][0]['scriptTypeId'], self._telugu_script_type)
-        self.assertEqual(matching_choice['texts'][1]['text'], self._hindi_text)
-        self.assertEqual(matching_choice['texts'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(matching_choice['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
 
+        # because the choices are randomized
         matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
 
         self.assertEqual(matching_choice['text'], self._telugu_text)

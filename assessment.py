@@ -434,7 +434,9 @@ class ItemsList(utilities.BaseClass):
                     # of  &lt; => <
                     # and &gt; => >
                     # with the assumption that will not break anything else ...
-                    clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    # clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    # deprecated
+                    clean_qti_xml = qti_xml
 
                     soup = BeautifulSoup(clean_qti_xml, 'xml')
 
