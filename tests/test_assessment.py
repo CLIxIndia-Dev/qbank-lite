@@ -8585,6 +8585,11 @@ class FileUploadTests(BaseAssessmentTestCase):
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
+    @staticmethod
+    def _telugu_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'te'}
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -8632,6 +8637,7 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
+        self._telugu_text = u'తెలుగు'
 
     def tearDown(self):
         super(ExtendedTextInteractionTests, self).tearDown()
@@ -8651,6 +8657,25 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('<p/>', data['feedback'])
+
+    def test_can_submit_foreign_language_text_response(self):
+        item = self.create_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident,
+                                                                                  utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'text': self._telugu_text
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._telugu_headers())
         self.ok(req)
 
         data = self.json(req)

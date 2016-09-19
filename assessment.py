@@ -1050,10 +1050,12 @@ class ItemDetails(utilities.BaseClass):
                         record._init_metadata()
                         record._init_map()
                     for label, asset_data in question['fileIds'].iteritems():
-                        qfu.add_asset(asset_data['assetId'],
-                                      asset_content_id=asset_data['assetContentId'],
-                                      label=label,
-                                      asset_content_type=asset_data['assetContentTypeId'])
+                        # don't let them overwrite files from other languages...
+                        if label not in qfu._my_map['fileIds']:
+                            qfu.add_asset(asset_data['assetId'],
+                                          asset_content_id=asset_data['assetContentId'],
+                                          label=label,
+                                          asset_content_type=asset_data['assetContentTypeId'])
 
                 updated_question = bank.update_question(qfu)
 
