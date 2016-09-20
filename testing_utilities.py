@@ -19,6 +19,7 @@ import dlkit_edx.configs
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 TEST_DATA_STORE = 'test_datastore'
+TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
 
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
@@ -43,6 +44,14 @@ def configure_dlkit():
                 'description': 'Filesystem path for setting the MongoClient host.',
                 'values': [
                     {'value': TEST_DATA_STORE, 'priority': 1}
+                ]
+            },
+            'secondaryDataStorePath': {
+                'syntax': 'STRING',
+                'displayName': 'Path to local filesystem datastore',
+                'description': 'Filesystem path for setting the MongoClient host.',
+                'values': [
+                    {'value': TEST_STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
                 ]
             },
         }
