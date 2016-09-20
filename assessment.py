@@ -9,7 +9,7 @@ from bson.errors import InvalidId
 from cStringIO import StringIO
 
 from dlkit_edx.errors import *
-from dlkit_edx.primordium import Type, DataInputStream
+from dlkit_edx.primordium import Type, DataInputStream, DisplayText
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
@@ -40,6 +40,11 @@ SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequen
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['right-answer'])
+
+# Multilanguage records
+MULTI_LANGUAGE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
 
 
 urls = (
@@ -90,20 +95,18 @@ class AssessmentBanksList(utilities.BaseClass):
         """
         List all available assessment banks
         """
-        def _unescaped(string):
-            return ':' in string and '@' in string
         try:
             am = autils.get_assessment_manager()
             inputs = web.input()
             if 'displayName' in inputs or 'genusTypeId' in inputs:
                 querier = am.get_bank_query()
                 if 'displayName' in inputs:
-                    if _unescaped(inputs['displayName']):
+                    if autils._unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(inputs['displayName'], match=True)
                 if 'genusTypeId' in inputs:
-                    if (_unescaped(inputs['genusTypeId'])):
+                    if (autils._unescaped(inputs['genusTypeId'])):
                         querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(inputs['genusTypeId'], match=True)
@@ -320,7 +323,29 @@ class ItemsList(utilities.BaseClass):
                 raise PermissionDenied
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
-            items = assessment_bank.get_items()
+
+            inputs = web.input()
+            if any(term in inputs for term in ['displayName', 'displayNames',
+                                               'genusTypeId']):
+                querier = assessment_bank.get_item_query()
+                if 'displayName' in inputs:
+                    if autils._unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'displayNames' in inputs:
+                    if autils._unescaped(inputs['displayNames']):
+                        querier.match_display_names(quote(inputs['displayNames'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_names(inputs['displayNames'], match=True)
+                if 'genusTypeId' in inputs:
+                    if (autils._unescaped(inputs['genusTypeId'])):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                items = assessment_bank.get_items_by_query(querier)
+            else:
+                items = assessment_bank.get_items()
 
             if 'qti' in web.input():
                 data = []
@@ -409,7 +434,9 @@ class ItemsList(utilities.BaseClass):
                     # of  &lt; => <
                     # and &gt; => >
                     # with the assumption that will not break anything else ...
-                    clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    # clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    # deprecated
+                    clean_qti_xml = qti_xml
 
                     soup = BeautifulSoup(clean_qti_xml, 'xml')
 
@@ -427,14 +454,30 @@ class ItemsList(utilities.BaseClass):
                     # record, because need that to go through the magical items
                     if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
                         items_records_list = [QTI_ITEM,
-                                              PROVENANCE_ITEM_RECORD]
+                                              PROVENANCE_ITEM_RECORD,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
                     else:
                         items_records_list = [QTI_ITEM,
                                               PROVENANCE_ITEM_RECORD,
-                                              WRONG_ANSWER_ITEM]
+                                              WRONG_ANSWER_ITEM,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
                     form = bank.get_item_form_for_create(items_records_list)
-                    form.display_name = soup.assessmentItem['title']
-                    form.description = description or 'QTI AssessmentItem'
+
+                    # in order to support multi-languages, let's keep the title
+                    # but minus the last language code
+                    # i.e. ee_u1l01a01q01_en
+                    # keep ee_u1l01a01q01 as the item name
+                    item_name = soup.assessmentItem['title']
+                    language_code = None
+                    if any(lang_code in item_name for lang_code in ['en', 'hi', 'te']):
+                        language_code = item_name.split('_')[-1]
+                        item_name = '_'.join(item_name.split('_')[0:-1])
+
+                    form.add_display_name(utilities.create_display_text(item_name,
+                                                                        language_code))
+
+                    form.add_description(utilities.create_display_text(description or 'QTI AssessmentItem',
+                                                                       language_code))
                     form.load_from_qti_item(clean_qti_xml,
                                             keywords=keywords)
                     if learning_objective is not None:
@@ -453,14 +496,14 @@ class ItemsList(utilities.BaseClass):
                     bank.alias_item(new_item.ident,
                                     original_qti_id)
 
-                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
+                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION,
+                                                                                MULTI_LANGUAGE_QUESTION_RECORD])
                     if len(media_files) == 0:
                         media_files = None
 
                     q_form.load_from_qti_item(clean_qti_xml,
                                               media_files=media_files,
                                               keywords=keywords)
-
                     question = bank.create_question(q_form)
 
                     local_map = {
@@ -471,10 +514,12 @@ class ItemsList(utilities.BaseClass):
                         choices = question.get_choices()
                     else:
                         choices = None
-
+                    answer_record_types = [QTI_ANSWER,
+                                           MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
+                                           FILES_ANSWER_RECORD]
                     # correct answer
                     # need a default one, even for extended text interaction
-                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
                     a_form.load_from_qti_item(clean_qti_xml,
                                               keywords=keywords,
                                               correct=True,
@@ -493,7 +538,7 @@ class ItemsList(utilities.BaseClass):
                         # because Onyx only lets you pick one ... so let's fix that ...
                         if autils.is_survey(local_map):
                             for wrong_answer in wrong_answers:
-                                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
                                 # force to True in load_from_qti_item, once the choiceId is set
                                 a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
@@ -508,7 +553,7 @@ class ItemsList(utilities.BaseClass):
                             if (len(wrong_answers) > 0 and
                                     str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
                                 for wrong_answer in wrong_answers:
-                                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
                                     a_form.load_from_qti_item(clean_qti_xml,
                                                               keywords=keywords,
                                                               correct=False,
@@ -518,7 +563,7 @@ class ItemsList(utilities.BaseClass):
                                     bank.create_answer(a_form)
                             else:
                                 # create a generic one
-                                a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
                                 a_form.load_from_qti_item(clean_qti_xml,
                                                           keywords=keywords,
                                                           correct=False,
@@ -529,7 +574,7 @@ class ItemsList(utilities.BaseClass):
                     elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
                                                       str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
                         # create a generic one
-                        a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
+                        a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
                         a_form.load_from_qti_item(clean_qti_xml,
                                                   keywords=keywords,
                                                   correct=False,
@@ -961,7 +1006,9 @@ class ItemDetails(utilities.BaseClass):
 
             if any(attr in local_data_map for attr in ['name', 'description', 'learningObjectiveIds',
                                                        'attempts', 'markdown', 'showanswer',
-                                                       'weight', 'difficulty', 'discrimination']):
+                                                       'weight', 'difficulty', 'discrimination',
+                                                       'removeName', 'editName', 'removeDescription',
+                                                       'editDescription', 'aliasId']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
 
                 form = utilities.set_form_basics(form, local_data_map)
@@ -979,6 +1026,10 @@ class ItemDetails(utilities.BaseClass):
                 form = autils.update_item_metadata(local_data_map, form)
 
                 updated_item = bank.update_item(form)
+
+                if 'aliasId' in local_data_map:
+                    bank.alias_item(updated_item.ident,
+                                    utilities.clean_id(local_data_map['aliasId']))
             else:
                 updated_item = bank.get_item(utilities.clean_id(sub_id))
 
@@ -995,6 +1046,21 @@ class ItemDetails(utilities.BaseClass):
 
                 qfu = bank.get_question_form_for_update(updated_item.ident)
                 qfu = autils.update_question_form(question, qfu)
+
+                if 'fileIds' in question:
+                    # assumes the asset already exists in the system
+                    if str(FILES_ANSWER_RECORD) not in qfu._my_map['recordTypeIds']:
+                        record = qfu.get_question_form_record(FILES_ANSWER_RECORD)
+                        record._init_metadata()
+                        record._init_map()
+                    for label, asset_data in question['fileIds'].iteritems():
+                        # don't let them overwrite files from other languages...
+                        if label not in qfu._my_map['fileIds']:
+                            qfu.add_asset(asset_data['assetId'],
+                                          asset_content_id=asset_data['assetContentId'],
+                                          label=label,
+                                          asset_content_type=asset_data['assetContentTypeId'])
+
                 updated_question = bank.update_question(qfu)
 
             if 'answers' in local_data_map:
@@ -1666,8 +1732,9 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             correct = autils.validate_response(local_data_map, answers)
 
-            feedback = 'No feedback available.'
-
+            feedback = {
+                'text': 'No feedback available.'
+            }
             return_data = {
                 'correct': correct,
                 'feedback': feedback
@@ -1794,9 +1861,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                             # only take the first feedback / confused LO for now
                             break
             if len(feedback_strings) > 0:
-                feedback = '; '.join(feedback_strings)
                 return_data.update({
-                    'feedback': feedback
+                    'feedback': feedback_strings[0]
                 })
             if len(confused_los) > 0:
                 return_data.update({
@@ -1871,61 +1937,79 @@ class ItemVideoTagReplacement(utilities.BaseClass):
         bank = am.get_bank(utilities.clean_id(bank_id))
         item = bank.get_item(utilities.clean_id(item_id))
         question = item.get_question()
-        question_text = question.get_text().text
-        params = self.data()
-        if ('[type]{video}' in question_text and
-                'html' in params and
-                'assetId' in params):
-            rm = rutils.get_repository_manager()
-            repository = rm.get_repository(bank.ident)
-            asset = repository.get_asset(utilities.clean_id(params['assetId']))
-            asset_contents = list(asset.get_asset_contents())
 
-            if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
-                # this is so bad. Don't do this normally.
+        if 'texts' in question._my_map:
+            question_texts_list = question._my_map['texts']
+        else:
+            question_texts_list = [question._my_map['text']]
+
+        for question_text in question_texts_list:
+            original_question_text = question_text['text']
+            params = self.data()
+            if ('[type]{video}' in original_question_text and
+                    'html' in params and
+                    'assetId' in params):
+                rm = rutils.get_repository_manager()
+                repository = rm.get_repository(bank.ident)
+                asset = repository.get_asset(utilities.clean_id(params['assetId']))
+                asset_contents = list(asset.get_asset_contents())
+
+                if str(QUESTION_WITH_FILES) not in question.object_map['recordTypeIds']:
+                    # this is so bad. Don't do this normally.
+                    # use item.ident to avoid issues with magic sessions
+                    form = bank.get_question_form_for_update(item.ident)
+                    form._for_update = False
+                    record = form.get_question_form_record(QUESTION_WITH_FILES)
+                    record._init_metadata()
+                    record._init_map()
+                    form._for_update = True
+                    bank.update_question(form)
+
                 # use item.ident to avoid issues with magic sessions
                 form = bank.get_question_form_for_update(item.ident)
-                form._for_update = False
-                record = form.get_question_form_record(QUESTION_WITH_FILES)
-                record._init_metadata()
-                record._init_map()
-                form._for_update = True
+
+                # first, update the text with just the new markup
+                updated_text = original_question_text.replace('[type]{video}', params['html'])
+
+                # second, update the question's fileList with the assets
+                #     def add_asset(self, asset_id, asset_content_id=None, label=None, asset_content_type=None):
+                for asset_content in asset_contents:
+                    form.add_asset(asset.ident,
+                                   asset_content_id=asset_content.ident,
+                                   label=rutils.convert_ac_name_to_label(asset_content),
+                                   asset_content_type=asset_content.genus_type)
+
+                # third, replace the source attributes in the markup with
+                # the AssetContent placeholders
+                soup = BeautifulSoup(updated_text, 'xml')
+                new_media_regex = re.compile('^(?!AssetContent).*$')
+                for new_media in soup.find_all(src=new_media_regex):
+                    original_file_name = new_media['src']
+                    asset_content = rutils.match_asset_content_by_name(asset_contents,
+                                                                       original_file_name)
+                    if asset_content is not None:
+                        new_media['src'] = 'AssetContent:{0}'.format(rutils.convert_ac_name_to_label(asset_content))
+
+                # fourth, inject a crossorigin attribute for the video tag
+                # per NickBenoit@AtomicJolt
+                for video in soup.find_all('video'):
+                    video['crossorigin'] = 'anonymous'
+
+                # save it back
+                original_text = DisplayText(display_text_map=question_text)
+                updated_text = DisplayText(display_text_map={
+                    'text': str(soup.itemBody),
+                    'languageTypeId': question_text['languageTypeId'],
+                    'formatTypeId': question_text['formatTypeId'],
+                    'scriptTypeId': question_text['scriptTypeId']
+                })
+                try:
+                    form.edit_text(original_text, updated_text)
+                except AttributeError:
+                    form.set_text(str(soup.itemBody))
+
                 bank.update_question(form)
-
-            # use item.ident to avoid issues with magic sessions
-            form = bank.get_question_form_for_update(item.ident)
-
-            # first, update the text with just the new markup
-            updated_text = question_text.replace('[type]{video}', params['html'])
-
-            # second, update the question's fileList with the assets
-            #     def add_asset(self, asset_id, asset_content_id=None, label=None, asset_content_type=None):
-            for asset_content in asset_contents:
-                form.add_asset(asset.ident,
-                               asset_content_id=asset_content.ident,
-                               label=rutils.convert_ac_name_to_label(asset_content),
-                               asset_content_type=asset_content.genus_type)
-
-            # third, replace the source attributes in the markup with
-            # the AssetContent placeholders
-            soup = BeautifulSoup(updated_text, 'lxml-xml')
-            new_media_regex = re.compile('^(?!AssetContent).*$')
-            for new_media in soup.find_all(src=new_media_regex):
-                original_file_name = new_media['src']
-                asset_content = rutils.match_asset_content_by_name(asset_contents,
-                                                                   original_file_name)
-                if asset_content is not None:
-                    new_media['src'] = 'AssetContent:{0}'.format(rutils.convert_ac_name_to_label(asset_content))
-
-            # fourth, inject a crossorigin attribute for the video tag
-            # per NickBenoit@AtomicJolt
-            for video in soup.find_all('video'):
-                video['crossorigin'] = 'anonymous'
-
-            # save it back
-            form.set_text(str(soup.itemBody))
-            bank.update_question(form)
-            item = bank.get_item(item.ident)
+                item = bank.get_item(item.ident)
 
         return utilities.convert_dl_object(item)
 
