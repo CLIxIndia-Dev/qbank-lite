@@ -3,7 +3,7 @@ from dlkit.primordium.type.primitives import Type
 from dlkit_edx.utilities import impl_key_dict
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
-STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore'
+STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
 
 FILESYSTEM_ASSET_CONTENT_TYPE = Type(**
                               {
@@ -38,12 +38,12 @@ FILESYSTEM_ADAPTER_1 = {
                 {'value': DATA_STORE_PATH, 'priority': 1}  # Mac
             ]
         },
-        'studentResponseDataStorePath': {
+        'secondaryDataStorePath': {
             'syntax': 'STRING',
             'displayName': 'Path to local filesystem datastore',
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
-                {'value': DATA_STORE_PATH, 'priority': 1}  # Mac
+                {'value': STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
             ]
         },
     }
