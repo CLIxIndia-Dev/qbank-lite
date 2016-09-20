@@ -10423,3 +10423,24 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['displayName']['text'], 'ee_u1l01a04q03')
+
+    def test_can_set_alias_id_on_update(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        alias = 'foo%3A1%40MIT.EDU'
+        payload = {
+            'aliasId': alias
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     alias)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['id'], item['id'])

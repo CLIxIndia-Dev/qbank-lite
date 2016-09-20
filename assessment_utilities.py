@@ -924,7 +924,7 @@ def update_question_form(question, form, create=False):
                 form.add_text(utilities.create_display_text(question['questionString']))
             except AttributeError:
                 # to support legacy data
-                form.set_text(str(question['questionString']))
+                form.set_text(u'{0}'.format(question['questionString']).encode('utf8'))
         elif 'oldQuestionString' in question and 'newQuestionString' in question:
             old_text = utilities.create_display_text(question['oldQuestionString'])
             new_text = utilities.create_display_text(question['newQuestionString'])
@@ -945,14 +945,14 @@ def update_question_form(question, form, create=False):
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']),
                                         identifier=choice['id'])
-                    except AttributeError:
+                    except (InvalidArgument, AttributeError):
                         # support legacy formats
-                        form.edit_choice(choice['id'], str(choice['text']))
+                        form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
                 else:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']))
                     except InvalidArgument:
-                        form.add_choice(str(choice['text']))
+                        form.add_choice(u'{0}'.format(choice['text']).encode('utf8'))
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
                 if region not in form.my_osid_object_form._my_map['choices']:
@@ -972,12 +972,12 @@ def update_question_form(question, form, create=False):
                                             identifier=choice['id'])
                         except AttributeError:
                             # support legacy formats
-                            form.edit_choice(choice['id'], str(choice['text']))
+                            form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
                     else:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']), region)
                         except InvalidArgument:
-                            form.add_choice(str(choice['text']), region)
+                            form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
     else:
         raise Unsupported()
 

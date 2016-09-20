@@ -1008,7 +1008,7 @@ class ItemDetails(utilities.BaseClass):
                                                        'attempts', 'markdown', 'showanswer',
                                                        'weight', 'difficulty', 'discrimination',
                                                        'removeName', 'editName', 'removeDescription',
-                                                       'editDescription']):
+                                                       'editDescription', 'aliasId']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
 
                 form = utilities.set_form_basics(form, local_data_map)
@@ -1026,6 +1026,10 @@ class ItemDetails(utilities.BaseClass):
                 form = autils.update_item_metadata(local_data_map, form)
 
                 updated_item = bank.update_item(form)
+
+                if 'aliasId' in local_data_map:
+                    bank.alias_item(updated_item.ident,
+                                    utilities.clean_id(local_data_map['aliasId']))
             else:
                 updated_item = bank.get_item(utilities.clean_id(sub_id))
 
