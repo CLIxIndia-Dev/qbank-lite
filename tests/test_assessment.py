@@ -78,6 +78,12 @@ REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 
+MULTI_LANGUAGE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language'])
+MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
+
+
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
@@ -4264,7 +4270,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.', data['feedback'])
         self.assertNotIn('Please try again!', data['feedback'])
 
-    def test_can_edit_choice_images_via_rest_mc(self):
+    def test_can_edit_multi_language_choice_images_via_rest_mc(self):
         """the image reloading script can strip out the height and width attributes"""
         mc_item = self.create_mc_multi_select_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -4281,19 +4287,21 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             }
         }
 
-        for choice in data['question']['choices']:
-            choice_xml = BeautifulSoup(choice['text'], 'xml')
+        for choice in data['question']['multiLanguageChoices']:
+            for text in choice['texts']:
+                choice_xml = BeautifulSoup(text['text'], 'xml')
 
-            if choice_xml.find('img'):
-                self.assertIn('height=', choice['text'])
-                self.assertIn('width=', choice['text'])
-                for img in choice_xml.find_all('img'):
-                    del img['height']
-                    del img['width']
-                payload['question']['choices'].append({
-                    'id': choice['id'],
-                    'text': str(choice_xml.simpleChoice)
-                })
+                if choice_xml.find('img'):
+                    self.assertIn('height=', text['text'])
+                    self.assertIn('width=', text['text'])
+                    for img in choice_xml.find_all('img'):
+                        del img['height']
+                        del img['width']
+                    payload['question']['choices'].append({
+                        'id': choice['id'],
+                        'oldText': text['text'],
+                        'newText': str(choice_xml.simpleChoice)
+                    })
 
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -4304,6 +4312,13 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
+        for choice in data['question']['multiLanguageChoices']:
+            for text in choice['texts']:
+                choice_xml = BeautifulSoup(text['text'], 'xml')
+
+                if choice_xml.find('img'):
+                    self.assertNotIn('height=', text['text'])
+                    self.assertNotIn('width=', text['text'])
         for choice in data['question']['choices']:
             choice_xml = BeautifulSoup(choice['text'], 'xml')
 
@@ -4324,18 +4339,20 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         payload = {
             'type': mw_item['genusTypeId'],
             'question': {
-                'questionString': ''
+                'oldQuestionString': '',
+                'newQuestionString': ''
             }
         }
 
-        question_xml = BeautifulSoup(data['question']['text']['text'], 'xml')
-        self.assertIn('height=', data['question']['text']['text'])
-        self.assertIn('width=', data['question']['text']['text'])
+        question_xml = BeautifulSoup(data['question']['texts'][0]['text'], 'xml')
+        self.assertIn('height=', data['question']['texts'][0]['text'])
+        self.assertIn('width=', data['question']['texts'][0]['text'])
 
         for img in question_xml.find_all('img'):
             del img['height']
             del img['width']
-        payload['question']['questionString'] = str(question_xml.itemBody)
+        payload['question']['newQuestionString'] = str(question_xml.itemBody)
+        payload['question']['oldQuestionString'] = data['question']['texts'][0]
 
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -4346,8 +4363,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
 
-        self.assertNotIn('height=', data['question']['text']['text'])
-        self.assertNotIn('width=', data['question']['text']['text'])
+        self.assertNotIn('height=', data['question']['texts'][0]['text'])
+        self.assertNotIn('width=', data['question']['texts'][0]['text'])
 
     def test_can_edit_feedback_images_via_rest_mc(self):
         """the image reloading script can strip out the height and width attributes"""
@@ -4365,16 +4382,17 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         }
 
         for answer in data['answers']:
-            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
-            self.assertIn('height=', answer['feedback']['text'])
-            self.assertIn('width=', answer['feedback']['text'])
+            answer_xml = BeautifulSoup(answer['feedbacks'][0]['text'], 'xml')
+            self.assertIn('height=', answer['feedbacks'][0]['text'])
+            self.assertIn('width=', answer['feedbacks'][0]['text'])
 
             for img in answer_xml.find_all('img'):
                 del img['height']
                 del img['width']
             payload['answers'].append({
                 'id': answer['id'],
-                'feedback': str(answer_xml.modalFeedback),
+                'newFeedback': str(answer_xml.modalFeedback),
+                'oldFeedback': answer['feedbacks'][0],
                 'type': mc_item['genusTypeId'].replace('assessment-item', 'answer')
             })
 
@@ -4388,8 +4406,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         for answer in data['answers']:
-            self.assertNotIn('height=', answer['feedback']['text'])
-            self.assertNotIn('width=', answer['feedback']['text'])
+            self.assertNotIn('height=', answer['feedbacks'][0]['text'])
+            self.assertNotIn('width=', answer['feedbacks'][0]['text'])
 
     def test_can_edit_unicode_feedback_via_rest_mc(self):
         """the audio feedback script can send back unicode values"""
@@ -4407,12 +4425,13 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         }
 
         for answer in data['answers']:
-            answer_xml = BeautifulSoup(answer['feedback']['text'], 'xml')
+            answer_xml = BeautifulSoup(answer['feedbacks'][0]['text'], 'xml')
             audio_tag = answer_xml.new_tag('audio')
             answer_xml.modalFeedback.append(audio_tag)
             payload['answers'].append({
                 'id': answer['id'],
-                'feedback': str(answer_xml.modalFeedback),
+                'newFeedback': str(answer_xml.modalFeedback),
+                'oldFeedback': answer['feedbacks'][0],
                 'type': mc_item['genusTypeId'].replace('item-genus-type', 'answer')
             })
 
@@ -4426,7 +4445,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         for answer in data['answers']:
-            self.assertIn('<audio/>', answer['feedback']['text'])
+            self.assertIn('<audio/>', answer['feedbacks'][0]['text'])
 
     def test_order_does_not_matter_mc_multi_select(self):
         mc_item = self.create_mc_multi_select_item()
@@ -5370,7 +5389,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(
-            data['feedback'],
+            data['feedback']['text'],
             'No feedback available.'
         )
 
@@ -5390,7 +5409,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertFalse(data['correct'])
         self.assertEqual(
-            data['feedback'],
+            data['feedback']['text'],
             'No feedback available.'
         )
 
@@ -5404,7 +5423,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5422,7 +5441,6 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
-        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
@@ -5434,7 +5452,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5463,7 +5481,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5493,7 +5511,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5541,13 +5559,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         req = self.app.get(url)
         self.ok(req)
         data1 = self.json(req)
-        q1 = data1['text']['text']
+        q1 = data1['texts'][0]['text']
+        self.assertNotEqual(q1, '')
 
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
             data2 = self.json(req)
-            q2 = data2['text']['text']
+            q2 = data2['texts'][0]['text']
             self.assertEqual(q1, q2)
 
     def test_can_submit_right_answer_float_numeric(self):
@@ -5560,7 +5579,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5578,7 +5597,6 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
-        # self.assertNotIn('Incorrect ...', data['feedback'])
 
     def test_can_submit_wrong_answer_float_numeric(self):
         nr_item = self.create_float_numeric_response_item()
@@ -5590,7 +5608,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5620,7 +5638,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5650,7 +5668,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         question_id = data['data'][0]['id']
-        expression = self._grab_expression(data['data'][0]['text']['text'])
+        expression = self._grab_expression(data['data'][0]['texts'][0]['text'])
         right_answer = sympify(expression)
 
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
@@ -5699,13 +5717,14 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         req = self.app.get(url)
         self.ok(req)
         data1 = self.json(req)
-        q1 = data1['text']['text']
+        q1 = data1['texts'][0]['text']
+        self.assertNotEqual(q1, '')
 
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
             data2 = self.json(req)
-            q2 = data2['text']['text']
+            q2 = data2['texts'][0]['text']
             self.assertEqual(q1, q2)
 
 
@@ -5746,19 +5765,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             bank_id = utilities.clean_id(bank_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_item_form_for_create([QTI_ITEM_RECORD])
+        form = bank.get_item_form_for_create([QTI_ITEM_RECORD,
+                                              MULTI_LANGUAGE_ITEM_RECORD])
         form.display_name = 'a test item!'
         form.description = 'for testing with'
         form.load_from_qti_item(self._test_xml)
         new_item = bank.create_item(form)
 
         form = bank.get_question_form_for_create(item_id=new_item.ident,
-                                                 question_record_types=[QTI_QUESTION_RECORD])
+                                                 question_record_types=[QTI_QUESTION_RECORD,
+                                                                        MULTI_LANGUAGE_QUESTION_RECORD])
         form.load_from_qti_item(self._test_xml)
         bank.create_question(form)
 
         form = bank.get_answer_form_for_create(item_id=new_item.ident,
-                                               answer_record_types=[QTI_ANSWER_RECORD])
+                                               answer_record_types=[QTI_ANSWER_RECORD,
+                                                                    MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
+                                                                    FILES_ANSWER_RECORD])
         form.load_from_qti_item(self._test_xml)
         bank.create_answer(form)
 
@@ -5782,7 +5805,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         super(QTIEndpointTests, self).setUp()
 
         self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'r')
-        self._test_xml = BeautifulSoup(self._test_file.read(), 'lxml-xml').prettify()
+        self._test_xml = BeautifulSoup(self._test_file.read(), 'xml').prettify()
 
         self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
@@ -5999,7 +6022,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = qti_xml.itemBody
         item_body.choiceInteraction.extract()
         string_children = get_valid_contents(item_body)
-        expected = BeautifulSoup(item['question']['text']['text'], 'lxml-xml').itemBody
+        expected = BeautifulSoup(item['question']['texts'][0]['text'], 'lxml-xml').itemBody
         expected_children = get_valid_contents(expected)
         self.assertEqual(len(string_children), len(expected_children))
         for index, child in enumerate(string_children):
@@ -6046,7 +6069,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
         )
 
@@ -6119,7 +6142,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             '<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p></modalFeedback>'
         )
 
@@ -6177,7 +6200,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -6188,13 +6212,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1])
+        self.assertIn('feedbacks', item['answers'][1])
+        self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
         self.assertEqual(
             len(item['question']['choices']),
             7
         )
 
+        for choice in item['question']['multiLanguageChoices']:
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n in text['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p in text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif 'left' in text['text']:
+                    self.assertIn('"verb"', text['text'])
+                elif 'under' in text['text']:
+                    self.assertIn('"adverb"', text['text'])
         for choice in item['question']['choices']:
             self.assertIn('<p class="', choice['text'])
             if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
@@ -6357,12 +6394,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('fileIds', item['answers'][0])
         self.assertEqual(len(item['answers'][0]['fileIds'].keys()), 1)
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         image_asset_label = 'medium849946232588888784replacement_image_png'
 
         self.assertEqual(
-            item['answers'][0]['feedback']['text'],
+            item['answers'][0]['feedbacks'][0]['text'],
             """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="AssetContent:{0}" width="614"/></p></modalFeedback>""".format(image_asset_label)
         )
 
@@ -6377,12 +6415,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             )
             self.assertIn('fileIds', item['answers'][index])
             self.assertEqual(len(item['answers'][index]['fileIds'].keys()), 1)
-            self.assertIn('feedback', item['answers'][index])
+            self.assertIn('feedbacks', item['answers'][index])
+            self.assertTrue(len(item['answers'][index]['feedbacks']) == 1)
 
             image_asset_label = 'medium534315617922181373draggable_red_dot_png'
 
             self.assertEqual(
-                item['answers'][index]['feedback']['text'],
+                item['answers'][index]['feedbacks'][0]['text'],
                 """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="AssetContent:{0}" width="20"/></p></modalFeedback>""".format(image_asset_label)
             )
 
@@ -6773,11 +6812,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         for answer in item['answers']:
             answer_choice = answer['choiceIds'][0]
             self.assertIn(expected_matches[answer_choice],
-                          answer['feedback']['text'])
+                          answer['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
+        )
+
+    def test_item_name_removes_language_code(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mc_feedback_test_file),
+                                           self._mc_feedback_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['displayName']['text'],
+            'ee_u1l01a04q03'
         )
 
     def test_missing_media_element_just_gets_filtered_out(self):
@@ -6806,7 +6860,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             len(item['answers'][0]['choiceIds']),
             7
         )
-        self.assertIn('feedback', item['answers'][0])
+        self.assertIn('feedbacks', item['answers'][0])
+        self.assertTrue(len(item['answers'][0]['feedbacks']) == 1)
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
@@ -6817,13 +6872,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             1
         )
         self.assertIsNone(item['answers'][1]['choiceIds'][0])
-        self.assertIn('feedback', item['answers'][1])
+        self.assertIn('feedbacks', item['answers'][1])
+        self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
         self.assertEqual(
             len(item['question']['choices']),
             7
         )
 
+        for choice in item['question']['multiLanguageChoices']:
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n in text['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p in text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif 'left' in text['text']:
+                    self.assertIn('"verb"', text['text'])
+                elif 'under' in text['text']:
+                    self.assertIn('"adverb"', text['text'])
         for choice in item['question']['choices']:
             self.assertIn('<p class="', choice['text'])
             if any(n in choice['text'] for n in ['the bags', 'the bus', 'the bridge', 'Raju', 'the seat']):
@@ -6840,7 +6908,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
-        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['text']['text'])
+        self.assertIn('%2Fmedia%2Fee_u1l01a01r04_.mp3', item['question']['texts'][0]['text'])
 
     def test_learning_objectives_are_parsed_and_saved(self):
         url = '{0}/items'.format(self.url)
@@ -6886,6 +6954,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             13
         )
 
+        for choice in item['question']['multiLanguageChoices']:
+            self.assertTrue(len(choice['texts']) == 1)
+            for text in choice['texts']:
+                self.assertIn('<p class="', text['text'])
+                if any(n == text['text'] for n in ['the bags', 'the bus',
+                                                     'the bridge', "Raju's",
+                                                     'the seat', 'the airport',
+                                                     'the city', 'the bicycle']):
+                    self.assertIn('"noun"', text['text'])
+                elif any(p == text['text'] for p in ['on']):
+                    self.assertIn('"prep"', text['text'])
+                elif any(v == text['text'] for v in ['are', 'left', 'dropped']):
+                    self.assertIn('"verb"', text['text'])
+                elif any(av == text['text'] for av in ['under', 'on top of']):
+                    self.assertIn('"adverb"', text['text'])
         for choice in item['question']['choices']:
             self.assertIn('<p class="', choice['text'])
             if any(n == choice['text'] for n in ['the bags', 'the bus',
@@ -7204,7 +7287,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
            str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7296,14 +7379,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             ['[_1_1_1_1_1_1']
         )
 
-        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('No, please listen to the story again.', item['answers'][1]['feedback']['text'])
+        self.assertIn('No, please listen to the story again.', item['answers'][1]['feedbacks'][0]['text'])
 
 
         self.assertNotEqual(
@@ -7498,14 +7581,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
             ['[_1_1_1']
         )
-        self.assertIn('Yes, you are correct.', item['answers'][0]['feedback']['text'])
+        self.assertIn('Yes, you are correct.', item['answers'][0]['feedbacks'][0]['text'])
 
         self.assertEqual(
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
 
-        self.assertIn('Please listem to the story and try again.', item['answers'][1]['feedback']['text'])
+        self.assertIn('Please listem to the story and try again.', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7820,8 +7903,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -7934,8 +8017,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][0]['genusTypeId'],
             str(RIGHT_ANSWER_GENUS)
         )
-        self.assertIn('<p></p>', item['answers'][0]['feedback']['text'])
-        self.assertIn('<p></p>', item['answers'][1]['feedback']['text'])
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
 
         self.assertNotEqual(
             item['id'],
@@ -8007,11 +8090,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertIn(u'మీ గ్రూప్ తో కలిసి', item['learningObjectiveIds'][0])
         self.assertIn(u'అదేపనినిత్రిభుజంతోచేయడానికిప్రయత్నించండి',
-                      item['answers'][0]['feedback']['text'])
+                      item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn(u'ఒక నక్షత్ర ఆకారం',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'అగ్గిపుల్లల(ఉపయోగించబడిన) ఒక సెట్మరియుసైకిల్',
-                      item['question']['text']['text'])
+                      item['question']['texts'][0]['text'])
 
     def test_can_upload_unicode_in_feedback_in_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -8034,19 +8117,19 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertIn(u'Very good! That is correct!',
-                      item['answers'][0]['feedback']['text'])
+                      item['answers'][0]['feedbacks'][0]['text'])
         self.assertIn(u'Recall the audio. Were Kanasu, Zo and Sahir playing?',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][1]['feedback']['text'])
+                      item['answers'][1]['feedbacks'][0]['text'])
         self.assertIn(u'Doesn\'t Kanasu say she is bored of walking',
-                      item['answers'][2]['feedback']['text'])
+                      item['answers'][2]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][2]['feedback']['text'])
+                      item['answers'][2]['feedbacks'][0]['text'])
         self.assertIn(u'Are Kanasu, Zo and Sahir planning to leave?',
-                      item['answers'][3]['feedback']['text'])
+                      item['answers'][3]['feedbacks'][0]['text'])
         self.assertIn(u'This is our fifth round of this playground. I\u2019m sitting ',
-                      item['answers'][3]['feedback']['text'])
+                      item['answers'][3]['feedbacks'][0]['text'])
 
     def test_can_upload_survey_question_qti_file(self):
         url = '{0}/items'.format(self.url)
@@ -8082,7 +8165,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 answer['genusTypeId'],
                 str(RIGHT_ANSWER_GENUS)
             )
-            self.assertIn('Thank you for your participation.', answer['feedback']['text'])
+            self.assertIn('Thank you for your participation.', answer['feedbacks'][0]['text'])
             self.assertIn(answer['choiceIds'][0], choice_ids)
 
         self.assertNotEqual(
@@ -8186,7 +8269,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 answer['genusTypeId'],
                 str(RIGHT_ANSWER_GENUS)
             )
-            self.assertIn('Thank you for your participation.', answer['feedback']['text'])
+            self.assertIn('Thank you for your participation.', answer['feedbacks'][0]['text'])
             self.assertIn(answer['choiceIds'][0], choice_ids)
 
         self.assertNotEqual(
@@ -8502,6 +8585,11 @@ class FileUploadTests(BaseAssessmentTestCase):
 
 
 class ExtendedTextInteractionTests(BaseAssessmentTestCase):
+    @staticmethod
+    def _telugu_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'te'}
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -8549,6 +8637,7 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
+        self._telugu_text = u'తెలుగు'
 
     def tearDown(self):
         super(ExtendedTextInteractionTests, self).tearDown()
@@ -8568,6 +8657,25 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn('<p/>', data['feedback'])
+
+    def test_can_submit_foreign_language_text_response(self):
+        item = self.create_item()
+        self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident,
+                                                                                  utilities.clean_id(item['id']))
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(self._taken.ident)),
+                                                                     unquote(item['id']))
+        payload = {
+            'text': self._telugu_text
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._telugu_headers())
         self.ok(req)
 
         data = self.json(req)
@@ -8650,10 +8758,10 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        self.assertIn('<video', data['question']['text']['text'])
-        self.assertIn('</video>', data['question']['text']['text'])
-        self.assertIn('<aside class="transcript">', data['question']['text']['text'])
-        self.assertIn('</aside>', data['question']['text']['text'])
+        self.assertIn('<video', data['question']['texts'][0]['text'])
+        self.assertIn('</video>', data['question']['texts'][0]['text'])
+        self.assertIn('<aside class="transcript">', data['question']['texts'][0]['text'])
+        self.assertIn('</aside>', data['question']['texts'][0]['text'])
 
     def test_video_source_in_html_replaced_with_asset_content_reference(self):
         item = self.create_video_question()
@@ -8670,7 +8778,7 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         source = soup.find('source')
         self.assertEqual('AssetContent:video-js-test_mp4', source['src'])
         self.assertIn(
@@ -8697,7 +8805,7 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        soup = BeautifulSoup(data['question']['text']['text'], 'lxml-xml')
+        soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         track = soup.find('track', label="English")
         self.assertEqual('AssetContent:video-js-test-en_vtt', track['src'])
         self.assertIn(
@@ -8791,3 +8899,1548 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
                 video['crossorigin'],
                 'anonymous'
             )
+
+
+class MultiLanguageTests(BaseAssessmentTestCase):
+    @staticmethod
+    def _english_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'en'}
+
+    @staticmethod
+    def _hindi_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'hi'}
+
+    @staticmethod
+    def _telugu_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'te'}
+
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_RECORD])
+        form.display_name = 'a test assessment'
+        form.description = 'for testing with'
+        new_assessment = bank.create_assessment(form)
+
+        bank.add_item(new_assessment.ident, item_id)
+
+        form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [REVIEWABLE_OFFERED])
+        new_offered = bank.create_assessment_offered(form)
+
+        return new_offered
+
+    def create_fitb_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_fitb_2_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mw_fitb_2_test_file),
+                                           self._mw_fitb_2_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mc_feedback_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mc_feedback_test_file),
+                                           self._mc_feedback_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mc_multi_select_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_multi_select_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._mc_multi_select_test_file),
+                                           self._mc_multi_select_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_taken_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_offered = self.create_assessment_offered_for_item(bank_id, item_id)
+
+        form = bank.get_assessment_taken_form_for_create(new_offered.ident, [REVIEWABLE_TAKEN])
+        taken = bank.create_assessment_taken(form)
+        return taken, new_offered
+
+    def setUp(self):
+        super(MultiLanguageTests, self).setUp()
+
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
+        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'r')
+
+        self._english_text = 'english'
+        self._hindi_text = u'हिंदी'
+        self._telugu_text = u'తెలుగు'
+
+        self._english_language_type = '639-2%3AENG%40ISO'
+        self._english_script_type = '15924%3ALATN%40ISO'
+
+        self._hindi_language_type = '639-2%3AHIN%40ISO'
+        self._hindi_script_type = '15924%3ADEVA%40ISO'
+
+        self._telugu_language_type = '639-2%3ATEL%40ISO'
+        self._telugu_script_type = '15924%3ATELU%40ISO'
+
+        self.url += '/banks/' + unquote(str(self._bank.ident))
+
+    def tearDown(self):
+        super(MultiLanguageTests, self).tearDown()
+
+        self._mw_sentence_test_file.close()
+        self._mc_feedback_test_file.close()
+        self._mc_multi_select_test_file.close()
+        self._short_answer_test_file.close()
+        self._generic_upload_test_file.close()
+        self._simple_numeric_response_test_file.close()
+        self._floating_point_numeric_input_test_file.close()
+        self._mw_fitb_2_test_file.close()
+        self._audio_file.close()
+
+    def test_can_set_multiple_display_texts(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_sending_an_existing_language_replaces_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_set_multiple_descriptions(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_sending_an_existing_language_replaces_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_remove_a_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeName': data['displayNames'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_remove_a_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeDescription': data['descriptions'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())  # this header should be ignored because we're passing in the entire DisplayText
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_replace_a_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'editName': [data['displayNames'][0], self._telugu_text]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][0]['text'], self._telugu_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_replace_a_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'editDescription': [data['descriptions'][0], self._telugu_text]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())  # now this header matters, because we're passing in a string only
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][0]['text'], self._telugu_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_item_details_has_all_languages_for_display_name(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+
+    def test_setting_proxy_header_gets_display_name_in_specified_language(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayName']['text'], self._hindi_text)
+        self.assertEqual(data['displayName']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayName']['scriptTypeId'], self._hindi_script_type)
+
+    def test_english_default_display_name_if_header_language_code_not_available(self):
+        item = self.create_mc_multi_select_item()
+        original_display_name = item['displayName']['text']
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('displayNames', data)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayName']['text'], original_display_name)
+        self.assertEqual(data['displayName']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayName']['scriptTypeId'], self._english_script_type)
+
+    def test_first_available_display_name_if_header_language_code_and_english_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'name': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 2)
+        self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeName': data['displayNames'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['displayNames']), 1)
+        self.assertEqual(data['displayNames'][0]['text'], self._hindi_text)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_item_details_has_all_languages_for_description(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+
+    def test_setting_proxy_header_gets_description_in_specified_language(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['description']['text'], self._hindi_text)
+        self.assertEqual(data['description']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['description']['scriptTypeId'], self._hindi_script_type)
+
+    def test_english_default_description_if_header_language_code_not_available(self):
+        item = self.create_mc_multi_select_item()
+        original_description = item['description']['text']
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('descriptions', data)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['description']['text'], original_description)
+        self.assertEqual(data['description']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['description']['scriptTypeId'], self._english_script_type)
+
+    def test_first_available_description_if_header_language_code_and_english_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'description': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 2)
+        self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'removeDescription': data['descriptions'][0]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['descriptions']), 1)
+        self.assertEqual(data['descriptions'][0]['text'], self._hindi_text)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_set_multiple_question_texts(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_sending_an_existing_language_replaces_question_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_remove_a_question_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'question': {
+                'removeQuestionString': data['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_replace_a_question_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._telugu_text,
+                'oldQuestionString': data['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+        self.assertEqual(data['question']['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_query_items_by_display_name(self):
+        item = self.create_mc_feedback_item()
+        url = '{0}/items?displayNames=ee_u1l01a04q03'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], item['id'])
+
+        url = '{0}/items?displayNames=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_set_multiple_answer_feedbacks(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 2)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._english_script_type)
+
+        # Hindi because the PUT request was with Hindi headers
+        self.assertEqual(data['answers'][0]['feedback']['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedback']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedback']['scriptTypeId'], self._hindi_script_type)
+
+    def test_sending_an_existing_language_replaces_answer_feedback(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 1)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_remove_an_answer_feedback(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'removeFeedback': item['answers'][0]['feedbacks'][0],
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 1)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_replace_an_answer_feedback(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'newFeedback': self._telugu_text,
+                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 2)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._telugu_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._telugu_script_type)
+
+    def test_can_set_choice_texts(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['choices'][0]['id'],
+                    'text': self._hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        self.assertEqual(data['question']['choices'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['choices'][0]['id'],
+                         data['question']['multiLanguageChoices'][0]['id'])
+
+    def test_sending_an_existing_language_replaces_choice_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['choices'][0]['id'],
+                    'text': self._hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_remove_choice_texts(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['choices'][0]['id'],
+                    'text': self._hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['multiLanguageChoices'][0]['id'],
+                    'removeText': item['question']['multiLanguageChoices'][0]['texts'][0]
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_replace_choice_text(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['choices'][0]['id'],
+                    'text': self._hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': item['question']['multiLanguageChoices'][0]['id'],
+                    'newText': self._telugu_text,
+                    'oldText': item['question']['multiLanguageChoices'][0]['texts'][0]
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._telugu_script_type)
+
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+    def test_can_set_inline_choice_texts(self):
+        item = self.create_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        region = "RESPONSE_1"
+        desired_choice_id = item['question']['multiLanguageChoices'][region][0]['id']
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'text': self._hindi_text
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        # because the choices are randomized
+        matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
+
+        self.assertEqual(matching_choice['text'], self._hindi_text)
+
+    def test_sending_an_existing_language_replaces_inline_choice_text(self):
+        item = self.create_fitb_item()
+        region = "RESPONSE_1"
+        desired_choice_id = item['question']['multiLanguageChoices'][region][0]['id']
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'text': self._hindi_text
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._english_script_type)
+
+    def test_can_remove_inline_choice_texts(self):
+        item = self.create_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        region = "RESPONSE_1"
+        desired_choice_id = item['question']['multiLanguageChoices'][region][0]['id']
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'text': self._hindi_text
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'removeText': item['question']['multiLanguageChoices'][region][0]['texts'][0]
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 1)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._hindi_script_type)
+
+        # because the choices are randomized
+        matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
+
+        self.assertEqual(matching_choice['text'], self._hindi_text)
+
+    def test_can_replace_inline_choice_text(self):
+        item = self.create_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        region = "RESPONSE_1"
+        desired_choice_id = item['question']['multiLanguageChoices'][region][0]['id']
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'text': self._hindi_text
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': [{
+                            'id': desired_choice_id,
+                            'newText': self._telugu_text,
+                            'oldText': item['question']['multiLanguageChoices'][region][0]['texts'][0]
+                        }],
+                    }
+                },
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 2)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        # because the choices are randomized
+        matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
+
+        self.assertEqual(matching_choice['text'], self._telugu_text)
+
+    def test_answer_feedback_from_taken_follows_proxy_locale(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._hindi_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'feedback': self._telugu_text,
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 3)
+        self.assertEqual(data['answers'][0]['feedbacks'][2]['text'], self._telugu_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][2]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][2]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        url = '{0}/{1}/submit'.format(url,
+                                      question_1_id)
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._hindi_text, data['feedback'])
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._telugu_text, data['feedback'])
+
+    def test_answer_feedback_english_default_if_header_language_code_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'newFeedback': self._english_text,
+                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 1)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._english_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        url = '{0}/{1}/submit'.format(url,
+                                      question_1_id)
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._english_text, data['feedback'])
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._english_text, data['feedback'])
+
+    def test_answer_feedback_first_available_if_header_language_code_and_english_not_available(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'newFeedback': self._telugu_text,
+                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'type': 'qti'
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers'][0]['feedbacks']), 1)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._telugu_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._telugu_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        question_1_id = data['data'][0]['id']
+
+        url = '{0}/{1}/submit'.format(url,
+                                      question_1_id)
+        payload = {
+            'choiceIds': ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                          'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                          'id4f525d00-e24c-4ac3-a104-848a2cd686c0'],
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._telugu_text, data['feedback'])
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertIn(self._telugu_text, data['feedback'])
+
+    def test_setting_proxy_header_gets_item_in_specified_language_in_taken(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 3)
+        self.assertEqual(data['question']['texts'][2]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][2]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][2]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['question']['texts'][0]['text'], self._english_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._hindi_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._hindi_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+    def test_english_default_if_header_language_code_not_available_in_taken(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._english_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._english_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._english_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._english_script_type)
+
+    def test_first_available_if_header_language_code_and_english_not_available_in_taken(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        payload = {
+            'question': {
+                'newQuestionString': self._telugu_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 1)
+        self.assertEqual(data['question']['texts'][0]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._telugu_script_type)
+
+        taken, offered = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          unquote(str(taken.ident)))
+        req = self.app.get(url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+        req = self.app.get(url,
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['data'][0]['text']['text'], self._telugu_text)
+        self.assertEqual(data['data'][0]['text']['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['data'][0]['text']['scriptTypeId'], self._telugu_script_type)
+
+    def test_can_add_media_files_to_question(self):
+        item = self.create_mc_multi_select_item()
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+        payload = {
+            'question': {
+                'questionString': self._hindi_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'newQuestionString': self._english_text,
+                'oldQuestionString': item['question']['texts'][0],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._english_headers())
+        self.ok(req)
+
+        assets_endpoint = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        self._audio_file.seek(0)
+        req = self.app.post(assets_endpoint,
+                            upload_files=[('inputFile',
+                                           self._filename(self._audio_file),
+                                           self._audio_file.read())])
+        self.ok(req)
+        asset = self.json(req)
+        label = asset['displayName']['text'].replace('.', '_')
+
+        self.assertNotIn(label, item['question']['fileIds'].keys())
+
+        asset_payload = {
+            'question': {
+                'fileIds': {
+                },
+                'type': 'qti'
+            }
+        }
+        asset_payload['question']['fileIds'][label] = {
+            'assetId': asset['id'],
+            'assetContentId': asset['assetContents'][0]['id'],
+            'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(asset_payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn(label, data['question']['fileIds'].keys())
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetId'],
+            asset['id']
+        )
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetContentId'],
+            asset['assetContents'][0]['id']
+        )
+        self.assertEqual(
+            data['question']['fileIds'][label]['assetContentTypeId'],
+            asset['assetContents'][0]['genusTypeId']
+        )
+
+    def test_item_display_name_has_no_language_code(self):
+        item = self.create_mc_feedback_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        self.assertEqual(item['displayName']['text'], 'ee_u1l01a04q03')
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['displayName']['text'], 'ee_u1l01a04q03')
+
+    def test_can_set_alias_id_on_update(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        alias = 'foo%3A1%40MIT.EDU'
+        payload = {
+            'aliasId': alias
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     alias)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['id'], item['id'])

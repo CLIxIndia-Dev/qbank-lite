@@ -5,9 +5,11 @@ import web
 
 from bs4 import BeautifulSoup
 
+from dlkit.mongo import types
 from dlkit_edx import PROXY_SESSION, RUNTIME
 from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
+from dlkit_edx.primitives import InitializableLocale
 from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
 from dlkit_edx.proxy_example import TestRequest
@@ -41,6 +43,14 @@ N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
+
+DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
+DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
+DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
+
+
+def _unescaped(string):
+    return ':' in string and '@' in string
 
 def add_file_ids_to_form(form, file_ids):
     """
@@ -309,6 +319,28 @@ def get_assessment_manager():
     dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
                                 authenticated=True)
     condition.set_http_request(dummy_request)
+
+    if 'HTTP_X_API_LOCALE' in web.ctx.env:
+            language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
+            if language_code in ['en', 'hi', 'te']:
+                if language_code == 'en':
+                    language_code = 'ENG'
+                    script_code = 'LATN'
+                elif language_code == 'hi':
+                    language_code = 'HIN'
+                    script_code = 'DEVA'
+                else:
+                    language_code = 'TEL'
+                    script_code = 'TELU'
+            else:
+                language_code = DEFAULT_LANGUAGE_TYPE.identifier
+                script_code = DEFAULT_SCRIPT_TYPE.identifier
+
+            locale = InitializableLocale(language_type_identifier=language_code,
+                                         script_type_identifier=script_code)
+
+            condition.set_locale(locale)
+
     proxy = PROXY_SESSION.get_proxy(condition)
     return RUNTIME.get_service_manager('ASSESSMENT',
                                        proxy=proxy)
@@ -536,11 +568,23 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
             record = answer_form.get_answer_form_record(ANSWER_WITH_FEEDBACK)
             record._init_metadata()
             record._init_map()
-        if 'modalFeedback' in answer['feedback']:
-            feedback_xml = BeautifulSoup(answer['feedback'], 'xml')
-            answer_form.set_feedback(str(feedback_xml.modalFeedback))
-        else:
-            answer_form.set_feedback(u'{0}'.format(answer['feedback']).encode('utf8'))
+
+        try:
+            answer_form.add_feedback(utilities.create_display_text(answer['feedback']))
+        except AttributeError:
+            if 'modalFeedback' in answer['feedback']:
+                feedback_xml = BeautifulSoup(answer['feedback'], 'xml')
+                answer_form.set_feedback(str(feedback_xml.modalFeedback))
+            else:
+                answer_form.set_feedback(u'{0}'.format(answer['feedback']).encode('utf8'))
+    elif 'oldFeedback' in answer and 'newFeedback' in answer:
+        old_feedback = utilities.create_display_text(answer['oldFeedback'])
+        new_feedback = utilities.create_display_text(answer['newFeedback'])
+        answer_form.edit_feedback(old_feedback, new_feedback)
+    elif 'removeFeedback' in answer:
+        old_feedback = utilities.create_display_text(answer['removeFeedback'])
+        answer_form.clear_feedback(old_feedback)
+
     if 'confusedLearningObjectiveIds' in answer:
         if not isinstance(answer['confusedLearningObjectiveIds'], list):
             los = [answer['confusedLearningObjectiveIds']]
@@ -876,20 +920,64 @@ def update_question_form(question, form, create=False):
                 form.set_text(str(question['questionString']))
     elif 'qti' in question['type']:
         if 'questionString' in question:
-            form.set_text(str(question['questionString']))
+            try:
+                form.add_text(utilities.create_display_text(question['questionString']))
+            except AttributeError:
+                # to support legacy data
+                form.set_text(u'{0}'.format(question['questionString']).encode('utf8'))
+        elif 'oldQuestionString' in question and 'newQuestionString' in question:
+            old_text = utilities.create_display_text(question['oldQuestionString'])
+            new_text = utilities.create_display_text(question['newQuestionString'])
+            form.edit_text(old_text, new_text)
+        elif 'removeQuestionString' in question:
+            old_text = utilities.create_display_text(question['removeQuestionString'])
+            form.clear_text(old_text)
         if 'choices' in question:
             for choice in question['choices']:
-                if 'id' in choice:
-                    form.edit_choice(choice['id'], choice['text'])
+                if 'id' in choice and 'oldText' in choice and 'newText' in choice:
+                    old_choice = utilities.create_display_text(choice['oldText'])
+                    new_choice = utilities.create_display_text(choice['newText'])
+                    form.edit_choice(old_choice, new_choice, choice['id'])
+                elif 'id' in choice and 'removeText' in choice:
+                    old_choice = utilities.create_display_text(choice['removeText'])
+                    form.clear_choice(old_choice, choice['id'])
+                elif 'id' in choice:
+                    try:
+                        form.add_choice(utilities.create_display_text(choice['text']),
+                                        identifier=choice['id'])
+                    except (InvalidArgument, AttributeError):
+                        # support legacy formats
+                        form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
                 else:
-                    form.add_choice(choice['text'])
+                    try:
+                        form.add_choice(utilities.create_display_text(choice['text']))
+                    except InvalidArgument:
+                        form.add_choice(u'{0}'.format(choice['text']).encode('utf8'))
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
+                if region not in form.my_osid_object_form._my_map['choices']:
+                    form.add_inline_region(region)
                 for choice in region_data['choices']:
-                    if 'id' in choice:
-                        form.edit_choice(choice['id'], choice['text'], region)
+                    if 'id' in choice and 'oldText' in choice and 'newText' in choice:
+                        old_choice = utilities.create_display_text(choice['oldText'])
+                        new_choice = utilities.create_display_text(choice['newText'])
+                        form.edit_choice(old_choice, new_choice, choice['id'], region)
+                    elif 'id' in choice and 'removeText' in choice:
+                        old_choice = utilities.create_display_text(choice['removeText'])
+                        form.clear_choice(old_choice, choice['id'], region)
+                    elif 'id' in choice:
+                        try:
+                            form.add_choice(utilities.create_display_text(choice['text']),
+                                            region,
+                                            identifier=choice['id'])
+                        except AttributeError:
+                            # support legacy formats
+                            form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
                     else:
-                        form.add_choice(choice['text'], region)
+                        try:
+                            form.add_choice(utilities.create_display_text(choice['text']), region)
+                        except InvalidArgument:
+                            form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
     else:
         raise Unsupported()
 
@@ -935,12 +1023,21 @@ def update_response_form(response, form):
                                      namespace='asset-content-genus-type',
                                      authority='ODL.MIT.EDU')
                 label = file_label.replace('.', '_')
+                asset_genus_type = Type(identifier='student-submission',
+                                        namespace='asset-genus-type',
+                                        authority='ODL.MIT.EDU')
                 try:
-                    form.add_file(data_package, label)
+                    form.add_file(data_package,
+                                  label,
+                                  asset_type=asset_genus_type,
+                                  asset_content_type=ac_genus_type,
+                                  asset_name=label)
                 except AttributeError:
                     form.set_file(asset_data=data_package,
                                   asset_name=label,
+                                  asset_type=asset_genus_type,
                                   asset_content_type=ac_genus_type)
+                finally:
                     break
         except KeyError:
             pass  # perhaps no file passed in?
