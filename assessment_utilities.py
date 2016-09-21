@@ -403,7 +403,10 @@ def get_question_status(bank, section, question_id):
         response.update({
             'type' : str(response['recordTypeIds'][0]).replace('answer-record-type', 'answer-record-type')
         })
-        correct = validate_response(student_response._my_map, answers)
+        try:
+            correct = student_response.is_correct()
+        except (AttributeError, IllegalState):
+            correct = validate_response(student_response._my_map, answers)
         data = {
             'responded' : True,
             'correct'   : correct
