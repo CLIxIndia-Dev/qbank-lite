@@ -1722,15 +1722,18 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     raise IllegalState('You must supply a file with an audio response question')
 
             update_form = autils.update_response_form(local_data_map, response_form)
-            bank.submit_response(first_section.ident, question.ident, update_form)
+            response = bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
 
-            # Now need to actually check the answers against the
-            # item answers.
-            answers = bank.get_answers(first_section.ident, question.ident)
-            # compare these answers to the submitted response
+            try:
+                correct = response.is_correct()
+            except (AttributeError, IllegalState):
+                # Now need to actually check the answers against the
+                # item answers.
+                answers = bank.get_answers(first_section.ident, question.ident)
+                # compare these answers to the submitted response
 
-            correct = autils.validate_response(local_data_map, answers)
+                correct = autils.validate_response(local_data_map, answers)
 
             feedback = {
                 'text': 'No feedback available.'
