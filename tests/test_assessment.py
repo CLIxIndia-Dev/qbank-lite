@@ -10444,3 +10444,66 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['id'], item['id'])
+
+    def test_multi_language_choices_matches_original_order(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        at_least_one_difference = False
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)
+
+            if data['question']['choices'] != data['question']['multiLanguageChoices']:
+                at_least_one_difference = True
+
+            original_choice_ids = [c['id'] for c in data['question']['multiLanguageChoices']]
+            self.assertEqual(
+                original_choice_ids,
+                ['idb5345daa-a5c2-4924-a92b-e326886b5d1d',
+                 'id47e56db8-ee16-4111-9bcc-b8ac9716bcd4',
+                 'id01913fba-e66d-4a01-9625-94102847faac',
+                 'id4f525d00-e24c-4ac3-a104-848a2cd686c0',
+                 'id18c8cc80-68d1-4c1f-b9f0-cb345bad2862']
+            )
+        self.assertTrue(at_least_one_difference)
+
+    def test_multi_language_choice_ids_match_original(self):
+        item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     unquote(item['id']))
+
+        original_identifier = item['question']['multiLanguageChoices'][0]['id']
+        wrong_identifier = u"id4f525d00-e24c-4ac3-a104-111111111"
+        hindi_text = u"""<simpleChoice identifier="{0}">
+  <p>
+    {1}
+  </p>
+</simpleChoice>""".format(wrong_identifier,
+                          self._hindi_text)
+
+        payload = {
+            'question': {
+                'choices': [{
+                    'id': original_identifier,
+                    'text': hindi_text
+                }],
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        soup = BeautifulSoup(req.body, 'xml')
+        matching_choice = soup.find(identifier=original_identifier)
+        self.assertIn(self._hindi_text, unicode(matching_choice))
+        self.assertNotIn(wrong_identifier, unicode(soup))
