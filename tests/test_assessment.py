@@ -5832,6 +5832,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
         self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
+        self._fitb_with_punctuation_test_file = open('{0}/tests/files/eb_u01l03a06q03_en.zip'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -5865,6 +5866,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._survey_question_test_file.close()
         self._multi_select_survey_question_test_file.close()
         self._unicode_feedback_test_file.close()
+        self._fitb_with_punctuation_test_file.close()
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -7668,6 +7670,165 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             "[_4_1_1": """<inlineChoice identifier="[_4_1_1">
 <p class="noun">
       flowers
+     </p>
+</inlineChoice>"""
+        }
+
+        for choice in inline_choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
+
+    def test_can_upload_mw_fill_in_the_blank_with_ending_punctuation(self):
+        """mostly to test that any ending puncutation . ? ! is included in the output"""
+        url = '{0}/items'.format(self.url)
+        self._fitb_with_punctuation_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile',
+                                           self._filename(self._fitb_with_punctuation_test_file),
+                                           self._fitb_with_punctuation_test_file.read())])
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+
+        self.assertIn('[_1_1', response_1_choice_ids)
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1']
+        )
+        self.assertIn('You are right! Please try the next question.', item['answers'][0]['feedbacks'][0]['text'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('Please try again.', item['answers'][1]['feedbacks'][0]['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        inline_choice_interaction = item_body.inlineChoiceInteraction.extract()
+
+        expected_string = """<itemBody>
+<p>
+<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+<p>
+<p class="other">
+      Putting things away
+     </p>
+<p class="preposition">
+      in
+     </p>
+<p class="other">
+      the
+     </p>
+<p class="adjective">
+      proper
+     </p>
+<p class="noun">
+      place
+     </p>
+<p class="verb">
+      makes
+     </p>
+<p class="noun">
+      it
+     </p>
+</p>
+
+<p>
+<p class="other">
+      to
+     </p>
+<p class="verb">
+      find
+     </p>
+<p class="noun">
+      them
+     </p>
+<p class="adverb">
+      later
+     </p>
+     .
+    </p>
+</span>
+</p>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+        self.assertEqual(
+            len(inline_choice_interaction.find_all('inlineChoice')),
+            4
+        )
+        self.assertEqual(
+            inline_choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            inline_choice_interaction['shuffle'],
+            'false'
+        )
+
+        expected_choices = {
+            "[_1_1": """<inlineChoice identifier="[_1_1">
+<p class="adjective">
+      easy
+     </p>
+</inlineChoice>""",
+            "[_1_1_1": """<inlineChoice identifier="[_1_1_1">
+<p class="adjective">
+      neat
+     </p>
+</inlineChoice>""",
+            "[_2_1_1": """<inlineChoice identifier="[_2_1_1">
+<p class="adjective">
+      fast
+     </p>
+</inlineChoice>""",
+            "[_3_1_1": """<inlineChoice identifier="[_3_1_1">
+<p class="adjective">
+      good
      </p>
 </inlineChoice>"""
         }
