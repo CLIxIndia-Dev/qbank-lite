@@ -256,7 +256,10 @@ def extract_items(item_list):
             return json.dumps([])
     except AttributeError:
         if len(item_list) > 0:
-            return json.dumps([i.object_map for i in item_list])
+            try:
+                return json.dumps([i.object_map for i in item_list])
+            except AttributeError:
+                return json.dumps(item_list)
         return json.dumps([])
 
 def handle_exceptions(ex):
