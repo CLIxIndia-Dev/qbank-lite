@@ -150,6 +150,8 @@ class LogsList(utilities.BaseClass):
                 form.display_name = self.data()['name']
             if 'description' in self.data():
                 form.description = self.data()['description']
+            if 'genusTypeId' in self.data():
+                form.set_genus_type(Type(self.data()['genusTypeId']))
 
             new_log = utilities.convert_dl_object(finalize_method(form))
 

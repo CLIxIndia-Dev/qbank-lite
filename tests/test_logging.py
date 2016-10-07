@@ -60,7 +60,8 @@ class LogCrUDTests(BaseLoggingTestCase):
         self.num_logs(0)
         payload = {
             'name': 'my new log',
-            'description': 'for testing with'
+            'description': 'for testing with',
+            'genusTypeId': 'log-genus-type%3Adefault-log%40ODL.MIT.EDU'
         }
         req = self.app.post(self.url,
                             params=json.dumps(payload),
