@@ -49,6 +49,7 @@ MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-langua
 
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
+    "/banks/(.*)/assessmentsoffered/(.*)/results", "AssessmentOfferedResults",
     "/banks/(.*)/assessmentsoffered/(.*)", "AssessmentOfferedDetails",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/qti", "AssessmentTakenQuestionQTIDetails",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/status", "AssessmentTakenQuestionStatus",
@@ -1396,6 +1397,69 @@ class AssessmentOfferedDetails(utilities.BaseClass):
                 raise InvalidArgument()
             return data
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentOfferedResults(utilities.BaseClass):
+    """
+    Get the class results for an assessment offered (all the takens)
+    api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/results/
+
+
+    GET
+    GET to view a specific offering
+    """
+    @utilities.format_response
+    def GET(self, bank_id, offering_id):
+        try:
+            am = autils.get_assessment_manager()
+            bank = am.get_bank(utilities.clean_id(bank_id))
+
+            takens = bank.get_assessments_taken_for_assessment_offered(utilities.clean_id(offering_id))
+            data = []
+            for taken in takens:
+                taken_map = taken.object_map
+
+                # let's get the questions first ... we need to inject that information into
+                # the response, so that UI side we can match on the original, canonical itemId
+                # also need to include the questions's learningObjectiveIds
+                sections = taken._get_assessment_sections()
+                question_maps = []
+                answers = []
+                for section in sections:
+                    questions = section.get_questions(update=False)
+                    for index, question in enumerate(questions):
+                        question_map = question.object_map
+                        question_map.update({
+                            'itemId': section._my_map['questions'][index]['itemId'],
+                            'responses': []
+                        })
+                        question_maps.append(question_map)
+                        answers.append(bank.get_answers(section.ident, question.ident))
+
+                responses = bank.get_assessment_taken_responses(taken.ident)
+                for index, response in enumerate(responses):
+                    try:
+                        response_map = response.object_map
+                        response_map['type'] = response_map['recordTypeIds']
+                        try:
+                            response_map.update({
+                                'isCorrect': response.is_correct()
+                            })
+                        except (AttributeError, IllegalState):
+                            response_map.update({
+                                'isCorrect': autils.validate_response(response_map, answers[index])
+                            })
+                        question_maps[index]['responses'].append(response_map)
+                    except IllegalState:
+                        question_maps[index]['responses'].append(None)
+                taken_map.update({
+                    'questions': question_maps
+                })
+                data.append(taken_map)
+            data = utilities.extract_items(data)
+            return data
+        except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
 
