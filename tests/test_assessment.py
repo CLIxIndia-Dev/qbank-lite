@@ -1794,6 +1794,107 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.ok(req)
         self.verify_no_data(req)
 
+    def test_can_get_multiple_assessment_items(self):
+        """
+        Test view multiple items in an assessment
+        """
+        assessments_endpoint = self.url + '/assessments'
+        items_endpoint = self.url + '/items'
+
+        # Use POST to create an assessment
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment_id = unquote(json.loads(req.body)['id'])
+        assessment_detail_endpoint = assessments_endpoint + '/' + assessment_id
+        self.verify_text(req,
+                         'Assessment',
+                         assessment_name,
+                         assessment_desc)
+
+        req = self.app.get(assessments_endpoint)
+        self.ok(req)
+        self.verify_text(req,
+                         'Assessment',
+                         assessment_name,
+                         assessment_desc,
+                         assessment_id)
+
+        # Use POST to create items
+        item_name = 'a really complicated item'
+        item_desc = 'meant to differentiate students'
+        question_string = 'what is pi?'
+        question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
+        # answer_string = 'dessert'
+        # answer_type = 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
+        payload = {
+            "name": item_name,
+            "description": item_desc,
+            "question": {
+                "type": question_type,
+                "questionString": question_string,
+                "choices": ['1', '2']
+            }
+        }
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item1 = json.loads(req.body)
+        item1_id = item1['id']
+
+        item_name = 'a really complicated item 2'
+        item_desc = 'meant to differentiate students 2'
+        question_string = 'what is pi?'
+        question_type = 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
+        # answer_string = 'dessert'
+        # answer_type = 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU'
+        payload = {
+            "name": item_name,
+            "description": item_desc,
+            "question": {
+                "type": question_type,
+                "questionString": question_string,
+                "choices": ['1', '2']
+            }
+        }
+        req = self.app.post(items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item2 = json.loads(req.body)
+        item2_id = item2['id']
+
+        self.assertNotEqual(item1_id, item2_id)
+
+        # Now start working on the assessment/items endpoint, to test
+        # GET
+        assessment_items_endpoint = assessment_detail_endpoint + '/items'
+
+        # POST should also work and create the linkage
+        payload = {
+            'itemIds' : [item1_id, item2_id]
+        }
+        req = self.app.post(assessment_items_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        # should now appear in the Assessment Items List
+        req = self.app.get(assessment_items_endpoint)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]['id'], item1_id)
+        self.assertEqual(data[1]['id'], item2_id)
+
 
 class AssessmentOfferedTests(BaseAssessmentTestCase):
     def create_assessment(self):
