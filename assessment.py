@@ -1798,9 +1798,14 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 # compare these answers to the submitted response
 
                 correct = autils.validate_response(local_data_map, answers)
-
+            qti = BeautifulSoup('<modalFeedback></modalFeedback>', 'xml')
+            feedback = qti.modalFeedback
+            feedback['identifier'] = 'FEEDBACK1'
+            feedback['outcomeIdentifier'] = "FEEDBACKMODAL"
+            feedback['showHide'] = "show"
+            feedback.string = ''
             feedback = {
-                'text': 'No feedback available.'
+                'text': str(feedback)
             }
             return_data = {
                 'correct': correct,

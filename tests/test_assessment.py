@@ -5544,7 +5544,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertEqual(
             data['feedback']['text'],
-            'No feedback available.'
+            '<modalFeedback identifier="FEEDBACK1" outcomeIdentifier="FEEDBACKMODAL" showHide="show"></modalFeedback>'
         )
 
     def test_invalid_response_returns_incorrect(self):
@@ -5564,7 +5564,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         self.assertEqual(
             data['feedback']['text'],
-            'No feedback available.'
+            '<modalFeedback identifier="FEEDBACK1" outcomeIdentifier="FEEDBACKMODAL" showHide="show"></modalFeedback>'
         )
 
     def test_can_submit_right_answer_simple_numeric(self):
