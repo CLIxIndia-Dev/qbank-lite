@@ -1803,9 +1803,10 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             feedback['identifier'] = 'FEEDBACK1'
             feedback['outcomeIdentifier'] = "FEEDBACKMODAL"
             feedback['showHide'] = "show"
-            feedback.string = ''
+            empty_tag = qti.new_tag('p')
+            feedback.append(empty_tag)
             feedback = {
-                'text': str(feedback)
+                'text': str(qti)
             }
             return_data = {
                 'correct': correct,
