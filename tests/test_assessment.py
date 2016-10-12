@@ -5542,8 +5542,9 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertTrue(data['correct'])
+        # don't use feedback.text here because OEA expects a string
         self.assertEqual(
-            data['feedback']['text'],
+            data['feedback'],
             'No feedback available.'
         )
 
@@ -5562,8 +5563,9 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
+        # don't use feedback.text here because OEA expects a string
         self.assertEqual(
-            data['feedback']['text'],
+            data['feedback'],
             'No feedback available.'
         )
 
