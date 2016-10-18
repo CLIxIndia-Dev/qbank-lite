@@ -8,10 +8,6 @@ import assessment
 import logging_
 import repository
 
-# from waitress import serve
-
-# import cherrypy
-
 from web.wsgiserver import CherryPyWSGIServer
 
 # http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
