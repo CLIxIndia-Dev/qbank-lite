@@ -617,7 +617,6 @@ class ItemsList(utilities.BaseClass):
                         qfc = autils.add_file_ids_to_form(qfc, file_ids)
 
                     new_question = bank.create_question(qfc)
-
                 if 'answers' in self.data():
                     answers = self.data()['answers']
                     if isinstance(answers, basestring):
@@ -1858,7 +1857,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                for answer_record in answer_to_use.object_map['recordTypeIds']):
                             feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
                         else:
-                            feedback_strings.append(answer_to_use.feedback['text'])
+                            feedback_strings.append(answer_to_use.feedback.text)
                     except (KeyError, AttributeError):
                         pass
                     try:
