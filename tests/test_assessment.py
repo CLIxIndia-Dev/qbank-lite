@@ -5341,6 +5341,37 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         # they should all be equal
         self.assertTrue(same_order_count == 10)
 
+    def test_can_add_answer_feedback_on_item_update_for_fitb(self):
+        item = self.create_mw_fitb_item()
+        wrong_answer_choice_id = '[_3_1_1_1_1_1_1'
+        payload = {
+            'answers': [{
+                'genus': str(WRONG_ANSWER_GENUS),
+                'type': ["answer-record-type%3Aqti%40ODL.MIT.EDU",
+                         "answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU"],
+                'choiceIds': [wrong_answer_choice_id],
+                'region': 'RESPONSE_1',
+                'feedback': 'New feedback!!'
+            }]
+        }
+        url = '{0}/items/{1}'.format(self.url,
+                                     item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        # now let's make sure it got added correctly
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers']), 3)
+        self.assertIn('New feedback!!', data['answers'][2]['feedbacks'][0]['text'])
+        self.assertEqual(data['answers'][2]['inlineRegions']['RESPONSE_1']['choiceIds'],
+                         payload['answers'][0]['choiceIds'])
+        self.assertEqual(data['answers'][2]['genusTypeId'],
+                         str(WRONG_ANSWER_GENUS))
+
 
 class NumericAnswerTests(BaseAssessmentTestCase):
     def _grab_expression(self, text):
