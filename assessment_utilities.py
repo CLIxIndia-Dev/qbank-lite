@@ -26,6 +26,7 @@ import repository_utilities as rutils
 import utilities
 
 ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])
+MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
 EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
 EDX_IMAGE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-image-asset'])
 EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
@@ -307,11 +308,12 @@ def get_answer_records(answer):
     """answer is a dictionary"""
     # check for wrong-answer genus type to get the right
     # record types for feedback
-    a_type = Type(answer['type'])
-    if 'genus' in answer and answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
-        a_types = [a_type, ANSWER_WITH_FEEDBACK]
+    if isinstance(answer['type'], list):
+        a_types = [Type(a_type) for a_type in answer['type']]
     else:
-        a_types = [a_type]
+        a_types = [Type(answer['type'])]
+    if 'genus' in answer and answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
+        a_types += [MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK]
     return a_types
 
 def get_assessment_manager():
@@ -567,8 +569,8 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
         answer_form.genus_type = Type(answer['genus'])
 
     if 'feedback' in answer:
-        if str(ANSWER_WITH_FEEDBACK) not in answer_form._my_map['recordTypeIds']:
-            record = answer_form.get_answer_form_record(ANSWER_WITH_FEEDBACK)
+        if str(MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK) not in answer_form._my_map['recordTypeIds']:
+            record = answer_form.get_answer_form_record(MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK)
             record._init_metadata()
             record._init_map()
 
@@ -706,6 +708,18 @@ def update_answer_form(answer, form, question=None):
             form.set_decimal_value(float(answer['decimalValue']))
         if 'tolerance' in answer:
             form.set_tolerance_value(float(answer['tolerance']))
+    elif any(t in answer['type'] for t in ['answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU']):
+        if 'choiceIds' in answer:
+            for choice_id in answer['choiceIds']:
+                try:
+                    form.add_inline_region(answer['region'])
+                except IllegalState:
+                    pass
+                form.add_choice_id(choice_id, answer['region'])
+    elif any(t in answer['type'] for t in ['answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU']):
+        if 'choiceIds' in answer:
+            for choice_id in answer['choiceIds']:
+                form.add_choice_id(choice_id)
     elif 'qti' in answer['type']:
         pass
     else:
