@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package version="3.0" unique-identifier="BookId" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:language>en</dc:language>
+    <dc:title id="subj-lesson">[Subject] - [Lesson #]</dc:title>
+    <meta refines="#subj-lesson" property="title-type">main</meta>
+    <dc:title id="grd-unit">Grade [x] - Unit [y]</dc:title>
+    <meta refines="#grd-unit" property="title-type">subtitle</meta>
+    <dc:identifier id="BookId">urn:uuid:38814b71-091e-4f78-b561-d9f01ef2bbc5</dc:identifier>
+    <meta content="0.9.6" name="Sigil version" />
+    <meta property="dcterms:modified">2016-08-24T13:52:09Z</meta>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="nav.xhtml" href="Text/nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="html5reset.css" href="Styles/html5reset.css" media-type="text/css"/>
+    <item id="responsive.css" href="Styles/responsive.css" media-type="text/css"/>
+    <item id="style.css" href="Styles/style.css" media-type="text/css"/>
+    <item id="aud-play-icon.png" href="Images/aud-play-icon.png" media-type="image/png"/>
+    <item id="OpenSans-Bold-webfont.ttf" href="Fonts/OpenSans-Bold-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Bold-webfont.woff" href="Fonts/OpenSans-Bold-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-BoldItalic-webfont.ttf" href="Fonts/OpenSans-BoldItalic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-BoldItalic-webfont.woff" href="Fonts/OpenSans-BoldItalic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Italic-webfont.ttf" href="Fonts/OpenSans-Italic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Italic-webfont.woff" href="Fonts/OpenSans-Italic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Light-webfont.ttf" href="Fonts/OpenSans-Light-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Light-webfont.woff" href="Fonts/OpenSans-Light-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Light.ttf" href="Fonts/OpenSans-Light.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-LightItalic-webfont.ttf" href="Fonts/OpenSans-LightItalic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-LightItalic-webfont.woff" href="Fonts/OpenSans-LightItalic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Regular-webfont.ttf" href="Fonts/OpenSans-Regular-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Regular-webfont.woff" href="Fonts/OpenSans-Regular-webfont.woff" media-type="application/font-woff"/>
+    <item id="varela_round_regular.ttf" href="Fonts/varela_round_regular.ttf" media-type="application/x-font-ttf"/>
+    <item id="U1L1ST01.mp3" href="Audio/U1L1ST01.mp3" media-type="audio/mpeg"/>
+    <item id="photo-zoom.js" href="Misc/photo-zoom.js" media-type="text/javascript"/>
+    <item id="jquery-3.0.0.min.js" href="Misc/jquery-3.0.0.min.js" media-type="text/javascript"/>
+    <item id="VideoJS.ttf" href="Fonts/VideoJS.ttf" media-type="application/x-font-ttf"/>
+    <item id="VideoJS.woff" href="Fonts/VideoJS.woff" media-type="application/font-woff"/>
+    <item id="VarelaRound-Regular-webfont.woff" href="Fonts/VarelaRound-Regular-webfont.woff" media-type="application/font-woff"/>
+    <item id="VideoJS.svg" href="Images/VideoJS.svg" media-type="image/svg+xml"/>
+    <item id="fonts.css" href="Styles/fonts.css" media-type="text/css"/>
+    <item id="video-js-test.mp4" href="Video/video-js-test.mp4" media-type="video/mp4"/>
+    <item id="video-js-test-te.vtt" href="Video/video-js-test-te.vtt" media-type="text/vtt"/>
+    <item id="video-js-test-hi.vtt" href="Video/video-js-test-hi.vtt" media-type="text/vtt"/>
+    <item id="video-js-test-en.vtt" href="Video/video-js-test-en.vtt" media-type="text/vtt"/>
+    <item id="VideoJS.eot" href="Misc/VideoJS.eot" media-type="text/plain"/>
+    <item id="videojs-skin-colors.css" href="Styles/videojs-skin-colors.css" media-type="text/css"/>
+    <item id="video-js.css" href="Styles/video-js.css" media-type="text/css"/>
+    <item id="video.js" href="Misc/video.js" media-type="text/javascript"/>
+    <item id="image_1x.jpg" href="Images/image_1x.jpg" media-type="image/jpeg"/>
+    <item id="image_pt33x.jpg" href="Images/image_pt33x.jpg" media-type="image/jpeg"/>
+    <item id="image_pt50x.jpg" href="Images/image_pt50x.jpg" media-type="image/jpeg"/>
+    <item id="assess-sizer.js" href="Misc/assess-sizer.js" media-type="text/javascript"/>
+    <item id="Activity0101.xhtml" href="Text/Activity0101.xhtml" media-type="application/xhtml+xml" properties="scripted"/>
+    <item id="Activity0102.xhtml" href="Text/Activity0102.xhtml" media-type="application/xhtml+xml" properties="scripted"/>
+    <item id="Activity0103.xhtml" href="Text/Activity0103.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0104.xhtml" href="Text/Activity0104.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0105.xhtml" href="Text/Activity0105.xhtml" media-type="application/xhtml+xml" properties="scripted"/>
+    <item id="Activity0106.xhtml" href="Text/Activity0106.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0107.xhtml" href="Text/Activity0107.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0108.xhtml" href="Text/Activity0108.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0102a.xhtml" href="Text/Activity0102a.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0102b.xhtml" href="Text/Activity0102b.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="Activity0109.xhtml" href="Text/Activity0109.xhtml" media-type="application/xhtml+xml" properties="scripted remote-resources"/>
+    <item id="chevron-right.svg" href="Images/chevron-right.svg" media-type="image/svg+xml"/>
+    <item id="ee_U01L01A04Q01Mx_en_aud0056.mp3" href="Audio/ee_U01L01A04Q01Mx_en_aud0056.mp3" media-type="audio/mpeg"/>
+    <item id="ee_U01L01A04Q01Sx_en_aud0055.mp3" href="Audio/ee_U01L01A04Q01Sx_en_aud0055.mp3" media-type="audio/mpeg"/>
+    <item id="U1L1BP1_1x.jpg" href="Images/U1L1BP1_1x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP2_1x.jpg" href="Images/U1L1BP2_1x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP3_1x.jpg" href="Images/U1L1BP3_1x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP1_pt50x.jpg" href="Images/U1L1BP1_pt50x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP2_pt50x.jpg" href="Images/U1L1BP2_pt50x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP3_pt50x.jpg" href="Images/U1L1BP3_pt50x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP5_pt50x.jpg" href="Images/U1L1BP5_pt50x.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP5_1x.jpg" href="Images/U1L1BP5_1x.jpg" media-type="image/jpeg"/>
+    <item id="play-arrow.svg" href="Images/play-arrow.svg" media-type="image/svg+xml"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="nav.xhtml" linear="no"/>
+    <itemref idref="Activity0101.xhtml"/>
+    <itemref idref="Activity0102.xhtml"/>
+    <itemref idref="Activity0102a.xhtml"/>
+    <itemref idref="Activity0102b.xhtml"/>
+    <itemref idref="Activity0103.xhtml"/>
+    <itemref idref="Activity0104.xhtml"/>
+    <itemref idref="Activity0105.xhtml"/>
+    <itemref idref="Activity0106.xhtml"/>
+    <itemref idref="Activity0107.xhtml"/>
+    <itemref idref="Activity0108.xhtml"/>
+    <itemref idref="Activity0109.xhtml"/>
+  </spine>
+  <guide>
+    <reference type="toc" title="Table of Content" href="Text/nav.xhtml"/>
+  </guide>
+</package>

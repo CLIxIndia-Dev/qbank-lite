@@ -1,11 +1,9 @@
-To bundle this app, use pyinstaller.
+With the "unplatform v2" integration, the install process has moved to use `npm`, so that
+the front-end code can be bundled appropriately. `npm` in turn calls `pyinstaller`, so
+all you need to do is run:
 
-First, copy one of the main.spec files, depending on if you want a single package or not.
+```
+npm run bundle
+```
 
 
-$ cp main.spec.<<<<>>>> main.spec
-$ pyinstaller main.spec
-
-
-Modify to fit your needs, but make sure all the imports and data files
-included in these spec files is part of your build.

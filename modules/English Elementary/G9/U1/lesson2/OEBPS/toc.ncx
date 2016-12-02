@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ncx version="2005-1" xmlns="http://www.daisy.org/z3986/2005/ncx/">
+  <head>
+    <meta content="38814b71-091e-4f78-b561-d9f01ef2bbc5" name="dtb:uid"/>
+    <meta content="6" name="dtb:depth"/>
+    <meta content="0" name="dtb:totalPageCount"/>
+    <meta content="0" name="dtb:maxPageNumber"/>
+  </head>
+  <docTitle>
+    <text>[No data]</text>
+  </docTitle>
+  <navMap>
+    <navPoint id="navPoint1">
+      <navLabel>
+        <text>Heading 1</text>
+      </navLabel>
+      <content src="Text/Section0001.xhtml"/>
+      <navPoint id="navPoint2">
+        <navLabel>
+          <text>Heading 2</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_1"/>
+      </navPoint>
+      <navPoint id="navPoint3">
+        <navLabel>
+          <text>Heading 2. Oat cake cookie croissant jelly beans. I love brownie pie. And a 1up photo.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_2"/>
+      </navPoint>
+      <navPoint id="navPoint4">
+        <navLabel>
+          <text>Heading 2. Oat cake cookie. And 2 photos in a row.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_3"/>
+      </navPoint>
+      <navPoint id="navPoint5">
+        <navLabel>
+          <text>Heading 2. Jelly beans. And 3 photos in a row.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_4"/>
+      </navPoint>
+      <navPoint id="navPoint6">
+        <navLabel>
+          <text>Heading 2. Croissant jelly beans. And 4 photos in a row.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_5"/>
+      </navPoint>
+      <navPoint id="navPoint7">
+        <navLabel>
+          <text>Heading 2. I love brownie pie. And 6 photos in a row.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_6"/>
+      </navPoint>
+    </navPoint>
+    <navPoint id="navPoint8">
+      <navLabel>
+        <text>Ceiling cat is watching</text>
+      </navLabel>
+      <content src="Text/Section0001.xhtml#sigil_toc_id_7"/>
+      <navPoint id="navPoint9">
+        <navLabel>
+          <text>Heading 2 with a photo/audio look</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_8"/>
+      </navPoint>
+      <navPoint id="navPoint10">
+        <navLabel>
+          <text>Heading 2. Oat cake cookie video look jelly beans. I love brownie pie.</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_9"/>
+        <navPoint id="navPoint11">
+          <navLabel>
+            <text>Transcript</text>
+          </navLabel>
+          <content src="Text/Section0001.xhtml#sigil_toc_id_10"/>
+        </navPoint>
+      </navPoint>
+      <navPoint id="navPoint12">
+        <navLabel>
+          <text>Heading 2</text>
+        </navLabel>
+        <content src="Text/Section0001.xhtml#sigil_toc_id_11"/>
+        <navPoint id="navPoint13">
+          <navLabel>
+            <text>Heading 3</text>
+          </navLabel>
+          <content src="Text/Section0001.xhtml#sigil_toc_id_12"/>
+          <navPoint id="navPoint14">
+            <navLabel>
+              <text>Heading 4</text>
+            </navLabel>
+            <content src="Text/Section0001.xhtml#sigil_toc_id_13"/>
+            <navPoint id="navPoint15">
+              <navLabel>
+                <text>Heading 5</text>
+              </navLabel>
+              <content src="Text/Section0001.xhtml#sigil_toc_id_14"/>
+              <navPoint id="navPoint16">
+                <navLabel>
+                  <text>Heading 6</text>
+                </navLabel>
+                <content src="Text/Section0001.xhtml#sigil_toc_id_15"/>
+              </navPoint>
+            </navPoint>
+          </navPoint>
+        </navPoint>
+      </navPoint>
+    </navPoint>
+  </navMap>
+</ncx>
