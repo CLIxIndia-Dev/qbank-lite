@@ -28,7 +28,7 @@ urls = (
     '/datastore_path', 'bootloader_storage_path',
     '/version', 'version',
     '/modules_list', 'modules_list',
-    '/(.*)', 'index'
+    '/', 'index'
 )
 
 app = web.application(urls, locals())
@@ -58,7 +58,7 @@ class bootloader_storage_path:
         return ABS_PATH
 
 class index:
-    def GET(self, path):
+    def GET(self):
         # render the unplatform v2 front-end
         index_file = '{0}/static/index.html'.format(ABS_PATH)
         yield open(index_file, 'rb').read()
