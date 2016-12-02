@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package version="3.0" unique-identifier="BookId" xmlns="http://www.idpf.org/2007/opf">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="BookId">urn:uuid:38814b71-091e-4f78-b561-d9f01ef2bbc5</dc:identifier>
+    <dc:language>en</dc:language>
+    <dc:title>CLIx ePub test templates</dc:title>
+    <meta name="Sigil version" content="0.9.6" />
+    <meta property="dcterms:modified">2016-07-15T16:54:49Z</meta>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="Section0001.xhtml" href="Text/Section0001.xhtml" media-type="application/xhtml+xml" properties="scripted"/>
+    <item id="nav.xhtml" href="Text/nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="fonts.css" href="Styles/fonts.css" media-type="text/css"/>
+    <item id="html5reset.css" href="Styles/html5reset.css" media-type="text/css"/>
+    <item id="responsive.css" href="Styles/responsive.css" media-type="text/css"/>
+    <item id="style.css" href="Styles/style.css" media-type="text/css"/>
+    <item id="aud-play-icon.png" href="Images/aud-play-icon.png" media-type="image/png"/>
+    <item id="tmp_lg_0001.jpg" href="Images/tmp_lg_0001.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0002.jpg" href="Images/tmp_lg_0002.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0003.jpg" href="Images/tmp_lg_0003.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0004.jpg" href="Images/tmp_lg_0004.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0005.jpg" href="Images/tmp_lg_0005.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0006.jpg" href="Images/tmp_lg_0006.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0007.jpg" href="Images/tmp_lg_0007.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0008.jpg" href="Images/tmp_lg_0008.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0009.jpg" href="Images/tmp_lg_0009.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0010.jpg" href="Images/tmp_lg_0010.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0011.jpg" href="Images/tmp_lg_0011.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0012.jpg" href="Images/tmp_lg_0012.jpg" media-type="image/jpeg"/>
+    <item id="tmp_lg_0013.jpg" href="Images/tmp_lg_0013.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0001.jpg" href="Images/tmp_md_0001.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0002.jpg" href="Images/tmp_md_0002.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0003.jpg" href="Images/tmp_md_0003.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0004.jpg" href="Images/tmp_md_0004.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0005.jpg" href="Images/tmp_md_0005.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0006.jpg" href="Images/tmp_md_0006.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0007.jpg" href="Images/tmp_md_0007.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0008.jpg" href="Images/tmp_md_0008.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0009.jpg" href="Images/tmp_md_0009.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0010.jpg" href="Images/tmp_md_0010.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0011.jpg" href="Images/tmp_md_0011.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0012.jpg" href="Images/tmp_md_0012.jpg" media-type="image/jpeg"/>
+    <item id="tmp_md_0013.jpg" href="Images/tmp_md_0013.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0001.jpg" href="Images/tmp_sm_0001.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0002.jpg" href="Images/tmp_sm_0002.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0003.jpg" href="Images/tmp_sm_0003.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0004.jpg" href="Images/tmp_sm_0004.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0005.jpg" href="Images/tmp_sm_0005.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0006.jpg" href="Images/tmp_sm_0006.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0007.jpg" href="Images/tmp_sm_0007.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0008.jpg" href="Images/tmp_sm_0008.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0009.jpg" href="Images/tmp_sm_0009.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0010.jpg" href="Images/tmp_sm_0010.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0011.jpg" href="Images/tmp_sm_0011.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0012.jpg" href="Images/tmp_sm_0012.jpg" media-type="image/jpeg"/>
+    <item id="tmp_sm_0013.jpg" href="Images/tmp_sm_0013.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0001.jpg" href="Images/tmp_xl_0001.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0002.jpg" href="Images/tmp_xl_0002.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0003.jpg" href="Images/tmp_xl_0003.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0004.jpg" href="Images/tmp_xl_0004.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0005.jpg" href="Images/tmp_xl_0005.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0006.jpg" href="Images/tmp_xl_0006.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0007.jpg" href="Images/tmp_xl_0007.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0008.jpg" href="Images/tmp_xl_0008.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0009.jpg" href="Images/tmp_xl_0009.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0010.jpg" href="Images/tmp_xl_0010.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0011.jpg" href="Images/tmp_xl_0011.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0012.jpg" href="Images/tmp_xl_0012.jpg" media-type="image/jpeg"/>
+    <item id="tmp_xl_0013.jpg" href="Images/tmp_xl_0013.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP1-01up.jpg" href="Images/U1L1BP1-01up.jpg" media-type="image/jpeg"/>
+    <item id="U1L1BP1-600x424.jpg" href="Images/U1L1BP1-600x424.jpg" media-type="image/jpeg"/>
+    <item id="OpenSans-Bold-webfont.eot" href="Misc/OpenSans-Bold-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-Bold-webfont.svg" href="Images/OpenSans-Bold-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-Bold-webfont.ttf" href="Fonts/OpenSans-Bold-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Bold-webfont.woff" href="Fonts/OpenSans-Bold-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-BoldItalic-webfont.eot" href="Misc/OpenSans-BoldItalic-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-BoldItalic-webfont.svg" href="Images/OpenSans-BoldItalic-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-BoldItalic-webfont.ttf" href="Fonts/OpenSans-BoldItalic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-BoldItalic-webfont.woff" href="Fonts/OpenSans-BoldItalic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Italic-webfont.eot" href="Misc/OpenSans-Italic-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-Italic-webfont.svg" href="Images/OpenSans-Italic-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-Italic-webfont.ttf" href="Fonts/OpenSans-Italic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Italic-webfont.woff" href="Fonts/OpenSans-Italic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Light-webfont.eot" href="Misc/OpenSans-Light-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-Light-webfont.svg" href="Images/OpenSans-Light-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-Light-webfont.ttf" href="Fonts/OpenSans-Light-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Light-webfont.woff" href="Fonts/OpenSans-Light-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Light.ttf" href="Fonts/OpenSans-Light.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-LightItalic-webfont.eot" href="Misc/OpenSans-LightItalic-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-LightItalic-webfont.svg" href="Images/OpenSans-LightItalic-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-LightItalic-webfont.ttf" href="Fonts/OpenSans-LightItalic-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-LightItalic-webfont.woff" href="Fonts/OpenSans-LightItalic-webfont.woff" media-type="application/font-woff"/>
+    <item id="OpenSans-Regular-webfont.eot" href="Misc/OpenSans-Regular-webfont.eot" media-type="text/plain"/>
+    <item id="OpenSans-Regular-webfont.svg" href="Images/OpenSans-Regular-webfont.svg" media-type="image/svg+xml"/>
+    <item id="OpenSans-Regular-webfont.ttf" href="Fonts/OpenSans-Regular-webfont.ttf" media-type="application/x-font-ttf"/>
+    <item id="OpenSans-Regular-webfont.woff" href="Fonts/OpenSans-Regular-webfont.woff" media-type="application/font-woff"/>
+    <item id="varela_round_regular.ttf" href="Fonts/varela_round_regular.ttf" media-type="application/x-font-ttf"/>
+    <item id="varela_round_regular.woff" href="Fonts/varela_round_regular.woff" media-type="application/font-woff"/>
+    <item id="U1L1ST01.mp3" href="Audio/U1L1ST01.mp3" media-type="audio/mpeg"/>
+    <item id="U1L1-intro-video.mp4" href="Video/U1L1-intro-video.mp4" media-type="video/mp4"/>
+    <item id="photo-zoom.js" href="Misc/photo-zoom.js" media-type="text/javascript"/>
+    <item id="jquery-3.0.0.min.js" href="Misc/jquery-3.0.0.min.js" media-type="text/javascript"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="nav.xhtml" linear="no"/>
+    <itemref idref="Section0001.xhtml"/>
+  </spine>
+  <guide>
+    <reference type="toc" title="Table of Content" href="Text/nav.xhtml"/>
+  </guide>
+</package>
