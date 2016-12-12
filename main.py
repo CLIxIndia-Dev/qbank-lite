@@ -69,6 +69,7 @@ class bootloader_storage_path:
 class index:
     def GET(self):
         # render the unplatform v2 front-end
+        web.header('Content-type', 'text/html')
         index_file = '{0}/static/index.html'.format(ABS_PATH)
         yield open(index_file, 'rb').read()
 
