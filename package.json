@@ -1,0 +1,25 @@
+{
+  "name": "react-redux-starter-kit",
+  "version": "3.0.0-alpha.2",
+  "description": "Get started with React, Redux, and React-Router!",
+  "main": "index.js",
+  "engines": {
+    "node": ">=4.5.0",
+    "npm": "^3.0.0"
+  },
+  "scripts": {
+    "compile:ui": "cd ui && npm run deploy:prod && cp -rf dist/* ../static/",
+    "bundle": "cd ui && npm run deploy:prod && cd .. && cp -rf ui/dist/* static/ && pyinstaller main.spec",
+    "start": "cd ui && npm run start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davezuko/react-redux-starter-kit.git"
+  },
+  "author": "David Zukowski <david@zuko.me> (http://zuko.me)",
+  "license": "MIT",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

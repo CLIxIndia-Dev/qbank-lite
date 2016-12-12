@@ -129,7 +129,7 @@ def format_response(func):
         web.header("Access-Control-Allow-Headers", CORS_HEADERS)
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
-        if isinstance(results, dict):
+        if isinstance(results, dict) or isinstance(results, list):
             return json.dumps(results)
         else:
             return results
