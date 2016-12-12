@@ -46,13 +46,14 @@ def list_dir(root, directory, current_level=0, max_level=3):
     #  'modules/Tools/Police Quad', 'modules/Tools/Turtle Blocks']
     sub_dirs = []
     if current_level < max_level:
-        for sub_dir in os.listdir('{0}/{1}'.format(root, directory)):
-            new_sub_dir = '{0}/{1}'.format(directory, sub_dir)
-            full_sub_dir_path = '{0}/{1}'.format(root, new_sub_dir)
-            if not sub_dir.startswith('.') and os.path.isdir(full_sub_dir_path):
-                sub_dirs.append(new_sub_dir)
-                sub_dirs += list_dir(root, new_sub_dir, current_level=current_level+1)
-        sub_dirs.sort()
+        if os.path.isdir('{0}/{1}'.format(root, directory)) and not directory.startswith('.'):
+            for sub_dir in os.listdir('{0}/{1}'.format(root, directory)):
+                new_sub_dir = '{0}/{1}'.format(directory, sub_dir)
+                full_sub_dir_path = '{0}/{1}'.format(root, new_sub_dir)
+                if not sub_dir.startswith('.') and os.path.isdir(full_sub_dir_path):
+                    sub_dirs.append(new_sub_dir)
+                    sub_dirs += list_dir(root, new_sub_dir, current_level=current_level+1)
+            sub_dirs.sort()
     return sub_dirs
 
 class bootloader_storage_path:
@@ -62,6 +63,7 @@ class bootloader_storage_path:
 class index:
     def GET(self):
         # render the unplatform v2 front-end
+        web.header('Content-type', 'text/html')
         index_file = '{0}/static/index.html'.format(ABS_PATH)
         yield open(index_file, 'rb').read()
 
