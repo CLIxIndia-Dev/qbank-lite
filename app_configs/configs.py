@@ -1,6 +1,6 @@
 from dlkit.primordium.type.primitives import Type
 
-from dlkit_edx.utilities import impl_key_dict
+from dlkit_runtime.utilities import impl_key_dict
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
 STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'

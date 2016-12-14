@@ -5,9 +5,9 @@ from dlkit.primordium.id.primitives import Id
 from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
 
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import NotFound
-from dlkit_edx.proxy_example import TestRequest
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.errors import NotFound
+from dlkit_runtime.proxy_example import TestRequest
 
 from records import registry
 

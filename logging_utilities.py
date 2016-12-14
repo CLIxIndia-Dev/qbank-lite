@@ -1,7 +1,7 @@
 import web
 
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.proxy_example import TestRequest
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.proxy_example import TestRequest
 
 
 def get_logging_manager():

@@ -5,8 +5,8 @@ import web
 
 from bson.errors import InvalidId
 
-from dlkit_edx.errors import *
-from dlkit_edx.primitives import DataInputStream
+from dlkit_runtime.errors import *
+from dlkit_runtime.primitives import DataInputStream
 
 import repository_utilities as rutils
 import utilities

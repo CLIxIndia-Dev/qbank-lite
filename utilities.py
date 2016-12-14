@@ -7,12 +7,12 @@ from urllib import quote
 
 from dlkit.mongo import types
 
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
     OperationFailed, Unsupported
-from dlkit_edx.primitives import InitializableLocale
-from dlkit_edx.primordium import Id, Type, DisplayText
-from dlkit_edx.proxy_example import TestRequest
+from dlkit_runtime.primitives import InitializableLocale
+from dlkit_runtime.primordium import Id, Type, DisplayText
+from dlkit_runtime.proxy_example import TestRequest
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
 DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))

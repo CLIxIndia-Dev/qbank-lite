@@ -8,8 +8,8 @@ from bson.errors import InvalidId
 
 from cStringIO import StringIO
 
-from dlkit_edx.errors import *
-from dlkit_edx.primordium import Type, DataInputStream, DisplayText
+from dlkit_runtime.errors import *
+from dlkit_runtime.primordium import Type, DataInputStream, DisplayText
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\

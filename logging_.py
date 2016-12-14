@@ -6,8 +6,8 @@ import web
 
 from bson.errors import InvalidId
 
-from dlkit_edx.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
-from dlkit_edx.primordium import Id, Type
+from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
+from dlkit_runtime.primordium import Id, Type
 
 from pymongo.errors import InvalidId
 

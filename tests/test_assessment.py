@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup, Tag
 
 from copy import deepcopy
 
-from dlkit_edx.primordium import Id, Type
+from dlkit_runtime.primordium import Id, Type
 
 from nose.tools import *
 

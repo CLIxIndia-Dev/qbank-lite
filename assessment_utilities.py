@@ -6,13 +6,13 @@ import web
 from bs4 import BeautifulSoup
 
 from dlkit.mongo import types
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
-from dlkit_edx.primitives import InitializableLocale
-from dlkit_edx.primordium import Duration, DateTime, Id, Type,\
+from dlkit_runtime.primitives import InitializableLocale
+from dlkit_runtime.primordium import Duration, DateTime, Id, Type,\
     DataInputStream
-from dlkit_edx.proxy_example import TestRequest
+from dlkit_runtime.proxy_example import TestRequest
 
 from inflection import underscore
 

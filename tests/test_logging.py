@@ -2,7 +2,7 @@ import json
 
 from copy import deepcopy
 
-from dlkit_edx.primordium import Id
+from dlkit_runtime.primordium import Id
 
 from paste.fixture import AppError
 

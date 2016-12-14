@@ -2,8 +2,8 @@ import os
 
 from bs4 import BeautifulSoup
 
-from dlkit_edx.configs import FILESYSTEM_ASSET_CONTENT_TYPE
-from dlkit_edx.primordium import DataInputStream, Type, Id
+from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
+from dlkit_runtime.primordium import DataInputStream, Type, Id
 
 from nose.tools import *
 

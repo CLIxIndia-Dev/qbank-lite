@@ -4,16 +4,16 @@ import shutil
 
 from bs4 import Tag
 
-from dlkit_edx.primordium import Type
+from dlkit_runtime.primordium import Type
 from nose.tools import *
 from paste.fixture import TestApp
 from records.registry import LOG_ENTRY_RECORD_TYPES
 from unittest import TestCase
 
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.proxy_example import TestRequest
-from dlkit_edx.utilities import impl_key_dict
-import dlkit_edx.configs
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.proxy_example import TestRequest
+from dlkit_runtime.utilities import impl_key_dict
+import app_configs.configs
 
 
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
 def configure_dlkit():
-    dlkit_edx.configs.FILESYSTEM_ADAPTER_1 = {
+    app_configs.configs.FILESYSTEM_ADAPTER_1 = {
         'id': 'filesystem_adapter_configuration_1',
         'displayName': 'Filesystem Adapter Configuration',
         'description': 'Configuration for Filesystem Adapter',
@@ -57,7 +57,7 @@ def configure_dlkit():
         }
     }
 
-    dlkit_edx.configs.FILESYSTEM_1 = {
+    app_configs.configs.FILESYSTEM_1 = {
         'id': 'filesystem_configuration_1',
         'displayName': 'Filesystem Configuration',
         'description': 'Configuration for Filesystem Implementation',
@@ -84,7 +84,7 @@ def configure_dlkit():
                 'displayName': 'Asset Content Type for Files',
                 'description': 'Asset Content Type for Records that store Files on local disk',
                 'values': [
-                    {'value': dlkit_edx.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+                    {'value': app_configs.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
                 ]
             },
             'dataStorePath': {
