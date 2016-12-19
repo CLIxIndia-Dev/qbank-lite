@@ -13,7 +13,7 @@ from unittest import TestCase
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.proxy_example import TestRequest
 from dlkit_runtime.utilities import impl_key_dict
-import app_configs.configs
+import dlkit_runtime.configs
 
 
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
 def configure_dlkit():
-    app_configs.configs.FILESYSTEM_ADAPTER_1 = {
+    dlkit_runtime.configs.FILESYSTEM_ADAPTER_1 = {
         'id': 'filesystem_adapter_configuration_1',
         'displayName': 'Filesystem Adapter Configuration',
         'description': 'Configuration for Filesystem Adapter',
@@ -57,7 +57,7 @@ def configure_dlkit():
         }
     }
 
-    app_configs.configs.FILESYSTEM_1 = {
+    dlkit_runtime.configs.FILESYSTEM_1 = {
         'id': 'filesystem_configuration_1',
         'displayName': 'Filesystem Configuration',
         'description': 'Configuration for Filesystem Implementation',
@@ -84,7 +84,7 @@ def configure_dlkit():
                 'displayName': 'Asset Content Type for Files',
                 'description': 'Asset Content Type for Records that store Files on local disk',
                 'values': [
-                    {'value': app_configs.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+                    {'value': dlkit_runtime.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
                 ]
             },
             'dataStorePath': {
@@ -182,9 +182,12 @@ class BaseTestCase(TestCase):
         middleware = []
         self.app = TestApp(app.wsgifunc(*middleware))
 
+        if os.path.isdir(TEST_DATA_STORE):
+            shutil.rmtree(TEST_DATA_STORE)
+
         if not os.path.isdir(TEST_DATA_STORE):
             os.makedirs(TEST_DATA_STORE)
-        shutil.rmtree(TEST_DATA_STORE)
+
 
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']
