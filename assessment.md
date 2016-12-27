@@ -545,7 +545,7 @@ values specified below.
 
 Also, as with submitting responses to questions, the form data for each type of `item` differs.
 
-form data (single language, shared across all `item` types, optional):
+form data (single language, optional):
   - name. A name / title for the `item` that will help authors identify it in a UI. Limited
           to 256 characters. Will be set to the default language of `en`.
   - description. A longer text field to describe the `item`. Limited to 1024 characters.
@@ -563,9 +563,36 @@ form data (single language, shared across all `item` types, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
-  - answers. 
+  - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
+             `genusTypeId` property, and the exact format of the answer object depends
+             on the type of question. With this endpoint, you can add, remove, or edit
+             answers. Feedback is attached to specific answers. If a feedback requires
+             a new file `asset`, like an image or audio clip, this endpoint assumes that
+             the `asset` already exists and you can provide the `assetId`.
+    - id. If editing an existing answer, provide the qbank ID of the answer. Otherwise
+          this endpoint will create a new answer.
+    - genusTypeId. Correct answers should have this set to `answer-type%3Aright-answer%40ODL.MIT.EDU`.
+                   Incorrect answers should have this set to `answer-type%3Awrong-answer%40ODL.MIT.EDU`.
+    - fileIds. If necessary, this is a list of objects, indicating new `asset`s attached
+               to this answer. Each object must include `assetId`, `assetContentId`, and
+               `assetContentTypeId`.
+    - feedback. A text feedback to be provided to the student, on submit of the given answer.
+    - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
+                                    with the corresponding answer (right or wrong).
+    - type. Valid values are:
+        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+            moveable words, image sequence.
+        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+            record tool, and generic file submission.
+        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+    - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
+        questions, this is evaluated without regard to order. For image sequence and moveable
+        words sentence, order matters.
+    - region (for fill-in-the-blank). Must also be used in conjunction with `choiceIds`. Specifies
+        the specific "blank" that the choices are being submitted for.
 
-form data (multi-language, shared across all `item` types, optional):
+form data (multi-language, optional):
   - name. A new language name / title for the `item`.
   - description. A new language description for the `item`.
   - editName. To replace the name in a specific language, you can include either just the text
@@ -602,5 +629,233 @@ form data (multi-language, shared across all `item` types, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
+  - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
+             `genusTypeId` property, and the exact format of the answer object depends
+             on the type of question. With this endpoint, you can add, remove, or edit
+             answers. Feedback is attached to specific answers. If a feedback requires
+             a new file `asset`, like an image or audio clip, this endpoint assumes that
+             the `asset` already exists and you can provide the `assetId`.
+    - id. If editing an existing answer, provide the qbank ID of the answer. Otherwise
+          this endpoint will create a new answer.
+    - genusTypeId. Correct answers should have this set to `answer-type%3Aright-answer%40ODL.MIT.EDU`.
+                   Incorrect answers should have this set to `answer-type%3Awrong-answer%40ODL.MIT.EDU`.
+    - fileIds. If necessary, this is a list of objects, indicating new `asset`s attached
+               to this answer. Each object must include `assetId`, `assetContentId`, and
+               `assetContentTypeId`.
+    - feedback. A text feedback to be provided to the student, on submit of the given answer.
+                This is set to the language defined in `x-api-locale` or as the `DisplayText` object.
+    - oldFeedback and newFeedback. Must be used together. This is used to replace a specific string +
+                                   language setting match for the feedback field.
+    - removeFeedback. This removes a single string + language setting match for the feedback field.
+    - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
+                                    with the corresponding answer (right or wrong).
+    - type. Valid values are:
+        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+            moveable words, image sequence.
+        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+            record tool, and generic file submission.
+        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+    - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
+        questions, this is evaluated without regard to order. For image sequence and moveable
+        words sentence, order matters.
+    - region (for fill-in-the-blank). Must also be used in conjunction with `choiceIds`. Specifies
+        the specific "blank" that the choices are being submitted for.
 
+returns:
+  - the updated `Item` JSON object. For convenience, wrong answers are also included in the response.
 
+### ItemsList
+
+Return list of `item`s in the given assessment `bank`.
+`/api/v1/assessment/banks/<bank_id>/items`
+
+#### GET
+
+url parameters (optional):
+  - displayName. Query / filter by the given text in the displayName field.
+                 Case insensitive matching.
+  - displayNames. Query / filter by the given text in the displayName field.
+                  Case insensitive matching. Works across all language fields.
+  - genusTypeId. Query / filter by the genusTypeId of an `item`.
+  - qti. Include the QTI 1 XML in the response objects.
+
+returns:
+  - list of `Item` JSON objects. Note that wrong answers are **not** included.
+
+#### POST
+
+Currently this is only supported for CLIx by sending a QTI zip file. We have **not** broken out
+the individual QTI question types at the RESTful layer, so enable creation of new items
+by JSON.
+
+form data (required):
+  - qtiFile. QTI 1 zip file.
+
+### AssessmentBankDetails
+
+Shows details for, edit, or delete a specific assessment `bank`.
+`/api/v1/assessment/banks/<bank_id>`
+
+#### DELETE
+
+returns:
+  - 202.
+
+#### GET
+
+url parameters (optional):
+  - None currently supported
+
+returns:
+  - `Bank` JSON object.
+
+#### PUT
+
+form data (optional):
+  - name. A name / title for the `bank` that will help authors identify it in a UI. Limited
+          to 256 characters. Will be set to the default language of `en`.
+  - description. A longer text field to describe the `bank`. Limited to 1024 characters.
+                 Will be set to the default language of `en`.
+  - genusTypeId. A string field useful for UIs in differentiating between `bank` types. This is
+                 pre-determined for you and should not be arbitrarily modified.
+
+returns:
+  - the updated `Bank` JSON object.
+
+### AssessmentBanksList
+
+List all available assessment `bank`s.
+`/api/v1/assessment/banks`
+
+#### GET
+
+url parameters (optional):
+  - displayName. Query / filter by the given text in the displayName field.
+                 Case insensitive matching.
+  - genusTypeId. Query / filter by the genusTypeId of a `bank`.
+
+returns:
+  - list of `Bank` JSON objects.
+
+#### POST
+
+form data (optional):
+  - name. A name / title for the `bank` that will help authors identify it in a UI. Limited
+          to 256 characters. Will be set to the default language of `en`.
+  - description. A longer text field to describe the `bank`. Limited to 1024 characters.
+                 Will be set to the default language of `en`.
+  - genusTypeId. A string field useful for UIs in differentiating between `bank` types. This can
+                 be set to any string value that matches the format
+                 `<namespace>%3A<identifier>%40<authority>`. For example, we use it in CLIx to
+                 differentiate between subjects and units.
+                 `bank-genus-type%3Aclix-grade%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-domain%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-subdomain%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-unit%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-lesson%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-activity%40ODL.MIT.EDU`
+                 `bank-genus-type%3Aclix-archive%40ODL.MIT.EDU
+
+returns:
+  - the new `Bank` JSON object.
+
+### AssessmentHierarchiesRootDetails
+
+List the bank details for a root `bank`. Allow you to remove it as a root.
+`/api/v1/assessment/hierarchies/roots/<bank_id>`
+
+#### DELETE
+
+Note that this only removes the `bank` as a root `bank` -- the `bank` is **not** deleted
+from the system.
+
+returns:
+  - 202.
+
+#### GET
+
+url parameters (optional):
+  - None currently supported
+
+returns:
+  - `BankNode` JSON object. Note that the ID corresponds to the `bank` ID, though the object
+    is slightly different.
+
+### AssessmentHierarchiesRootsList
+
+List all available assessment hierarchy root `node`s. Note that the nodes must exist as
+`bank`s prior to being added as a root `node`.
+`/api/v1/assessment/hierarchies/roots`
+
+#### GET
+
+url parameters (optional):
+  - None currently supported
+
+returns:
+  - list of `BankNode` JSON objects. Note that the IDs correspond to the `bank` IDs, though the
+    objects are slightly different.
+
+#### POST
+
+This adds an existing assessment `bank` as a root `node` in the hierarchy system.
+
+form data (required):
+  - id. The `bankId` of the assessment `bank` you want to add as a root.
+
+returns:
+  - 201.
+
+### AssessmentHierarchiesNodeChildrenList
+
+List the children for a root `node`.
+`/api/v1/assessment/hierarchies/nodes/<bank_id>/children`
+
+#### GET
+
+By default, this returns descendants only 1 level deep.
+
+url parameters (optional):
+  - descendants. The level of depth in the hierarchy tree that you want returned. CLIx data
+                 is about 6 levels deep.
+  - display_names. For convenience, if you want the `bank`'s displayName field appended to
+                   the `node`, so you don't need to retrieve it separately when showing the
+                   hierarchy.
+
+returns:
+  - list of `BankNode` JSON objects. Note that the IDs correspond to the `bank` IDs, though the
+    objects are slightly different. Children nodes are included in the `childNodes` attribute,
+    as a list of `BankNode` JSON objects.
+
+#### POST
+
+Note that this does a full replacement of the children `node`s, so there may be concurrency
+issues.
+
+form data (required):
+  - ids. List of `bank` IDs. Note that returned order is not guaranteed.
+
+returns:
+  - 201.
+
+### AssessmentHierarchiesNodeDetails
+
+List the `bank` details for a `node`.
+`/api/v1/assessment/hierarchies/nodes/<bank_id>`
+
+#### GET
+
+By default, this returns no descendants or ancestors.
+
+url parameters (optional):
+  - descendants. The level of depth in the hierarchy tree that you want returned. CLIx data
+                 is about 6 levels deep.
+  - ancestors. The level of depth "up" the hierarchy tree that you want returned. CLIx data
+               is about 6 levels deep.
+
+returns:
+  - `BankNode` JSON object. Note that the ID corresponds to the `bank` ID, though the
+    object is slightly different. Children nodes are included in the `childNodes` attribute,
+    as a list of `BankNode` JSON objects. Ancestor nodes are included in the `parentNodes`
+    attribute.
