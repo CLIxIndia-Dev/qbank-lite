@@ -87,7 +87,7 @@ headers (expected):
                  in the format student@clix.edu, or some unplatform sessionId.
 
 returns:
-  - `AssessmentTaken` JSON object.
+  - `AssessmentTaken` object.
 
 ### AssessmentOfferedResults
 
@@ -123,7 +123,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `AssessmentOffered` JSON object.
+  - `AssessmentOffered` object.
 
 #### PUT
 
@@ -158,7 +158,7 @@ form data (optional):
           the student is expected to complete for a passing grade.
 
 returns:
-  - the updated `AssessmentOffered` JSON object.
+  - the updated `AssessmentOffered` object.
 
 ### AssessmentTakenQuestionQTIDetails
 
@@ -270,7 +270,7 @@ headers (expected):
   - x-api-locale. For multi-language questions, the text will be returned in the specified language.
 
 returns:
-  - question JSON object with `responded` key. If `responded` is `True`, will also return a `correct` key
+  - question object with `responded` key. If `responded` is `True`, will also return a `correct` key
     reflecting the validity of the latest response.
 
 ### AssessmentTakenQuestions
@@ -290,7 +290,7 @@ headers (expected):
   - x-api-locale. For multi-language questions, the text will be returned in the specified language.
 
 returns:
-  - list of question JSON objects. Does not include `responded` or `correct` status.
+  - list of question objects. Does not include `responded` or `correct` status.
 
 ### FinishAssessmentTaken
 
@@ -322,7 +322,7 @@ returns:
 #### GET
 
 returns:
-  - `AssessmentTaken` JSON object.
+  - `AssessmentTaken` object.
 
 ### AssessmentsOffered
 
@@ -335,7 +335,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - list of `AssessmentOffered` JSON objects.
+  - list of `AssessmentOffered` objects.
 
 #### POST
 
@@ -391,7 +391,7 @@ url parameters (optional):
   - qti. Get the `item`s with a `qti` key that includes the QTI 1 XML representation of the `item`.
 
 returns:
-  - list of `Item` JSON objects.
+  - list of `Item` objects.
 
 #### POST
 
@@ -402,7 +402,7 @@ form data (required):
   - itemIds. List of `item` IDs, in the desired final order.
 
 returns:
-  - list of `item` JSON objects.
+  - list of `item` objects.
 
 ### AssessmentDetails
 
@@ -420,7 +420,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `Assessment` JSON object.
+  - `Assessment` object.
 
 #### PUT
 
@@ -458,7 +458,7 @@ form data (multi-language):
                  specifically used in CLIx.
 
 returns:
-  - `Assessment` JSON object. Note that this does **not** include the `item`s.
+  - `Assessment` object. Note that this does **not** include the `item`s.
 
 ### AssessmentsList
 
@@ -471,7 +471,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - list of `Assessment` JSON objects.
+  - list of `Assessment` objects.
 
 #### POST
 
@@ -490,7 +490,7 @@ form data (optional):
                  specifically used in CLIx.
 
 returns:
-  - `Assessment` JSON object. Note that this does **not** include the `item`s.
+  - `Assessment` object. Note that this does **not** include the `item`s.
 
 ### ItemVideoTagReplacement
 
@@ -515,7 +515,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `Item` JSON object.
+  - `Item` object.
 
 ### ItemDetails
 
@@ -533,7 +533,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `Item` JSON object. For convenience, wrong answers are also included in the response.
+  - `Item` object. For convenience, wrong answers are also included in the response.
 
 #### PUT
 
@@ -663,7 +663,7 @@ form data (multi-language, optional):
         the specific "blank" that the choices are being submitted for.
 
 returns:
-  - the updated `Item` JSON object. For convenience, wrong answers are also included in the response.
+  - the updated `Item` object. For convenience, wrong answers are also included in the response.
 
 ### ItemsList
 
@@ -681,7 +681,7 @@ url parameters (optional):
   - qti. Include the QTI 1 XML in the response objects.
 
 returns:
-  - list of `Item` JSON objects. Note that wrong answers are **not** included.
+  - list of `Item` objects. Note that wrong answers are **not** included.
 
 #### POST
 
@@ -708,7 +708,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `Bank` JSON object.
+  - `Bank` object.
 
 #### PUT
 
@@ -721,7 +721,7 @@ form data (optional):
                  pre-determined for you and should not be arbitrarily modified.
 
 returns:
-  - the updated `Bank` JSON object.
+  - the updated `Bank` object.
 
 ### AssessmentBanksList
 
@@ -736,7 +736,7 @@ url parameters (optional):
   - genusTypeId. Query / filter by the genusTypeId of a `bank`.
 
 returns:
-  - list of `Bank` JSON objects.
+  - list of `Bank` objects.
 
 #### POST
 
@@ -758,7 +758,7 @@ form data (optional):
                  `bank-genus-type%3Aclix-archive%40ODL.MIT.EDU
 
 returns:
-  - the new `Bank` JSON object.
+  - the new `Bank` object.
 
 ### AssessmentHierarchiesRootDetails
 
@@ -779,7 +779,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - `BankNode` JSON object. Note that the ID corresponds to the `bank` ID, though the object
+  - `BankNode` object. Note that the ID corresponds to the `bank` ID, though the object
     is slightly different.
 
 ### AssessmentHierarchiesRootsList
@@ -794,7 +794,7 @@ url parameters (optional):
   - None currently supported
 
 returns:
-  - list of `BankNode` JSON objects. Note that the IDs correspond to the `bank` IDs, though the
+  - list of `BankNode` objects. Note that the IDs correspond to the `bank` IDs, though the
     objects are slightly different.
 
 #### POST
@@ -824,9 +824,9 @@ url parameters (optional):
                    hierarchy.
 
 returns:
-  - list of `BankNode` JSON objects. Note that the IDs correspond to the `bank` IDs, though the
+  - list of `BankNode` objects. Note that the IDs correspond to the `bank` IDs, though the
     objects are slightly different. Children nodes are included in the `childNodes` attribute,
-    as a list of `BankNode` JSON objects.
+    as a list of `BankNode` objects.
 
 #### POST
 
@@ -855,7 +855,7 @@ url parameters (optional):
                is about 6 levels deep.
 
 returns:
-  - `BankNode` JSON object. Note that the ID corresponds to the `bank` ID, though the
+  - `BankNode` object. Note that the ID corresponds to the `bank` ID, though the
     object is slightly different. Children nodes are included in the `childNodes` attribute,
-    as a list of `BankNode` JSON objects. Ancestor nodes are included in the `parentNodes`
+    as a list of `BankNode` objects. Ancestor nodes are included in the `parentNodes`
     attribute.
