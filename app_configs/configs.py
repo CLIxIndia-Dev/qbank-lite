@@ -99,12 +99,20 @@ FILESYSTEM_1 = {
 
 }
 
-SERVICE = {
-    'id': 'dlkit_runtime_bootstrap_configuration',
-    'displayName': 'DLKit Runtime Bootstrap Configuration',
-    'description': 'Bootstrap Configuration for DLKit Runtime',
+AUTHZ_ADAPTER_1 = {
+    'id': 'authz_adapter_configuration_1',
+    'displayName': 'AuthZ Adapter Configuration',
+    'description': 'Configuration for AuthZ Adapter',
     'parameters': {
-        'implKey': impl_key_dict('service'),
+        'implKey': impl_key_dict('authz_adapter'),
+        'authzAuthorityImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Repository Provider Implementation',
+            'description': 'Implementation for repository service provider',
+            'values': [
+                {'value': 'FILESYSTEM_1', 'priority': 1}
+            ]
+        },
         'assessmentProviderImpl': {
             'syntax': 'STRING',
             'displayName': 'Assessment Provider Implementation',
@@ -113,20 +121,12 @@ SERVICE = {
                 {'value': 'FILESYSTEM_1', 'priority': 1}
             ]
         },
-        'loggingProviderImpl': {
+        'authorizationProviderImpl': {
             'syntax': 'STRING',
-            'displayName': 'Logging Provider Implementation',
-            'description': 'Implementation for logging service provider',
+            'displayName': 'Authorization Provider Implementation',
+            'description': 'Implementation for authorization service provider',
             'values': [
                 {'value': 'FILESYSTEM_1', 'priority': 1}
-            ]
-        },
-        'repositoryProviderImpl': {
-            'syntax': 'STRING',
-            'displayName': 'Repository Provider Implementation',
-            'description': 'Implementation for repository service provider',
-            'values': [
-                {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
             ]
         },
         'learningProviderImpl': {
@@ -143,6 +143,71 @@ SERVICE = {
             'description': 'Implementation for hierarchy service provider',
             'values': [
                 {'value': 'FILESYSTEM_1', 'priority': 1}
+            ]
+        },
+        'repositoryProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Repository Provider Implementation',
+            'description': 'Implementation for repository service provider',
+            'values': [
+                {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
+            ]
+        },
+        'loggingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Logging Provider Implementation',
+            'description': 'Implementation for logging provider',
+            'values': [
+                {'value': 'FILESYSTEM_1', 'priority': 1}
+            ]
+        },
+    }
+}
+
+SERVICE = {
+    'id': 'dlkit_runtime_bootstrap_configuration',
+    'displayName': 'DLKit Runtime Bootstrap Configuration',
+    'description': 'Bootstrap Configuration for DLKit Runtime',
+    'parameters': {
+        'implKey': impl_key_dict('service'),
+        'assessmentProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Assessment Provider Implementation',
+            'description': 'Implementation for assessment service provider',
+            'values': [
+                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+            ]
+        },
+        'loggingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Logging Provider Implementation',
+            'description': 'Implementation for logging service provider',
+            'values': [
+                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+            ]
+        },
+        'repositoryProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Repository Provider Implementation',
+            'description': 'Implementation for repository service provider',
+            'values': [
+                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+            ]
+        },
+        'learningProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Learning Provider Implementation',
+            'description': 'Implementation for learning service provider',
+            'values': [
+                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+            ]
+        },
+        'hierarchyProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Hierarchy Provider Implementation',
+            'description': 'Implementation for hierarchy service provider',
+            'values': [
+                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
             ]
         },
     }

@@ -4,6 +4,8 @@ MANAGER_PATHS = {
     'service': {
         'ASSESSMENT': ('dlkit.services.assessment.AssessmentManager',
                        'dlkit.services.assessment.AssessmentManager'),
+        'AUTHORIZATION': ('dlkit.services.authorization.AuthorizationManager',
+                          'dlkit.services.authorization.AuthorizationManager'),
         'REPOSITORY': ('dlkit.services.repository.RepositoryManager',
                        'dlkit.services.repository.RepositoryManager'),
         'LEARNING': ('dlkit.services.learning.LearningManager',
@@ -17,9 +19,23 @@ MANAGER_PATHS = {
         'GRADING': ('dlkit.services.grading.GradingManager',
                     'dlkit.services.grading.GradingManager')
     },
+    'authz_adapter': {
+        'ASSESSMENT': ('dlkit.authz_adapter.assessment.managers.AssessmentManager',
+                       'dlkit.authz_adapter.assessment.managers.AssessmentProxyManager'),
+        'AUTHORIZATION': ('dlkit.authz_adapter.authorization.managers.AuthorizationManager',
+                          'dlkit.authz_adapter.authorization.managers.AuthorizationProxyManager'),
+        'REPOSITORY': ('dlkit.authz_adapter.repository.managers.RepositoryManager',
+                       'dlkit.authz_adapter.repository.managers.RepositoryProxyManager'),
+        'LEARNING': ('dlkit.authz_adapter.learning.managers.LearningManager',
+                     'dlkit.authz_adapter.learning.managers.LearningProxyManager'),
+        'LOGGING': ('dlkit.authz_adapter.logging_.managers.LoggingManager',
+                    'dlkit.authz_adapter.logging_.managers.LoggingProxyManager')
+    },
     'filesystem': {
         'ASSESSMENT': ('dlkit.mongo.assessment.managers.AssessmentManager',
                        'dlkit.mongo.assessment.managers.AssessmentProxyManager'),
+        'AUTHORIZATION': ('dlkit.mongo.authorization.managers.AuthorizationManager',
+                          'dlkit.mongo.authorization.managers.AuthorizationProxyManager'),
         'HIERARCHY': ('dlkit.mongo.hierarchy.managers.HierarchyManager',
                       'dlkit.mongo.hierarchy.managers.HierarchyProxyManager'),
         'LEARNING': ('dlkit.mongo.learning.managers.LearningManager',
