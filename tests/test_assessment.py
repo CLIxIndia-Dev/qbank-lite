@@ -21,7 +21,8 @@ from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
 
 from sympy import sympify
 
-from testing_utilities import BaseTestCase, get_managers, create_test_bank, get_valid_contents
+from testing_utilities import BaseTestCase, get_managers, get_fixture_bank,\
+    create_new_bank, get_valid_contents
 from urllib import unquote, quote
 
 import utilities
@@ -172,7 +173,7 @@ class BaseAssessmentTestCase(BaseTestCase):
     def setUp(self):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
-        self._bank = create_test_bank()
+        self._bank = get_fixture_bank()
 
     def tearDown(self):
         super(BaseAssessmentTestCase, self).tearDown()
@@ -2795,7 +2796,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
     def test_can_set_username_in_header(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -2805,7 +2806,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         taken = json.loads(req.body)
         taken_id = unquote(taken['id'])
-        self.assertIn(test_student, taken['takingAgentId'])
+        self.assertIn(quote(quote(test_student)), taken['takingAgentId'])
 
         # Student can now take the assessment
         taken_endpoint = self.url + '/assessmentstaken/' + taken_id
@@ -2874,11 +2875,11 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
         req = self.app.get(taken_endpoint)
         data = self.json(req)
-        self.assertIn(test_student, data['takingAgentId'])
+        self.assertIn(quote(quote(test_student)), data['takingAgentId'])
 
     def test_can_finish_taken_to_get_new_taken(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -2911,7 +2912,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
     def test_can_get_results_for_offered(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -3067,7 +3068,7 @@ class HierarchyTests(BaseAssessmentTestCase):
 
     def test_removing_non_root_bank_from_hierarchy_throws_exception(self):
         self.num_banks(1)
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.num_banks(2)
         self.add_root_bank(self._bank.ident)
 
@@ -3106,7 +3107,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_getting_details_for_non_root_bank_throws_exception(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/roots/' + unquote(str(second_bank.ident))
@@ -3115,7 +3116,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                           url)
 
     def test_can_get_children_banks(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3145,7 +3146,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_trying_to_add_child_to_non_root_bank_works(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
@@ -3188,7 +3189,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                           headers={'content-type': 'application/json'})
 
     def test_child_id_required_to_add_child_bank(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3203,9 +3204,8 @@ class HierarchyTests(BaseAssessmentTestCase):
                           params=json.dumps(payload),
                           headers={'content-type': 'application/json'})
 
-
     def test_can_add_child_bank_to_node(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3222,7 +3222,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.code(req, 201)
 
     def test_can_remove_child_from_node(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3266,7 +3266,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_can_get_ancestor_and_descendant_levels(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3288,7 +3288,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.query_node_hierarchy(self._bank.ident, 'descendants', 1, [str(second_bank.ident)])
 
     def test_can_query_hierarchy_nodes_with_descendants(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3304,7 +3304,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                             })
         self.code(req, 201)
 
-        third_bank = create_test_bank()
+        third_bank = create_new_bank()
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
 
@@ -3328,7 +3328,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
 
     def test_display_names_flag_shows_in_hierarchy_descendants(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3344,7 +3344,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                             })
         self.code(req, 201)
 
-        third_bank = create_test_bank()
+        third_bank = create_new_bank()
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
 

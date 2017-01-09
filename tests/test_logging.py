@@ -6,7 +6,7 @@ from dlkit_runtime.primordium import Id
 
 from paste.fixture import AppError
 
-from testing_utilities import BaseTestCase, get_managers, create_test_bank
+from testing_utilities import BaseTestCase, get_managers, get_fixture_bank
 
 
 class BaseLoggingTestCase(BaseTestCase):
@@ -49,7 +49,7 @@ class LogCrUDTests(BaseLoggingTestCase):
     def setUp(self):
         super(LogCrUDTests, self).setUp()
         # also need a test assessment bank here to do orchestration with
-        self.assessment_bank = create_test_bank()
+        self.assessment_bank = get_fixture_bank()
         self.bad_log_id = 'assessment.Bank%3A55203f0be7dde0815228bb41%40ODL.MIT.EDU'
         self.url += '/logs'
 
