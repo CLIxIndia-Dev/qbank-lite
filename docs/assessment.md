@@ -719,6 +719,7 @@ form data (optional):
                  Will be set to the default language of `en`.
   - genusTypeId. A string field useful for UIs in differentiating between `bank` types. This is
                  pre-determined for you and should not be arbitrarily modified.
+  - aliasId. An alias that you want to use to also refer to the bank.
 
 returns:
   - the updated `Bank` object.
@@ -734,6 +735,7 @@ url parameters (optional):
   - displayName. Query / filter by the given text in the displayName field.
                  Case insensitive matching.
   - genusTypeId. Query / filter by the genusTypeId of a `bank`.
+  - aliasId. An alias that you want to use to also refer to the bank.
 
 returns:
   - list of `Bank` objects.

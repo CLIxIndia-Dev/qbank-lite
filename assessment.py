@@ -129,10 +129,15 @@ class AssessmentBanksList(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             form = am.get_bank_form_for_create([])
+            data = self.data()
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, data)
 
             new_bank = utilities.convert_dl_object(am.create_bank(form))
+
+            if 'aliasId' in data:
+                am.alias_bank(utilities.clean_id(json.loads(new_bank)['id']),
+                              utilities.clean_id(data['aliasId']))
 
             return new_bank
         except (PermissionDenied, InvalidArgument) as ex:
@@ -177,10 +182,16 @@ class AssessmentBankDetails(utilities.BaseClass):
     def PUT(self, bank_id):
         try:
             am = autils.get_assessment_manager()
+            data = self.data()
+
             form = am.get_bank_form_for_update(utilities.clean_id(bank_id))
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, data)
             updated_bank = am.update_bank(form)
+
+            if 'aliasId' in data:
+                am.alias_bank(updated_bank.ident, utilities.clean_id(data['aliasId']))
+
             bank = utilities.convert_dl_object(updated_bank)
             return bank
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:

@@ -2964,6 +2964,77 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         )
 
 
+class BankTests(BaseAssessmentTestCase):
+    def setUp(self):
+        super(BankTests, self).setUp()
+        self.url += '/banks'
+
+    def tearDown(self):
+        """
+        Remove the test user from all groups in Membership
+        Start from the smallest groupId because need to
+        remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
+        """
+        super(BankTests, self).tearDown()
+
+    def test_can_set_bank_alias_on_create(self):
+        payload = {
+            "name": "New bank",
+            "aliasId": "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               payload['aliasId'])
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], payload['name'])
+
+    def test_can_update_bank_alias(self):
+        alias_id = "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        name = "New Bank"
+        payload = {
+            "name": name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
+
+        payload = {
+            "aliasId": alias_id
+        }
+        url = '{0}/{1}'.format(self.url,
+                               new_bank['id'])
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], name)
+
+
 class BasicServiceTests(BaseAssessmentTestCase):
     """Test the views for getting the basic service calls
 
