@@ -178,7 +178,7 @@ SERVICE = {
             'displayName': 'Assessment Provider Implementation',
             'description': 'Implementation for assessment service provider',
             'values': [
-                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+                {'value': 'FILESYSTEM_1', 'priority': 1}
             ]
         },
         'loggingProviderImpl': {
@@ -186,7 +186,7 @@ SERVICE = {
             'displayName': 'Logging Provider Implementation',
             'description': 'Implementation for logging service provider',
             'values': [
-                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+                {'value': 'FILESYSTEM_1', 'priority': 1}
             ]
         },
         'repositoryProviderImpl': {
@@ -194,7 +194,7 @@ SERVICE = {
             'displayName': 'Repository Provider Implementation',
             'description': 'Implementation for repository service provider',
             'values': [
-                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+                {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
             ]
         },
         'learningProviderImpl': {
@@ -202,7 +202,7 @@ SERVICE = {
             'displayName': 'Learning Provider Implementation',
             'description': 'Implementation for learning service provider',
             'values': [
-                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+                {'value': 'FILESYSTEM_1', 'priority': 1}
             ]
         },
         'hierarchyProviderImpl': {
@@ -210,7 +210,7 @@ SERVICE = {
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
             'values': [
-                {'value': 'AUTHZ_ADAPTER_1', 'priority': 1}
+                {'value': 'FILESYSTEM_1', 'priority': 1}
             ]
         },
     }
