@@ -8922,7 +8922,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         item = self.json(req)
-
+        set_trace()
         self.assertEqual(
             item['genusTypeId'],
             str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS)

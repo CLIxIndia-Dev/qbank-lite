@@ -1330,7 +1330,12 @@ class ItemQTIDetails(utilities.BaseClass):
 
             item = ils.get_item(utilities.clean_id(sub_id))
 
-            item_bank = am.get_bank(utilities.clean_id(item.object_map['bankId']))
+            # don't do item.object_map here to get the bankId,
+            # we've "gotten" the question and set the choice order (for randomized
+            # MC). So by getting the QTI XML here, it's impossible to get the
+            # original choice order, if shuffle = False...
+            item_bank = am.get_bank(utilities.clean_id(item._my_map['assignedBankIds'][0]))
+
             return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
