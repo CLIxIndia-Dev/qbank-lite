@@ -13,7 +13,7 @@ from dlkit_runtime.primordium import Type, DataInputStream, DisplayText
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
-    ASSESSMENT_RECORD_TYPES
+    ASSESSMENT_RECORD_TYPES, QUESTION_GENUS_TYPES
 
 from urllib import quote
 
@@ -26,6 +26,10 @@ CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
 CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
 CHOICE_INTERACTION_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-survey'])
 CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select-survey'])
+CHOICE_INTERACTION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+CHOICE_INTERACTION_MULTI_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
+CHOICE_INTERACTION_SURVEY_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-survey'])
+CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select-survey'])
 
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
@@ -40,6 +44,7 @@ NUMERIC_RESPONSE_RECORD = Type(**ITEM_RECORD_TYPES['qti-numeric-response'])
 NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
 
 RANDOMIZED_MULTI_CHOICE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-choice-randomized'])
+RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-choice-randomized'])
 
 UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
@@ -47,6 +52,9 @@ UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interacti
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
+ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -655,16 +663,17 @@ class ItemsList(utilities.BaseClass):
                                               WRONG_ANSWER_ITEM,
                                               MULTI_LANGUAGE_ITEM_RECORD]
 
-                    if 'shuffle' in item_json and item_json['shuffle']:
+                    if item_json['genusTypeId'] in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                                                    CHOICE_INTERACTION_SURVEY_GENUS,
+                                                    CHOICE_INTERACTION_GENUS,
+                                                    CHOICE_INTERACTION_MULTI_GENUS,
+                                                    ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                                                    ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                                                    ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
 
                     form = bank.get_item_form_for_create(items_records_list)
-
-                    if 'displayName' in item_json:
-                        form.add_display_name(utilities.create_display_text(item_json['displayName']))
-                    if 'description' in item_json:
-                        form.add_description(utilities.create_display_text(item_json['description']))
-                    form.set_genus_type(Type(item_json['genusTypeId']))
+                    form = utilities.set_form_basics(form, item_json)
 
                     if 'learningObjectiveId' in item_json:
                         form.set_learning_objectives([utilities.clean_id(item_json['learningObjectiveId'])])
@@ -679,32 +688,61 @@ class ItemsList(utilities.BaseClass):
                         question = item_json['question']
                         # need to add the right records here, depending on question / item type
                         question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
-                        q_form = bank.get_question_form_for_create(new_item.ident, )
-                        if 'shuffle' in question and question['shuffle']:
+                        if question['genusTypeId'] in [CHOICE_INTERACTION_QUESTION_GENUS,
+                                                       CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
+                                                       CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
+                                                       CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
+                                                       ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                                                       ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                                                       ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                            question_record_types.append(RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD)
+
+                        q_form = bank.get_question_form_for_create(new_item.ident,
+                                                                   question_record_types)
 
                         # need to set name / description and genusTypeId
+                        q_form = utilities.set_form_basics(q_form, question)
 
                         # update_question_form should handle everything else
-                        q_form = autils.update_question_form(item_json['question'], q_form)
+                        q_form = autils.update_question_form(question, q_form)
 
                         # need to also handle fileIds / images / media attached to the question
-
+                        q_form = autils.update_question_form_with_files(q_form, question)
 
                         bank.create_question(q_form)
 
                     if 'answers' in item_json:
                         for answer in item_json['answers']:
-                            # records depends on the genusTypeId of the question
-
+                            # records depends on the genusTypeId of the ITEM
+                            # can't rely on answer genus type because that's used for
+                            # right / wrong answers
                             answer_record_types = [QTI_ANSWER,
                                                    MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
                                                    FILES_ANSWER_RECORD]
 
+                            if item_json['genusTypeId'] in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                                                            CHOICE_INTERACTION_SURVEY_GENUS,
+                                                            CHOICE_INTERACTION_GENUS,
+                                                            CHOICE_INTERACTION_MULTI_GENUS,
+                                                            ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                                                            ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                                answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
+                            elif item_json['genusTypeId'] in []:
+                                answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
+                            elif item_json['genusTypeId'] == str():
+                                answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
+                            elif item_json['genusTypeId'] == str():
+                                answer_record_types.append(SIMPLE_INLINE_CHOICE_ANSWER_RECORD)
+                            elif item_json['genusTypeId'] == str():
+                                answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
+
                             a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
 
-                            # set genusTypeId to right / wrong
+                            # set genusTypeId to right / wrong and feedback
+                            a_form = autils.set_answer_form_genus_and_feedback(answer, a_form)
 
                             # add media via fileIds
+                            a_form = autils.update_answer_form_with_files(a_form, answer)
 
                             # set conditions / choiceIds
 
@@ -1171,19 +1209,7 @@ class ItemDetails(utilities.BaseClass):
                 qfu = bank.get_question_form_for_update(updated_item.ident)
                 qfu = autils.update_question_form(question, qfu)
 
-                if 'fileIds' in question:
-                    # assumes the asset already exists in the system
-                    if str(FILES_ANSWER_RECORD) not in qfu._my_map['recordTypeIds']:
-                        record = qfu.get_question_form_record(FILES_ANSWER_RECORD)
-                        record._init_metadata()
-                        record._init_map()
-                    for label, asset_data in question['fileIds'].iteritems():
-                        # don't let them overwrite files from other languages...
-                        if label not in qfu._my_map['fileIds']:
-                            qfu.add_asset(asset_data['assetId'],
-                                          asset_content_id=asset_data['assetContentId'],
-                                          label=label,
-                                          asset_content_type=asset_data['assetContentTypeId'])
+                qfu = autils.update_question_form_with_files(qfu, question)
 
                 updated_question = bank.update_question(qfu)
 
@@ -1193,17 +1219,7 @@ class ItemDetails(utilities.BaseClass):
                         a_id = utilities.clean_id(answer['id'])
                         afu = bank.get_answer_form_for_update(a_id)
 
-                        if 'fileIds' in answer:
-                            # assumes the asset already exists in the system
-                            if str(FILES_ANSWER_RECORD) not in afu._my_map['recordTypeIds']:
-                                record = afu.get_answer_form_record(FILES_ANSWER_RECORD)
-                                record._init_metadata()
-                                record._init_map()
-                            for label, asset_data in answer['fileIds'].iteritems():
-                                afu.add_asset(asset_data['assetId'],
-                                              asset_content_id=asset_data['assetContentId'],
-                                              label=label,
-                                              asset_content_type=asset_data['assetContentTypeId'])
+                        afu = autils.update_answer_form_with_files(afu, answer)
 
                         afu = autils.update_answer_form(answer, afu)
                         afu = autils.set_answer_form_genus_and_feedback(answer, afu)

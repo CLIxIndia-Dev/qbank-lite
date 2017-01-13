@@ -18,7 +18,8 @@ from inflection import underscore
 
 from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
     ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES, ASSET_GENUS_TYPES,\
-    ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES
+    ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES,\
+    QUESTION_RECORD_TYPES
 
 from urllib import quote
 
@@ -43,6 +44,9 @@ REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
+
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
+FILES_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['files'])
 
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
@@ -729,6 +733,26 @@ def update_answer_form(answer, form, question=None):
 
     return form
 
+def update_answer_form_with_files(form, data):
+    if 'fileIds' in data:
+        # assumes the asset already exists in the system
+        if str(FILES_ANSWER_RECORD) not in data._my_map['recordTypeIds']:
+            record = form.get_question_form_record(FILES_ANSWER_RECORD)
+            record._init_metadata()
+            record._init_map()
+        form = update_form_with_files(form, data)
+    return form
+
+def update_form_with_files(form, data):
+    for label, asset_data in data['fileIds'].iteritems():
+        # don't let them overwrite files from other languages...
+        if label not in form._my_map['fileIds']:
+            form.add_asset(asset_data['assetId'],
+                           asset_content_id=asset_data['assetContentId'],
+                           label=label,
+                           asset_content_type=asset_data['assetContentTypeId'])
+    return form
+
 def update_item_metadata(data, form):
     """Update the metadata / IRT for an edX item
 
@@ -1000,6 +1024,16 @@ def update_question_form(question, form, create=False):
     else:
         raise Unsupported()
 
+    return form
+
+def update_question_form_with_files(form, data):
+    if 'fileIds' in data:
+        # assumes the asset already exists in the system
+        if str(FILES_QUESTION_RECORD) not in data._my_map['recordTypeIds']:
+            record = form.get_question_form_record(FILES_QUESTION_RECORD)
+            record._init_metadata()
+            record._init_map()
+        form = update_form_with_files(form, data)
     return form
 
 def update_response_form(response, form):
