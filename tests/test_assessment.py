@@ -5980,6 +5980,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         numeric_choice_line_str = _stringify(numeric_choice_wrapper)
         return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
 
+    @staticmethod
+    def _label(text):
+        return text.replace('.', '_')
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -6072,6 +6076,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'r')
         self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
         self._fitb_with_punctuation_test_file = open('{0}/tests/files/eb_u01l03a06q03_en.zip'.format(ABS_PATH), 'r')
+        self._square_image = open('{0}/tests/files/square.png'.format(ABS_PATH), 'r')
+        self._diamond_image = open('{0}/tests/files/diamond.png'.format(ABS_PATH), 'r')
+        self._rectangle_image = open('{0}/tests/files/rectangle.png'.format(ABS_PATH), 'r')
+        self._parallelogram_image = open('{0}/tests/files/parallelogram.png'.format(ABS_PATH), 'r')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -6106,6 +6114,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._multi_select_survey_question_test_file.close()
         self._unicode_feedback_test_file.close()
         self._fitb_with_punctuation_test_file.close()
+        self._square_image.close()
+        self._diamond_image.close()
+        self._rectangle_image.close()
+        self._parallelogram_image.close()
+
+    def upload_media_file(self, file_handle):
+        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        file_handle.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile',
+                                           self._filename(file_handle),
+                                           file_handle.read())])
+        self.ok(req)
+        data = self.json(req)
+        return data
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
@@ -8787,6 +8810,243 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.fail('finish writing the test')
 
     def test_can_create_multi_choice_multi_answer_question_via_rest(self):
+        media_files = [self._square_image,
+                       self._diamond_image,
+                       self._parallelogram_image,
+                       self._rectangle_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                    "text": """<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img src="AssetContent:parallelogram_png" alt="parallelagram" width="186" height="147" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                    "text": """<simpleChoice identifier="id47e56db8-ee16-4111-9bcc-b8ac9716bcd4">
+<p>
+<img src="AssetContent:square_png" alt="square" width="144" height="141" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id01913fba-e66d-4a01-9625-94102847faac",
+                    "text": """<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img src="AssetContent:rectangle_png" alt="rectangle" width="201" height="118" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id4f525d00-e24c-4ac3-a104-848a2cd686c0",
+                    "text": """<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img src="AssetContent:diamond_png" alt="diamond shape" width="148" height="146" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id18c8cc80-68d1-4c1f-b9f0-cb345bad2862",
+                    "text": """<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+  <span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">None of these </span>
+  <br />
+</strong>
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS),
+                "shuffle": False,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                              "id47e56db8-ee16-4111-9bcc-b8ac9716bcd4",
+                              "id4f525d00-e24c-4ac3-a104-848a2cd686c0"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p>
+    <strong>
+      <span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">Please try again!</span>
+      <br />
+    </strong>
+  </p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            3
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        diamond_label = 'diamond_png'
+        rectangle_label = 'rectangle_png'
+        parallel_label = 'parallelogram_png'
+        regular_square_label = 'square_png'
+
+        diamond_asset_id = item['question']['fileIds'][diamond_label]['assetId']
+        diamond_asset_content_id = item['question']['fileIds'][diamond_label]['assetContentId']
+        rectangle_asset_id = item['question']['fileIds'][rectangle_label]['assetId']
+        rectangle_asset_content_id = item['question']['fileIds'][rectangle_label]['assetContentId']
+        parallel_asset_id = item['question']['fileIds'][parallel_label]['assetId']
+        parallel_asset_content_id = item['question']['fileIds'][parallel_label]['assetContentId']
+        regular_square_asset_id = item['question']['fileIds'][regular_square_label]['assetId']
+        regular_square_asset_content_id = item['question']['fileIds'][regular_square_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p dir="ltr" id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60">
+   In the diagram below,
+  </p>
+<p>
+<strong>
+</strong>
+</p>
+<p dir="ltr">
+   A is the set of rectangles, and
+  </p>
+<p dir="ltr">
+   B is the set of rhombuses
+  </p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+<img alt="venn1" height="202" src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" width="288"/>
+</p>
+<p dir="ltr">
+</p>
+<p>
+<strong>
+    Which all shape(s) can be contained in the gray shaded area?
+    <br/>
+</strong>
+</p>
+<choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="false">
+<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" width="186"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id47e56db8-ee16-4111-9bcc-b8ac9716bcd4">
+<p>
+<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="144"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}" width="201"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}" width="148"/>
+</p>
+</simpleChoice>
+<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">
+       None of these
+      </span>
+<br/>
+</strong>
+</p>
+</simpleChoice>
+</choiceInteraction>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      parallel_asset_id,
+                      parallel_asset_content_id,
+                      regular_square_asset_id,
+                      regular_square_asset_content_id,
+                      rectangle_asset_id,
+                      rectangle_asset_content_id,
+                      diamond_asset_id,
+                      diamond_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
         self.fail('finish writing the test')
 
     def test_can_create_reflection_single_answer_question_via_rest(self):
