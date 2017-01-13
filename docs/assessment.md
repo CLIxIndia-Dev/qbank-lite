@@ -156,6 +156,10 @@ form data (optional):
                  against all questions in the assessment.
   - nOfM. The number of questions (`n`) out of all the questions (`M`) in the assessment, that
           the student is expected to complete for a passing grade.
+  - genusTypeId. This can be used to define the "type" of `offered`, i.e. to display all questions on a
+                 single page or one at a time. Client-defined. This should be of the form:
+                 `assessment-offered-genus-type%3A<some identifier>%40ODL.MIT.EDU`, like
+                 `assessment-offered-genus-type%3Asingle-page%40ODL.MIT.EDU`
 
 returns:
   - the updated `AssessmentOffered` object.
@@ -367,6 +371,10 @@ form data (optional):
                  against all questions in the assessment.
   - nOfM. The number of questions (`n`) out of all the questions (`M`) in the assessment, that
           the student is expected to complete for a passing grade.
+  - genusTypeId. This can be used to define the "type" of `offered`, i.e. to display all questions on a
+                 single page or one at a time. Client-defined. This should be of the form:
+                 `assessment-offered-genus-type%3A<some identifier>%40ODL.MIT.EDU`, like
+                 `assessment-offered-genus-type%3Asingle-page%40ODL.MIT.EDU`
 
 ### AssessmentItemDetails
 
