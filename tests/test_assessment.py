@@ -8801,7 +8801,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             "question": {
                 "questionString": """<itemBody >
 <p>Did you eat breakfast today?</p>
-<choiceInteraction />
 </itemBody>""",
                 "choices": [{
                     "id": "id5f1fc52a-a04e-4fa1-b855-51da24967a31",
@@ -8887,9 +8886,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item_body = item_qti.itemBody
 
         choice_interaction = item_body.choiceInteraction.extract()
-
-        self.assertTrue(choice_interaction['shuffle'])
-        self.assertEqual(choice_interaction['maxChoices'], 0)
 
         expected_string = """<itemBody>
 <p>
