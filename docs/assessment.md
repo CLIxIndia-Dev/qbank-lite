@@ -567,6 +567,7 @@ form data (single language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
+    - shuffle. To shuffle the choices or not (may not apply to all question types).
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -640,6 +641,7 @@ form data (multi-language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
+    - shuffle. To shuffle the choices or not (may not apply to all question types).
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit

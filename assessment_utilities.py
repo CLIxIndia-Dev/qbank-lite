@@ -1035,6 +1035,8 @@ def update_question_form(question, form, create=False):
                             form.add_choice(utilities.create_display_text(choice['text']), region)
                         except InvalidArgument:
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
+        if 'shuffle' in question:
+            form.set_shuffle(bool(question['shuffle']))
     else:
         raise Unsupported()
 
