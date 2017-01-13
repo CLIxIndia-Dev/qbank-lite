@@ -34,8 +34,10 @@ CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS = Type(**QUESTION_GENUS_TY
 COLOR_BANK_RECORD_TYPE = Type(**BANK_RECORD_TYPES['bank-color'])
 FILE_COMMENT_RECORD_TYPE = Type(**COMMENT_RECORD_TYPES['file-comment'])
 FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
+FILE_SUBMISSION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['file-submission'])
 
 EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
+EXTENDED_TEXT_INTERACTION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['extended-text-answer'])
 
 INLINE_CHOICE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti-inline-choice'])
 INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
@@ -55,6 +57,10 @@ ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order
 ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
+
+SIMPLE_INLINE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['inline-choice-answer'])
+SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-choice-answer'])
+MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-numeric-response-with-feedback'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -704,6 +710,8 @@ class ItemsList(utilities.BaseClass):
                         q_form = utilities.set_form_basics(q_form, question)
 
                         # update_question_form should handle everything else
+                        # this recordTypeIds info is needed for both update_question_form methods
+                        question['recordTypeIds'] = [str(t) for t in question_record_types]
                         q_form = autils.update_question_form(question, q_form)
 
                         # need to also handle fileIds / images / media attached to the question
@@ -727,13 +735,15 @@ class ItemsList(utilities.BaseClass):
                                                             ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
                                                             ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
                                 answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] in []:
+                            elif item_json['genusTypeId'] in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                                                              UPLOAD_INTERACTION_AUDIO_GENUS,
+                                                              UPLOAD_INTERACTION_GENERIC_GENUS]:
                                 answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str():
+                            elif item_json['genusTypeId'] == str(EXTENDED_TEXT_INTERACTION_GENUS):
                                 answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str():
+                            elif item_json['genusTypeId'] == str(INLINE_CHOICE_INTERACTION_GENUS):
                                 answer_record_types.append(SIMPLE_INLINE_CHOICE_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str():
+                            elif item_json['genusTypeId'] == str(NUMERIC_RESPONSE_INTERACTION_GENUS):
                                 answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
 
                             a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
@@ -742,9 +752,12 @@ class ItemsList(utilities.BaseClass):
                             a_form = autils.set_answer_form_genus_and_feedback(answer, a_form)
 
                             # add media via fileIds
+                            # this update to recordTypeIds needed for both update_answer_form methods
+                            answer['recordTypeIds'] = [str(t) for t in answer_record_types]
                             a_form = autils.update_answer_form_with_files(a_form, answer)
 
                             # set conditions / choiceIds
+                            a_form = autils.update_answer_form(answer, a_form)
 
                             bank.create_answer(a_form)
                 else:
@@ -1198,10 +1211,13 @@ class ItemDetails(utilities.BaseClass):
             if 'question' in local_data_map:
                 question = local_data_map['question']
                 existing_question = updated_item.get_question()
+                existing_question_map = existing_question.object_map
                 q_id = existing_question.ident
 
                 if 'type' not in question:
-                    question['type'] = existing_question.object_map['recordTypeIds'][0]
+                    question['type'] = existing_question_map['recordTypeIds'][0]
+                if 'recordTypeIds' not in question:
+                    question['recordTypeIds'] = existing_question_map['recordTypeIds']
 
                 if 'rerandomize' in local_data_map and 'rerandomize' not in question:
                     question['rerandomize'] = local_data_map['rerandomize']
@@ -1219,6 +1235,9 @@ class ItemDetails(utilities.BaseClass):
                         a_id = utilities.clean_id(answer['id'])
                         afu = bank.get_answer_form_for_update(a_id)
 
+                        if 'recordTypeIds' not in answer:
+                            answer['recordTypeIds'] = afu._my_map['recordTypeIds']
+
                         afu = autils.update_answer_form_with_files(afu, answer)
 
                         afu = autils.update_answer_form(answer, afu)
@@ -1230,6 +1249,9 @@ class ItemDetails(utilities.BaseClass):
                         afc = bank.get_answer_form_for_create(utilities.clean_id(sub_id),
                                                               a_types)
                         afc = autils.set_answer_form_genus_and_feedback(answer, afc)
+                        if 'recordTypeIds' not in answer:
+                            answer['recordTypeIds'] = [str(t) for t in a_types]
+
                         if 'multi-choice' in answer['type']:
                             # because multiple choice answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed

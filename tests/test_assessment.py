@@ -8731,6 +8731,43 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_create_multi_choice_single_answer_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_multi_choice_multi_answer_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_reflection_single_answer_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_reflection_multi_answer_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_audio_record_tool_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_generic_file_upload_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_mw_sentence_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_mw_sandbox_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_fill_in_the_blank_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_short_answer_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_image_sequence_question_via_rest(self):
+        self.fail('finish writing the test')
+
+    def test_can_create_numeric_response_question_via_rest(self):
+        self.fail('finish writing the test')
+
+
 
 class FileUploadTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
