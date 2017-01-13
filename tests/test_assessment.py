@@ -8741,7 +8741,157 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.fail('finish writing the test')
 
     def test_can_create_reflection_multi_answer_question_via_rest(self):
-        self.fail('finish writing the test')
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+<choiceInteraction />
+</itemBody>""",
+                "choices": [{
+                    "id": "id5f1fc52a-a04e-4fa1-b855-51da24967a31",
+                    "text": """<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+<p>Yes</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                    "text": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>No</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id8188b5cd-89b0-4140-b12a-aed5426bd81b",
+                    "text": """<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+<p>I don't remember</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+                "shuffle": True
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["id5f1fc52a-a04e-4fa1-b855-51da24967a31"],
+                "feedback": """<modalFeedback  identifier="Feedback1359458626" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>Thank you for your participation.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["id31392307-c87e-476b-8f92-b0f12ed66300"],
+                "feedback": """<modalFeedback  identifier="Feedback1359458626" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>Thank you for your participation.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["id8188b5cd-89b0-4140-b12a-aed5426bd81b"],
+                "feedback": """<modalFeedback  identifier="Feedback1359458626" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>Thank you for your participation.</p>
+</modalFeedback>"""
+            }]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS)
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            3
+        )
+        choice_ids = [c['id'] for c in item['question']['choices']]
+
+        self.assertEqual(
+            len(item['answers']),
+            3
+        )
+        for answer in item['answers']:
+            self.assertEqual(
+                answer['genusTypeId'],
+                str(RIGHT_ANSWER_GENUS)
+            )
+            self.assertIn('Thank you for your participation.', answer['feedbacks'][0]['text'])
+            self.assertIn(answer['choiceIds'][0], choice_ids)
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        choice_interaction = item_body.choiceInteraction.extract()
+
+        self.assertTrue(choice_interaction['shuffle'])
+        self.assertEqual(choice_interaction['maxChoices'], 0)
+
+        expected_string = """<itemBody>
+<p>
+   Did you eat breakfast today?
+  </p>
+
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+        self.assertEqual(
+            len(choice_interaction.find_all('simpleChoice')),
+            3
+        )
+        self.assertEqual(
+            choice_interaction['maxChoices'],
+            "0"
+        )
+        self.assertEqual(
+            choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            choice_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "id5f1fc52a-a04e-4fa1-b855-51da24967a31": """<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+<p>
+     Yes
+    </p>
+</simpleChoice>""",
+            "id31392307-c87e-476b-8f92-b0f12ed66300": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>
+     No
+    </p>
+</simpleChoice>""",
+            "id8188b5cd-89b0-4140-b12a-aed5426bd81b": """<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+<p>
+     I don\'t remember
+    </p>
+</simpleChoice>"""
+        }
+
+        for choice in choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_can_create_audio_record_tool_question_via_rest(self):
         self.fail('finish writing the test')

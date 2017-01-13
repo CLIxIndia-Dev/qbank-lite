@@ -38,18 +38,23 @@ FILE_SUBMISSION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['file-submission'])
 
 EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
 EXTENDED_TEXT_INTERACTION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['extended-text-answer'])
+EXTENDED_TEXT_INTERACTION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
 
 INLINE_CHOICE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti-inline-choice'])
 INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+INLINE_CHOICE_MW_FITB_INTERACTION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
 
 NUMERIC_RESPONSE_RECORD = Type(**ITEM_RECORD_TYPES['qti-numeric-response'])
 NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
+NUMERIC_RESPONSE_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-numeric-response'])
 
 RANDOMIZED_MULTI_CHOICE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['multi-choice-randomized'])
 RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-choice-randomized'])
 
 UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
 UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
+UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
+UPLOAD_INTERACTION_GENERIC_QUESTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-generic'])
 
 ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
 ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
@@ -61,6 +66,13 @@ ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS = Type(**QUESTION_GENUS_TYP
 SIMPLE_INLINE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['inline-choice-answer'])
 SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-choice-answer'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-numeric-response-with-feedback'])
+MULTI_LANGUAGE_QUESTION_STRING_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-question-string'])
+MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-multiple-choice'])
+MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-ordered-choice'])
+MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-inline-choice'])
+MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-text-interaction'])
+MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
+MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
@@ -624,19 +636,20 @@ class ItemsList(utilities.BaseClass):
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
                     item_json = self.data()
+                    item_genus = Type(item_json['genusTypeId'])
 
-                    if item_json['genusTypeId'] not in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
-                                                        CHOICE_INTERACTION_SURVEY_GENUS,
-                                                        CHOICE_INTERACTION_GENUS,
-                                                        CHOICE_INTERACTION_MULTI_GENUS,
-                                                        UPLOAD_INTERACTION_AUDIO_GENUS,
-                                                        UPLOAD_INTERACTION_GENERIC_GENUS,
-                                                        ORDER_INTERACTION_MW_SENTENCE_GENUS,
-                                                        ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                                                        ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS,
-                                                        EXTENDED_TEXT_INTERACTION_GENUS,
-                                                        INLINE_CHOICE_INTERACTION_GENUS,
-                                                        NUMERIC_RESPONSE_INTERACTION_GENUS]:
+                    if item_genus not in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                                          CHOICE_INTERACTION_SURVEY_GENUS,
+                                          CHOICE_INTERACTION_GENUS,
+                                          CHOICE_INTERACTION_MULTI_GENUS,
+                                          UPLOAD_INTERACTION_AUDIO_GENUS,
+                                          UPLOAD_INTERACTION_GENERIC_GENUS,
+                                          ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                                          ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                                          ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS,
+                                          EXTENDED_TEXT_INTERACTION_GENUS,
+                                          INLINE_CHOICE_INTERACTION_GENUS,
+                                          NUMERIC_RESPONSE_INTERACTION_GENUS]:
                         raise OperationFailed('Item type not supported, or unrecognized')
 
                     add_provenance_parent = False
@@ -669,13 +682,13 @@ class ItemsList(utilities.BaseClass):
                                               WRONG_ANSWER_ITEM,
                                               MULTI_LANGUAGE_ITEM_RECORD]
 
-                    if item_json['genusTypeId'] in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
-                                                    CHOICE_INTERACTION_SURVEY_GENUS,
-                                                    CHOICE_INTERACTION_GENUS,
-                                                    CHOICE_INTERACTION_MULTI_GENUS,
-                                                    ORDER_INTERACTION_MW_SENTENCE_GENUS,
-                                                    ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                                                    ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
+                    if item_genus in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                                      CHOICE_INTERACTION_SURVEY_GENUS,
+                                      CHOICE_INTERACTION_GENUS,
+                                      CHOICE_INTERACTION_MULTI_GENUS,
+                                      ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                                      ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                                      ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
 
                     form = bank.get_item_form_for_create(items_records_list)
@@ -694,14 +707,35 @@ class ItemsList(utilities.BaseClass):
                         question = item_json['question']
                         # need to add the right records here, depending on question / item type
                         question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
-                        if question['genusTypeId'] in [CHOICE_INTERACTION_QUESTION_GENUS,
-                                                       CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
-                                                       CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
-                                                       CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
-                                                       ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                                                       ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                                                       ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                        question_type = Type(question['genusTypeId'])
+
+                        if question_type in [CHOICE_INTERACTION_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
+                                             ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                                             ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                                             ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
                             question_record_types.append(RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD)
+
+                        if question_type in [CHOICE_INTERACTION_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
+                                             CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD)
+                        elif question_type in [UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS,
+                                               UPLOAD_INTERACTION_GENERIC_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD)
+                        elif question_type in [ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                                               ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                                               ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD)
+                        elif question_type in [EXTENDED_TEXT_INTERACTION_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD)
+                        elif question_type in [INLINE_CHOICE_MW_FITB_INTERACTION_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
+                        elif question_type in [NUMERIC_RESPONSE_QUESTION_GENUS]:
+                            question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
 
                         q_form = bank.get_question_form_for_create(new_item.ident,
                                                                    question_record_types)
@@ -727,17 +761,16 @@ class ItemsList(utilities.BaseClass):
                             answer_record_types = [QTI_ANSWER,
                                                    MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
                                                    FILES_ANSWER_RECORD]
-
-                            if item_json['genusTypeId'] in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
-                                                            CHOICE_INTERACTION_SURVEY_GENUS,
-                                                            CHOICE_INTERACTION_GENUS,
-                                                            CHOICE_INTERACTION_MULTI_GENUS,
-                                                            ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                                                            ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                            if item_genus in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                                              CHOICE_INTERACTION_SURVEY_GENUS,
+                                              CHOICE_INTERACTION_GENUS,
+                                              CHOICE_INTERACTION_MULTI_GENUS,
+                                              ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                                              ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
                                 answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                                                              UPLOAD_INTERACTION_AUDIO_GENUS,
-                                                              UPLOAD_INTERACTION_GENERIC_GENUS]:
+                            elif item_genus in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                                                UPLOAD_INTERACTION_AUDIO_GENUS,
+                                                UPLOAD_INTERACTION_GENERIC_GENUS]:
                                 answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
                             elif item_json['genusTypeId'] == str(EXTENDED_TEXT_INTERACTION_GENUS):
                                 answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
