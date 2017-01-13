@@ -567,6 +567,8 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
     if 'genus' in answer:
         answer_form.genus_type = Type(answer['genus'])
+    elif 'genusTypeId' in answer:
+        answer_form.genus_type = Type(answer['genusTypeId'])
 
     if 'feedback' in answer:
         if str(MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK) not in answer_form._my_map['recordTypeIds']:
