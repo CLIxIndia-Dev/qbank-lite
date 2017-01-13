@@ -995,6 +995,12 @@ def update_question_form(question, form, create=False):
                             form.add_choice(utilities.create_display_text(choice['text']), region)
                         except InvalidArgument:
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
+        if 'maxStrings' in question:
+            form.set_max_strings(int(question['maxStrings']))
+        if 'expectedLength' in question:
+            form.set_expected_length(int(question['expectedLength']))
+        if 'expectedLines' in question:
+            form.set_expected_lines(int(question['expectedLines']))
     else:
         raise Unsupported()
 

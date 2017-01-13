@@ -563,6 +563,12 @@ form data (single language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
+    - maxStrings. For text entry questions, this is equivalent to the QTI parameter of the same name
+                  and can be used by the player to size the response box appropriately.
+    - expectedLength. For text entry questions, this is equivalent to the QTI parameter of the same name
+                      and can be used by the player to size the response box appropriately.
+    - expectedLines. For text entry questions, this is equivalent to the QTI parameter of the same name
+                     and can be used by the player to size the response box appropriately.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -629,6 +635,12 @@ form data (multi-language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
+    - maxStrings. For text entry questions, this is equivalent to the QTI parameter of the same name
+                  and can be used by the player to size the response box appropriately.
+    - expectedLength. For text entry questions, this is equivalent to the QTI parameter of the same name
+                      and can be used by the player to size the response box appropriately.
+    - expectedLines. For text entry questions, this is equivalent to the QTI parameter of the same name
+                     and can be used by the player to size the response box appropriately.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
