@@ -42,6 +42,8 @@ The following are in the schema of `url` -> `sub-heading`
 /banks/(.*)/assessmentstaken/(.*)/finish -> FinishAssessmentTaken
 /banks/(.*)/assessmentstaken/(.*) -> AssessmentTakenDetails
 /banks/(.*)/assessments/(.*)/assessmentsoffered -> AssessmentsOffered
+/banks/(.*)/assessments/(.*)/assignedbankids/(.*) -> AssessmentRemoveAssignedBankIds
+/banks/(.*)/assessments/(.*)/assignedbankids -> AssessmentAssignedBankIds
 /banks/(.*)/assessments/(.*)/items/(.*) -> AssessmentItemDetails
 /banks/(.*)/assessments/(.*)/items -> AssessmentItemsList
 /banks/(.*)/assessments/(.*) -> AssessmentDetails
@@ -368,6 +370,42 @@ form data (optional):
   - nOfM. The number of questions (`n`) out of all the questions (`M`) in the assessment, that
           the student is expected to complete for a passing grade.
 
+### AssessmentRemoveAssignedBankIds
+
+Remove a current value from the `assignedBankIds` list for an `assessment`.
+
+Note that an `assessment` must always belong to at least **one** `bank`, so an exception will
+be thrown if you attempt to remove them all.
+
+`/api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assignedbankids/<assigned_bank_id>`
+
+#### DELETE
+
+Remove a single `bankId`.
+
+returns:
+  - 202.
+
+### AssessmentAssignedBankIds
+
+Add an `assignedBankIds` to an `assessment`. Used in CLIx for publishing / unpublishing
+an assessment.
+
+`/api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assignedbankids`
+
+#### POST
+
+Add the provided `bankId`s to the `assessment`. This does **not** remove the current
+ `assignedBankIds`, only appends.
+
+form data (required):
+  - assignedBankIds: list of new `bankId`s. Can be aliased or not.
+                     Example: ["assessment.Bank%3A5877df4e71e482663913eefc%40ODL.MIT.EDU"]
+
+returns:
+  - 202.
+
+
 ### AssessmentItemDetails
 
 Remove a single `item` from the specified `assessment`.
@@ -488,6 +526,8 @@ form data (optional):
   - description. A new language description for the `assessment`.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - assignedBankIds. In addition to the URL parameter, you can pass in a list of `bankId`s
+                     to assign the new `assessment` to. These can be aliased or not.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -580,12 +620,12 @@ form data (single language, optional):
     - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
                                     with the corresponding answer (right or wrong).
     - type. Valid values are:
-        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+        - `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
             moveable words, image sequence.
-        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
-        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+        - `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        - `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
             record tool, and generic file submission.
-        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+        - `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
     - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
         questions, this is evaluated without regard to order. For image sequence and moveable
         words sentence, order matters.
@@ -650,12 +690,12 @@ form data (multi-language, optional):
     - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
                                     with the corresponding answer (right or wrong).
     - type. Valid values are:
-        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+        - `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
             moveable words, image sequence.
-        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
-        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+        - `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        - `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
             record tool, and generic file submission.
-        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+        - `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
     - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
         questions, this is evaluated without regard to order. For image sequence and moveable
         words sentence, order matters.

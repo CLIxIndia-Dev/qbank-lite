@@ -901,6 +901,18 @@ class AnswerTypeTests(BaseAssessmentTestCase):
 
 
 class AssessmentCrUDTests(BaseAssessmentTestCase):
+    def create_bank(self):
+        self._alias = "assessment.Bank%3Afoo%40ODL.MIT.EDU"
+        payload = {
+            "name": "test bank 2",
+            "aliasId": self._alias
+        }
+        url = '/api/v1/assessment/banks'
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        return self.json(req)
+
     def item_payload(self):
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
@@ -1895,6 +1907,150 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
+
+    def test_can_assign_to_banks_on_create(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 2)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(assessment['assignedBankIds'][1], new_bank['id'])
+
+    def test_can_assign_to_banks_as_update(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 1)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+
+        url = '{0}/{1}/assignedbankids'.format(assessments_endpoint,
+                                               assessment['id'])
+        payload = {
+            'assignedBankIds': [self._alias]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.code(req, 202)
+
+        url = '{0}/{1}'.format(assessments_endpoint,
+                               assessment['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assignedBankIds']), 2)
+        self.assertEqual(data['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(data['assignedBankIds'][1], new_bank['id'])
+
+    def test_can_get_assessments_in_aliased_bank(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+
+        url = '/api/v1/assessment/banks/{0}/assessments'.format(new_bank['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], assessment['id'])
+
+    def test_can_remove_bank_assignment(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 2)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(assessment['assignedBankIds'][1], new_bank['id'])
+
+        url = "{0}/{1}/assignedbankids/{2}".format(assessments_endpoint,
+                                                   assessment['id'],
+                                                   self._alias)
+        req = self.app.delete(url)
+        self.code(req, 202)
+
+        url = '{0}/{1}'.format(assessments_endpoint,
+                               assessment['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assignedBankIds']), 1)
+        self.assertEqual(data['assignedBankIds'][0], str(self._bank.ident))
+
+    def test_cannot_remove_from_all_banks(self):
+        assessments_endpoint = self.url + '/assessments'
+
+        # Use POST to create an assessment
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+
+        url = "{0}/{1}/assignedbankids/{2}".format(assessments_endpoint,
+                                                   assessment['id'],
+                                                   assessment['assignedBankIds'][0])
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          url)
 
 
 class AssessmentOfferedTests(BaseAssessmentTestCase):
