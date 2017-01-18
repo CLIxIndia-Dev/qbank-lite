@@ -4790,6 +4790,58 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             self.assertNotIn('height=', answer['feedbacks'][0]['text'])
             self.assertNotIn('width=', answer['feedbacks'][0]['text'])
 
+    def test_can_edit_shuffle_option_for_qti_question_via_rest_mw(self):
+        mc_item = self.create_mw_sentence_item()
+        self.assertTrue(mc_item['question']['shuffle'])
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        payload = {
+            "question": {
+                "shuffle": False
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['question']['shuffle'])
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.orderInteraction['shuffle'], 'false')
+
+    def test_can_edit_shuffle_option_for_qti_question_via_rest_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        self.assertFalse(mc_item['question']['shuffle'])
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        payload = {
+            "question": {
+                "shuffle": True
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['question']['shuffle'])
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.choiceInteraction['shuffle'], 'true')
+
     def test_can_edit_unicode_feedback_via_rest_mc(self):
         """the audio feedback script can send back unicode values"""
         mc_item = self.create_unicode_feedback_item()
