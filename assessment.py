@@ -396,9 +396,11 @@ class ItemsList(utilities.BaseClass):
                 data = []
 
                 for item in items:
+                    # do this first to not mess up unrandomized MC choices
+                    item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
                     item_map = item.object_map
                     item_map.update({
-                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
+                        'qti': item_qti
                     })
                     data.append(item_map)
                 data = json.dumps(data)
@@ -1368,9 +1370,11 @@ class AssessmentItemsList(utilities.BaseClass):
                 data = []
 
                 for item in items:
+                    # do this first, to not mess up unrandomized choices
+                    item_qti_xml = item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
                     item_map = item.object_map
                     item_map.update({
-                        'qti': item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                        'qti': item_qti_xml
                     })
                     data.append(item_map)
                 data = json.dumps(data)
@@ -1829,9 +1833,11 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             if 'qti' in web.input():
                 data = []
                 for question in questions:
+                    # do this first, to not mess up unrandomized choices
+                    question_qti = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
                     question_map = question.object_map
                     question_map.update({
-                        'qti': question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                        'qti': question_qti
                     })
                     data.append(question_map)
                 data = json.dumps(data)
