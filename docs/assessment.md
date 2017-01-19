@@ -456,6 +456,7 @@ form data (multi-language):
                        a string + language setting match, not just the language setting match.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - itemIds. A list of `item` IDs to appear in the `assessment`.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -488,6 +489,8 @@ form data (optional):
   - description. A new language description for the `assessment`.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - itemIds. A list of valid `itemId` strings to assign to the assessment. The assumption is
+             that these already exist in the system.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
