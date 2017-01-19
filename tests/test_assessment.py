@@ -9369,6 +9369,60 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
 
+    def test_can_edit_max_strings(self):
+        item = self.create_item()
+        old_max_strings = item['question']['maxStrings']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'maxStrings': 55}
+        }
+        self.assertNotEqual(55, old_max_strings)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['maxStrings'], '55')
+
+    def test_can_edit_expected_length(self):
+        item = self.create_item()
+        old_expected_length = item['question']['expectedLength']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'expectedLength': 55}
+        }
+        self.assertNotEqual(55, old_expected_length)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['expectedLength'], '55')
+
+    def test_can_edit_expected_lines(self):
+        item = self.create_item()
+        old_expected_lines = item['question']['expectedLines']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'expectedLines': 55}
+        }
+        self.assertNotEqual(55, old_expected_lines)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['expectedLines'], '55')
+
 
 class VideoTagReplacementTests(BaseAssessmentTestCase):
     def create_video_question(self):
