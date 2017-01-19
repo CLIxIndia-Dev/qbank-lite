@@ -2709,6 +2709,66 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         self.assertIn('nOfM', data)
         self.assertEqual(data['nOfM'], payload['nOfM'])
 
+    def test_can_set_genus_type_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        payload = {
+            "genusTypeId": "offered-genus-type%3Asingle-page%40ODL.MIT.EDU"
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertEqual(payload['genusTypeId'], offered['genusTypeId'])
+
+    def test_can_update_genus_type(self):
+        single_page_genus = "offered-genus-type%3Asingle-page%40ODL.MIT.EDU"
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertNotEqual(single_page_genus, offered['genusTypeId'])
+
+        payload = {
+            "genusTypeId": single_page_genus
+        }
+
+        url = '{0}/assessmentsoffered/{1}'.format(self.url, offered['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        updated_offered = self.json(req)
+        self.assertEqual(offered['id'], updated_offered['id'])
+        self.assertEqual(updated_offered['genusTypeId'], single_page_genus)
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):

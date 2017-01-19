@@ -615,6 +615,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
                                                                          N_OF_M_OFFERED])
             execute = bank.create_assessment_offered
 
+        if 'genusTypeId' in offering:
+            offering_form.set_genus_type(Type(offering['genusTypeId']))
+
         if 'duration' in offering:
             if isinstance(offering['duration'], basestring):
                 duration = json.loads(offering['duration'])
