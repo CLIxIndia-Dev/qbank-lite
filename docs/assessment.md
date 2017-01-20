@@ -42,6 +42,8 @@ The following are in the schema of `url` -> `sub-heading`
 /banks/(.*)/assessmentstaken/(.*)/finish -> FinishAssessmentTaken
 /banks/(.*)/assessmentstaken/(.*) -> AssessmentTakenDetails
 /banks/(.*)/assessments/(.*)/assessmentsoffered -> AssessmentsOffered
+/banks/(.*)/assessments/(.*)/assignedbankids/(.*) -> AssessmentRemoveAssignedBankIds
+/banks/(.*)/assessments/(.*)/assignedbankids -> AssessmentAssignedBankIds
 /banks/(.*)/assessments/(.*)/items/(.*) -> AssessmentItemDetails
 /banks/(.*)/assessments/(.*)/items -> AssessmentItemsList
 /banks/(.*)/assessments/(.*) -> AssessmentDetails
@@ -156,6 +158,10 @@ form data (optional):
                  against all questions in the assessment.
   - nOfM. The number of questions (`n`) out of all the questions (`M`) in the assessment, that
           the student is expected to complete for a passing grade.
+  - genusTypeId. This can be used to define the "type" of `offered`, i.e. to display all questions on a
+                 single page or one at a time. Client-defined. This should be of the form:
+                 `assessment-offered-genus-type%3A<some identifier>%40ODL.MIT.EDU`, like
+                 `assessment-offered-genus-type%3Asingle-page%40ODL.MIT.EDU`
 
 returns:
   - the updated `AssessmentOffered` object.
@@ -367,6 +373,46 @@ form data (optional):
                  against all questions in the assessment.
   - nOfM. The number of questions (`n`) out of all the questions (`M`) in the assessment, that
           the student is expected to complete for a passing grade.
+  - genusTypeId. This can be used to define the "type" of `offered`, i.e. to display all questions on a
+                 single page or one at a time. Client-defined. This should be of the form:
+                 `assessment-offered-genus-type%3A<some identifier>%40ODL.MIT.EDU`, like
+                 `assessment-offered-genus-type%3Asingle-page%40ODL.MIT.EDU`
+
+### AssessmentRemoveAssignedBankIds
+
+Remove a current value from the `assignedBankIds` list for an `assessment`.
+
+Note that an `assessment` must always belong to at least **one** `bank`, so an exception will
+be thrown if you attempt to remove them all.
+
+`/api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assignedbankids/<assigned_bank_id>`
+
+#### DELETE
+
+Remove a single `bankId`.
+
+returns:
+  - 202.
+
+### AssessmentAssignedBankIds
+
+Add an `assignedBankIds` to an `assessment`. Used in CLIx for publishing / unpublishing
+an assessment.
+
+`/api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assignedbankids`
+
+#### POST
+
+Add the provided `bankId`s to the `assessment`. This does **not** remove the current
+ `assignedBankIds`, only appends.
+
+form data (required):
+  - assignedBankIds: list of new `bankId`s. Can be aliased or not.
+                     Example: ["assessment.Bank%3A5877df4e71e482663913eefc%40ODL.MIT.EDU"]
+
+returns:
+  - 202.
+
 
 ### AssessmentItemDetails
 
@@ -456,6 +502,7 @@ form data (multi-language):
                        a string + language setting match, not just the language setting match.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - itemIds. A list of `item` IDs to appear in the `assessment`.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -488,6 +535,10 @@ form data (optional):
   - description. A new language description for the `assessment`.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - assignedBankIds. In addition to the URL parameter, you can pass in a list of `bankId`s
+                     to assign the new `assessment` to. These can be aliased or not.
+  - itemIds. A list of valid `itemId` strings to assign to the assessment. The assumption is
+             that these already exist in the system.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -567,7 +618,6 @@ form data (single language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
-    - shuffle. To shuffle the choices or not (may not apply to all question types).
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -641,7 +691,6 @@ form data (multi-language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
-    - shuffle. To shuffle the choices or not (may not apply to all question types).
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit

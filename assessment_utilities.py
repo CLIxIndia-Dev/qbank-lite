@@ -621,6 +621,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
                                                                          N_OF_M_OFFERED])
             execute = bank.create_assessment_offered
 
+        if 'genusTypeId' in offering:
+            offering_form.set_genus_type(Type(offering['genusTypeId']))
+
         if 'duration' in offering:
             if isinstance(offering['duration'], basestring):
                 duration = json.loads(offering['duration'])
@@ -1037,6 +1040,12 @@ def update_question_form(question, form, create=False):
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
         if 'shuffle' in question:
             form.set_shuffle(bool(question['shuffle']))
+        if 'maxStrings' in question:
+            form.set_max_strings(int(question['maxStrings']))
+        if 'expectedLength' in question:
+            form.set_expected_length(int(question['expectedLength']))
+        if 'expectedLines' in question:
+            form.set_expected_lines(int(question['expectedLines']))
     else:
         raise Unsupported()
 
