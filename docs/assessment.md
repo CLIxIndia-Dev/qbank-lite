@@ -502,6 +502,7 @@ form data (multi-language):
                        a string + language setting match, not just the language setting match.
   - genusTypeId. A string field useful for UIs in differentiating between `assessment` types. Not
                  specifically used in CLIx.
+  - itemIds. A list of `item` IDs to appear in the `assessment`.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -536,6 +537,8 @@ form data (optional):
                  specifically used in CLIx.
   - assignedBankIds. In addition to the URL parameter, you can pass in a list of `bankId`s
                      to assign the new `assessment` to. These can be aliased or not.
+  - itemIds. A list of valid `itemId` strings to assign to the assessment. The assumption is
+             that these already exist in the system.
 
 returns:
   - `Assessment` object. Note that this does **not** include the `item`s.
@@ -611,13 +614,6 @@ form data (single language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
-    - shuffle. To shuffle the choices or not (may not apply to all question types).
-    - maxStrings. For text entry questions, this is equivalent to the QTI parameter of the same name
-                  and can be used by the player to size the response box appropriately.
-    - expectedLength. For text entry questions, this is equivalent to the QTI parameter of the same name
-                      and can be used by the player to size the response box appropriately.
-    - expectedLines. For text entry questions, this is equivalent to the QTI parameter of the same name
-                     and can be used by the player to size the response box appropriately.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -635,12 +631,12 @@ form data (single language, optional):
     - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
                                     with the corresponding answer (right or wrong).
     - type. Valid values are:
-        - `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
             moveable words, image sequence.
-        - `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
-        - `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
             record tool, and generic file submission.
-        - `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
     - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
         questions, this is evaluated without regard to order. For image sequence and moveable
         words sentence, order matters.
@@ -684,13 +680,6 @@ form data (multi-language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
-    - maxStrings. For text entry questions, this is equivalent to the QTI parameter of the same name
-                  and can be used by the player to size the response box appropriately.
-    - expectedLength. For text entry questions, this is equivalent to the QTI parameter of the same name
-                      and can be used by the player to size the response box appropriately.
-    - expectedLines. For text entry questions, this is equivalent to the QTI parameter of the same name
-                     and can be used by the player to size the response box appropriately.
-    - shuffle. To shuffle the choices or not (may not apply to all question types).
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -712,12 +701,12 @@ form data (multi-language, optional):
     - confusedLearningObjectiveIds. A list of string IDs, representing learning outcomes associated
                                     with the corresponding answer (right or wrong).
     - type. Valid values are:
-        - `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
+        `answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU` for multiple choice, reflection,
             moveable words, image sequence.
-        - `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
-        - `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
+        `answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU` for fill-in-the-blank.
+        `answer-record-type%3Afiles-submission%40ODL.MIT.EDU` for any moveable word sandbox, audio
             record tool, and generic file submission.
-        - `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
+        `answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU` for short answer text response.
     - choiceIds (for multiple choice-type questions). A list of choice IDs. For most types of
         questions, this is evaluated without regard to order. For image sequence and moveable
         words sentence, order matters.
@@ -781,7 +770,6 @@ form data (optional):
                  Will be set to the default language of `en`.
   - genusTypeId. A string field useful for UIs in differentiating between `bank` types. This is
                  pre-determined for you and should not be arbitrarily modified.
-  - aliasId. An alias that you want to use to also refer to the bank.
 
 returns:
   - the updated `Bank` object.
@@ -797,7 +785,6 @@ url parameters (optional):
   - displayName. Query / filter by the given text in the displayName field.
                  Case insensitive matching.
   - genusTypeId. Query / filter by the genusTypeId of a `bank`.
-  - aliasId. An alias that you want to use to also refer to the bank.
 
 returns:
   - list of `Bank` objects.
