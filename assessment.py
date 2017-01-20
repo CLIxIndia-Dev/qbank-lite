@@ -820,8 +820,8 @@ class ItemsList(utilities.BaseClass):
                                               CHOICE_INTERACTION_SURVEY_GENUS,
                                               CHOICE_INTERACTION_GENUS,
                                               CHOICE_INTERACTION_MULTI_GENUS,
-                                              ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                                              ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+                                              ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                                              ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                                 answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
                             elif item_genus in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
                                                 UPLOAD_INTERACTION_AUDIO_GENUS,

@@ -676,7 +676,10 @@ def set_item_learning_objectives(data, form):
 
 def update_answer_form(answer, form, question=None):
     if 'type' in answer:
-        answer_types = [answer['type']]
+        if isinstance(answer['type'], list):
+            answer_types = answer['type']
+        else:
+            answer_types = [answer['type']]
     elif 'recordTypeIds' in answer:
         answer_types = answer['recordTypeIds']
     else:
@@ -1046,6 +1049,22 @@ def update_question_form(question, form, create=False):
             form.set_expected_length(int(question['expectedLength']))
         if 'expectedLines' in question:
             form.set_expected_lines(int(question['expectedLines']))
+        if 'variables' in question:
+            for var_data in question['variables']:
+                if 'format'in var_data:
+                    var_format = var_data['format']
+                else:
+                    var_format = ''
+                if 'step' in var_data:
+                    step = var_data['step']
+                else:
+                    step = 1
+                form.add_variable(var_data['id'],
+                                  var_data['type'],
+                                  var_data['min'],
+                                  var_data['max'],
+                                  var_step=step,
+                                  format=var_format)
     else:
         raise Unsupported()
 

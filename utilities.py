@@ -2,6 +2,7 @@ import functools
 import json
 import traceback
 import web
+import os
 
 from urllib import quote
 
@@ -263,7 +264,10 @@ def extract_items(item_list):
         return json.dumps([])
 
 def handle_exceptions(ex):
-    print traceback.format_exc(10)
+    if 'WEBENV' in os.environ and os.environ['WEBENV'] == 'test':
+        pass
+    else:
+        print traceback.format_exc(10)
     if isinstance(ex, PermissionDenied):
         web.message = 'Permission Denied'
         raise web.Forbidden()

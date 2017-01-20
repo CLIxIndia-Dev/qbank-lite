@@ -618,6 +618,10 @@ form data (single language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of `id` and `text` objects, as above.
+    - variables. A list of variable objects used in parameterized numeric response questions.
+                 Each object must have `id`, `type` (`int` or `float`), `min`, `max`, and optional
+                 `step` and `format` (for `float`) values. The `id` value must match what
+                 is present in the `questionString`.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -691,6 +695,10 @@ form data (multi-language, optional):
     - inlineRegions. For fill-in-the-blank, this is a set of key:value pairs, where the `key`
                      represents the region ID for the blank. `value` is then an object
                      with `choices` as a list of objects, as defined above.
+    - variables. A list of variable objects used in parameterized numeric response questions.
+                 Each object must have `id`, `type` (`int` or `float`), `min`, `max`, and optional
+                 `step` and `format` (for `float`) values. The `id` value must match what
+                 is present in the `questionString`.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -747,12 +755,66 @@ returns:
 
 #### POST
 
-Currently this is only supported for CLIx by sending a QTI zip file. We have **not** broken out
-the individual QTI question types at the RESTful layer, so enable creation of new items
-by JSON.
+You can either submit a valid, supported QTI *.zip file, or create items via REST.
 
-form data (required):
+Note that when creating `item`s via REST, you **must** first upload all associated
+files, via the `repository` endpoint for `asset`s. This is demonstrated in
+`tests/test_assessment.py` in the class `QTIEndpointTests` method called `upload_media_file`.
+
+Full RESTful documentation is probably best done by example, in viewing the tests.
+You can see the RESTful tests in `tests.test_assessment.py`, specifically the
+`QTIEndpointTests` class.
+
+Useful tests to reference are:
+  - test_can_create_audio_record_tool_question_via_rest
+  - test_can_create_fill_in_the_blank_question_via_rest
+  - test_can_create_generic_file_upload_question_via_rest
+  - test_can_create_image_sequence_question_via_rest
+  - test_can_create_multi_choice_multi_answer_question_via_rest
+  - test_can_create_multi_choice_single_answer_question_via_rest
+  - test_can_create_mw_sandbox_question_via_rest
+  - test_can_create_mw_sentence_question_via_rest
+  - test_can_create_numeric_response_question_via_rest
+  - test_can_create_reflection_multi_answer_question_via_rest
+  - test_can_create_reflection_single_answer_question_via_rest
+  - test_can_create_short_answer_question_via_rest
+
+Supported `item` `genusTypeId`s are:
+  - item-genus-type%3Aqti-choice-interaction%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-choice-interaction-survey%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-upload-interaction-audio%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-upload-interaction-generic%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-order-interaction-mw-sandbox%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-extended-text-interaction%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU
+  - item-genus-type%3Aqti-numeric-response%40ODL.MIT.EDU
+
+Supported `question` `genusTypeId`s are:
+  - question-type%3Aqti-choice-interaction%40ODL.MIT.EDU
+  - question-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU
+  - question-type%3Aqti-choice-interaction-survey%40ODL.MIT.EDU
+  - question-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU
+  - question-type%3Aqti-upload-interaction-audio%40ODL.MIT.EDU
+  - question-type%3Aqti-upload-interaction-generic%40ODL.MIT.EDU
+  - question-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU
+  - question-type%3Aqti-order-interaction-mw-sandbox%40ODL.MIT.EDU
+  - question-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU
+  - question-type%3Aqti-extended-text-interaction%40ODL.MIT.EDU
+  - question-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU
+  - question-type%3Aqti-numeric-response%40ODL.MIT.EDU
+
+Supported `answer` `genusTypeId`s are:
+  - answer-type%3Aright-answer%40ODL.MIT.EDU
+  - answer-type%3Awrong-answer%40ODL.MIT.EDU
+
+
+form data (one of the following is required):
   - qtiFile. QTI 1 zip file.
+  - JSON blob with valid data.
 
 ### AssessmentBankDetails
 
