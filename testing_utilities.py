@@ -4,130 +4,388 @@ import shutil
 
 from bs4 import Tag
 
-from dlkit_edx.primordium import Type
+from dlkit_runtime.primordium import Type
 from nose.tools import *
 from paste.fixture import TestApp
 from records.registry import LOG_ENTRY_RECORD_TYPES
 from unittest import TestCase
 
-from dlkit_edx import PROXY_SESSION, RUNTIME
-from dlkit_edx.proxy_example import TestRequest
-from dlkit_edx.utilities import impl_key_dict
-import dlkit_edx.configs
+from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.proxy_example import TestRequest
+from dlkit_runtime.utilities import impl_key_dict
+import dlkit_runtime.configs
 
+from authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
 
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
-TEST_DATA_STORE = 'test_datastore'
+TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
+TEST_FIXTURES_PATH = 'tests/fixtures'
 
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
+BOOTSTRAP_VAULT_GENUS = Type(**{
+    'identifier': 'bootstrap-vault',
+    'namespace': 'authorization.Vault',
+    'authority': 'ODL.MIT.EDU'
+})
+
+BASE_IDENTIFIERS = ['ROOT', 24 * '0']
+
+SUPER_USER_AUTHZ_GENUS = Type(**{
+    'identifier': 'super-user-authz',
+    'namespace': 'authorization.Authorization',
+    'authority': 'ODL.MIT.EDU'
+})
+
+BASE_AUTHORIZATIONS = (
+    ('assessment.Bank', 'lookup', 'assessment.Bank'),
+    ('authorization.Vault', 'lookup', 'authorization.Vault'),
+    ('commenting.Book', 'lookup', 'commenting.Book'),
+    ('hierarchy.Hierarchy', 'lookup', 'hierarchy.Hierarchy'),
+    ('learning.ObjectiveBank', 'lookup', 'learning.ObjectiveBank'),
+    ('repository.Repository', 'lookup', 'repository.Repository'),
+    ('resource.Bin', 'lookup', 'resource.Bin'),
+)
+
+SUPER_USER_FUNCTIONS = (
+    ('create', 'authorization.Authorization'),
+    ('delete', 'authorization.Authorization'),
+    ('lookup', 'authorization.Authorization'),
+    ('search', 'authorization.Authorization'),
+    ('create', 'authorization.Vault'),
+    ('delete', 'authorization.Vault'),
+    ('search', 'authorization.Vault'),
+)
+
+PROXY_USER_FUNCTIONS = (
+    ('proxy', 'users.Proxy'),
+)
+
+INSTRUCTOR_FUNCTIONS = (
+    ('assessment.Answer', 'lookup', 'assessment.Bank'),
+    ('assessment.Answer', 'create', 'assessment.Bank'),
+    ('assessment.Answer', 'delete', 'assessment.Bank'),
+    ('assessment.Answer', 'update', 'assessment.Bank'),
+    ('assessment.Assessment', 'author', 'assessment.Bank'),
+    ('assessment.Assessment', 'lookup', 'assessment.Bank'),
+    ('assessment.Assessment', 'create', 'assessment.Bank'),
+    ('assessment.Assessment', 'delete', 'assessment.Bank'),
+    ('assessment.Assessment', 'search', 'assessment.Bank'),
+    ('assessment.Assessment', 'update', 'assessment.Bank'),
+    ('assessment.Assessment', 'take', 'assessment.Bank'),
+    ('assessment.AssessmentBank', 'assign', 'assessment.Bank'),
+    ('assessment.AssessmentBank', 'lookup', 'assessment.Bank'),
+    ('assessment.AssessmentOffered', 'lookup', 'assessment.Bank'),
+    ('assessment.AssessmentOffered', 'create', 'assessment.Bank'),
+    ('assessment.AssessmentOffered', 'delete', 'assessment.Bank'),
+    ('assessment.AssessmentOffered', 'update', 'assessment.Bank'),
+    ('assessment.AssessmentResults', 'access', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'lookup', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'create', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'delete', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'search', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'update', 'assessment.Bank'),
+    ('assessment.Item', 'alias', 'assessment.Bank'),
+    ('assessment.Item', 'lookup', 'assessment.Bank'),
+    ('assessment.Item', 'create', 'assessment.Bank'),
+    ('assessment.Item', 'delete', 'assessment.Bank'),
+    ('assessment.Item', 'update', 'assessment.Bank'),
+    ('assessment.Item', 'search', 'assessment.Bank'),
+    ('assessment.ItemBank', 'assign', 'assessment.Bank'),
+    ('assessment.Question', 'lookup', 'assessment.Bank'),
+    ('assessment.Question', 'create', 'assessment.Bank'),
+    ('assessment.Question', 'delete', 'assessment.Bank'),
+    ('assessment.Question', 'update', 'assessment.Bank'),
+    ('assessment.Bank', 'access', 'assessment.Bank'),
+    ('assessment.Bank', 'alias', 'assessment.Bank'),
+    ('assessment.Bank', 'create', 'assessment.Bank'),
+    ('assessment.Bank', 'delete', 'assessment.Bank'),
+    ('assessment.Bank', 'modify', 'assessment.Bank'),
+    ('assessment.Bank', 'search', 'assessment.Bank'),
+    ('assessment.Bank', 'update', 'assessment.Bank'),
+    ('assessment_authoring.AssessmentPart', 'lookup', 'assessment.Bank'),
+    ('assessment_authoring.AssessmentPart', 'create', 'assessment.Bank'),
+    ('assessment_authoring.AssessmentPart', 'delete', 'assessment.Bank'),
+    ('assessment_authoring.AssessmentPart', 'update', 'assessment.Bank'),
+    ('commenting.Book', 'access', 'commenting.Book'),
+    ('commenting.Book', 'create', 'commenting.Book'),
+    ('commenting.Book', 'delete', 'commenting.Book'),
+    ('commenting.Book', 'modify', 'commenting.Book'),
+    ('commenting.Book', 'update', 'commenting.Book'),
+    ('commenting.Comment', 'author', 'commenting.Book'),
+    ('commenting.Comment', 'lookup', 'commenting.Book'),
+    ('commenting.Comment', 'create', 'commenting.Book'),
+    ('commenting.Comment', 'delete', 'commenting.Book'),
+    ('commenting.Comment', 'update', 'commenting.Book'),
+    ('hierarchy.Hierarchy', 'update', 'hierarchy.Hierarchy'),
+    ('learning.ObjectiveBank', 'create', 'learning.ObjectiveBank'),
+    ('learning.ObjectiveBank', 'delete', 'learning.ObjectiveBank'),
+    ('learning.ObjectiveBank', 'update', 'learning.ObjectiveBank'),
+    ('learning.Proficiency', 'create', 'learning.ObjectiveBank'),
+    ('learning.Proficiency', 'delete', 'learning.ObjectiveBank'),
+    ('learning.Proficiency', 'lookup', 'learning.ObjectiveBank'),
+    ('learning.Proficiency', 'search', 'learning.ObjectiveBank'),
+    ('learning.Proficiency', 'update', 'learning.ObjectiveBank'),
+    ('logging.Log', 'lookup', 'logging.Log'),
+    ('logging.Log', 'create', 'logging.Log'),
+    ('logging.Log', 'delete', 'logging.Log'),
+    ('logging.Log', 'update', 'logging.Log'),
+    ('logging.LogEntry', 'alias', 'logging.Log'),
+    ('logging.LogEntry', 'create', 'logging.Log'),
+    ('logging.LogEntry', 'delete', 'logging.Log'),
+    ('logging.LogEntry', 'lookup', 'logging.Log'),
+    ('logging.LogEntry', 'search', 'logging.Log'),
+    ('logging.LogEntry', 'update', 'logging.Log'),
+    ('repository.Repository', 'access', 'repository.Repository'),
+    ('repository.Repository', 'author', 'repository.Repository'),
+    ('repository.Repository', 'create', 'repository.Repository'),
+    ('repository.Repository', 'delete', 'repository.Repository'),
+    ('repository.Repository', 'modify', 'repository.Repository'),
+    ('repository.Repository', 'search', 'repository.Repository'),
+    ('repository.Repository', 'update', 'repository.Repository'),
+    ('repository.Asset', 'author', 'repository.Repository'),
+    ('repository.Asset', 'lookup', 'repository.Repository'),
+    ('repository.Asset', 'create', 'repository.Repository'),
+    ('repository.Asset', 'delete', 'repository.Repository'),
+    ('repository.Asset', 'search', 'repository.Repository'),
+    ('repository.Asset', 'update', 'repository.Repository'),
+    ('repository.AssetComposition', 'access', 'repository.Repository'),
+    ('repository.AssetComposition', 'lookup', 'repository.Repository'),
+    ('repository.AssetComposition', 'compose', 'repository.Repository'),
+    ('repository.AssetRepository', 'assign', 'repository.Repository'),
+    ('repository.AssetRepository', 'lookup', 'repository.Repository'),
+    ('repository.Composition', 'author', 'repository.Repository'),
+    ('repository.Composition', 'lookup', 'repository.Repository'),
+    ('repository.Composition', 'create', 'repository.Repository'),
+    ('repository.Composition', 'delete', 'repository.Repository'),
+    ('repository.Composition', 'search', 'repository.Repository'),
+    ('repository.Composition', 'update', 'repository.Repository'),
+    ('resource.Bin', 'access', 'resource.Bin'),
+    ('resource.Bin', 'author', 'resource.Bin'),
+    ('resource.Bin', 'create', 'resource.Bin'),
+    ('resource.Bin', 'delete', 'resource.Bin'),
+    ('resource.Bin', 'modify', 'resource.Bin'),
+    ('resource.Bin', 'update', 'resource.Bin'),
+    ('resource.Resource', 'author', 'resource.Bin'),
+    ('resource.Resource', 'lookup', 'resource.Bin'),
+    ('resource.Resource', 'create', 'resource.Bin'),
+    ('resource.Resource', 'delete', 'resource.Bin'),
+    ('resource.Resource', 'search', 'resource.Bin'),
+    ('resource.Resource', 'update', 'resource.Bin'),
+    ('resource.ResourceAgent', 'assign', 'resource.Bin'),
+    ('resource.ResourceAgent', 'delete', 'resource.Bin'),
+    ('resource.ResourceAgent', 'lookup', 'resource.Bin'),
+    ('grading.Gradebook', 'lookup', 'grading.Gradebook'),
+    ('grading.Gradebook', 'create', 'grading.Gradebook'),
+    ('grading.Gradebook', 'delete', 'grading.Gradebook'),
+    ('grading.Gradebook', 'update', 'grading.Gradebook'),
+    ('grading.GradeEntry', 'create', 'grading.Gradebook'),
+    ('grading.GradeEntry', 'delete', 'grading.Gradebook'),
+    ('grading.GradeEntry', 'lookup', 'grading.Gradebook'),
+    ('grading.GradeEntry', 'update', 'grading.Gradebook'),
+    ('grading.GradeSystem', 'create', 'grading.Gradebook'),
+    ('grading.GradeSystem', 'delete', 'grading.Gradebook'),
+    ('grading.GradeSystem', 'lookup', 'grading.Gradebook'),
+    ('grading.GradeSystem', 'update', 'grading.Gradebook'),
+    ('grading.GradebookColumn', 'create', 'grading.Gradebook'),
+    ('grading.GradebookColumn', 'delete', 'grading.Gradebook'),
+    ('grading.GradebookColumn', 'lookup', 'grading.Gradebook'),
+    ('grading.GradebookColumn', 'update', 'grading.Gradebook'),
+)
+
+STUDENT_FUNCTIONS = (
+    ('assessment.AssessmentTaken', 'create', 'assessment.Bank'),
+    ('assessment.AssessmentTaken', 'lookup', 'assessment.Bank'),
+    ('assessment.Assessment', 'take', 'assessment.Bank'),
+    ('commenting.Comment', 'lookup', 'commenting.Book'),
+    ('repository.Asset', 'create', 'repository.Repository'),
+    ('repository.Asset', 'delete', 'repository.Repository'),
+    ('repository.Asset', 'lookup', 'repository.Repository'),
+    ('repository.Asset', 'search', 'repository.Repository'),
+    ('resource.Resource', 'lookup', 'resource.Bin'),
+)
+
+SUBPACKAGES = (
+    ('assessment_authoring', 'assessment'),
+)
+
+
 def configure_dlkit():
-    dlkit_edx.configs.FILESYSTEM_ADAPTER_1 = {
-        'id': 'filesystem_adapter_configuration_1',
-        'displayName': 'Filesystem Adapter Configuration',
-        'description': 'Configuration for Filesystem Adapter',
+    dlkit_runtime.configs.SERVICE = {
+        'id': 'dlkit_runtime_bootstrap_configuration',
+        'displayName': 'DLKit Runtime Bootstrap Configuration',
+        'description': 'Bootstrap Configuration for DLKit Runtime',
         'parameters': {
-            'implKey': impl_key_dict('filesystem_adapter'),
+            'implKey': impl_key_dict('service'),
+            'assessmentProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Assessment Provider Implementation',
+                'description': 'Implementation for assessment service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
+            'loggingProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Logging Provider Implementation',
+                'description': 'Implementation for logging service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
             'repositoryProviderImpl': {
                 'syntax': 'STRING',
                 'displayName': 'Repository Provider Implementation',
                 'description': 'Implementation for repository service provider',
                 'values': [
-                    {'value': 'FILESYSTEM_1', 'priority': 1}
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
-            'dataStorePath': {
+            'learningProviderImpl': {
                 'syntax': 'STRING',
-                'displayName': 'Path to local filesystem datastore',
-                'description': 'Filesystem path for setting the MongoClient host.',
+                'displayName': 'Learning Provider Implementation',
+                'description': 'Implementation for learning service provider',
                 'values': [
-                    {'value': TEST_DATA_STORE, 'priority': 1}
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
-            'secondaryDataStorePath': {
+            'hierarchyProviderImpl': {
                 'syntax': 'STRING',
-                'displayName': 'Path to local filesystem datastore',
-                'description': 'Filesystem path for setting the MongoClient host.',
+                'displayName': 'Hierarchy Provider Implementation',
+                'description': 'Implementation for hierarchy service provider',
                 'values': [
-                    {'value': TEST_STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
+            'authorizationProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Authorization Provider Implementation',
+                'description': 'Implementation for authorization service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
         }
     }
 
-    dlkit_edx.configs.FILESYSTEM_1 = {
-        'id': 'filesystem_configuration_1',
-        'displayName': 'Filesystem Configuration',
-        'description': 'Configuration for Filesystem Implementation',
-        'parameters': {
-            'implKey': impl_key_dict('filesystem'),
-            'recordsRegistry': {
-                'syntax': 'STRING',
-                'displayName': 'Python path to the extension records registry file',
-                'description': 'dot-separated path to the extension records registry file',
-                'values': [
-                    {'value': 'records.registry', 'priority': 1}
-                ]
-            },
-            'repositoryProviderImpl': {
-                'syntax': 'STRING',
-                'displayName': 'Repository Provider Implementation',
-                'description': 'Implementation for repository service provider',
-                'values': [
-                    {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
-                ]
-            },
-            'assetContentRecordTypeForFiles': {
-                'syntax': 'TYPE',
-                'displayName': 'Asset Content Type for Files',
-                'description': 'Asset Content Type for Records that store Files on local disk',
-                'values': [
-                    {'value': dlkit_edx.configs.FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
-                ]
-            },
-            'dataStorePath': {
-                'syntax': 'STRING',
-                'displayName': 'Path to local filesystem datastore',
-                'description': 'Filesystem path for setting the MongoClient host.',
-                'values': [
-                    {'value': TEST_DATA_STORE, 'priority': 1}  # Mac
-                ]
-            },
-            'magicItemLookupSessions': {
-                'syntax': 'STRING',
-                'displayName': 'Which magic item lookup sessions to try',
-                'description': 'To handle magic IDs.',
-                'values': [
-                    {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
-                ]
-            },
-        },
-
-    }
-
+# Need to do this before importing `app`
+# so that the "new" configuration takes. For some reason
+# with this testing setup, there is no way to modify
+# the settings file post-facto, like with Django
 configure_dlkit()
 
 from main import app
 
 
-def create_test_bank():
+def create_authz(vault, agent, function, qualifier, is_super=False, end_date=None):
+    form = vault.get_authorization_form_for_create_for_agent(agent, function, qualifier, [])
+
+    if is_super:
+        form.set_genus_type(SUPER_USER_AUTHZ_GENUS)
+
+    if end_date is not None:
+        form.set_end_date(end_date)
+
+    return vault.create_authorization(form)
+
+def create_super_authz_authorizations(vault):
+    req = get_super_authz_user_request()
+    authzm = req['authzm']
+
+    agent_id = authzm.effective_agent_id
+
+    for function_tuple in SUPER_USER_FUNCTIONS:
+        function = create_function_id(function_tuple[0],
+                                      function_tuple[1])
+
+        create_authz(vault, agent_id, function, vault.ident, is_super=True)
+
+def create_user_authorizations(vault, username="student@tiss.edu", new_catalogs=[]):
+    identifiers = BASE_IDENTIFIERS + new_catalogs
+    for identifier in identifiers:
+        for function_list in [BASE_AUTHORIZATIONS, INSTRUCTOR_FUNCTIONS]:
+            for function_tuple in function_list:
+                namespace = function_tuple[0]
+                function = function_tuple[1]
+                catalog = function_tuple[2]
+
+                function_id = create_function_id(function, namespace)
+                qualifier_id = create_qualifier_id(identifier, catalog)
+                agent_id = create_agent_id(username)
+                print "adding authz: {0}, {1}, {2}".format(str(agent_id), str(function_id), str(qualifier_id))
+                create_authz(vault, agent_id, function_id, qualifier_id)
+
+# def create_authz_superuser():
+#     original_config = open_up_services_config()
+#
+#     req = get_super_authz_user_request()
+#     authzm = get_session_data(req, 'authzm')
+#     vault = create_vault(req)
+#
+#     create_base_authorizations(vault, authzm.effective_agent_id, is_super=True)
+#     create_super_authz_authorizations(vault)
+#
+#     restore_services_config(original_config)
+
+def create_new_bank():
+    # from authorization_utilities import get_vault
     am = get_managers()['am']
     form = am.get_bank_form_for_create([])
     form.display_name = 'an assessment bank'
     form.description = 'for testing with'
-    return am.create_bank(form)
+    new_bank = am .create_bank(form)
+
+    # from nose.tools import set_trace
+    # set_trace()
+    # create_user_authorizations(get_vault(),
+    #                            username='clix-authz%40tiss.edu',
+    #                            new_catalogs=[new_bank.ident.identifier])
+
+    return new_bank
 
 def create_test_repository():
+    # from authorization_utilities import get_vault
     rm = get_managers()['rm']
     form = rm.get_repository_form_for_create([])
     form.display_name = 'a repository'
     form.description = 'for testing with'
-    return rm.create_repository(form)
+    # return rm.create_repository(form)
+    new_repo = rm.create_repository(form)
 
-def get_managers():
+    # from nose.tools import set_trace
+    # set_trace()
+    # create_super_authz_authorizations(get_vault())
+    #
+    # create_user_authorizations(get_vault(),
+    #                            username="clix-authz@tiss.edu",
+    #                            new_catalogs=[new_repo.ident.identifier])
+    # create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
+
+
+    return new_repo
+
+# don't use test in the name, otherwise the nose test runner thinks this is a test
+def get_fixture_bank():
+    # from authorization_utilities import get_vault
+    am = get_managers()['am']
+    fixture_repo = get_fixture_repository()
+    return am.get_bank(fixture_repo.ident)
+
+# don't use test in the name, otherwise the nose test runner thinks this is a test
+def get_fixture_repository():
+    # from authorization_utilities import get_vault
+    rm = get_managers()['rm']
+    return rm.get_repositories().next()
+
+def get_super_authz_user_request():
+    import settings
+    return get_managers(username=settings.AUTHZ_USER)
+
+def get_managers(username='student@tiss.edu'):
     managers = [('am', 'ASSESSMENT'),
+                ('authzm', 'AUTHORIZATION'),
                 ('logm', 'LOGGING'),
                 ('rm', 'REPOSITORY')]
     results = {}
@@ -135,11 +393,12 @@ def get_managers():
         nickname = manager[0]
         service_name = manager[1]
         condition = PROXY_SESSION.get_proxy_condition()
-        dummy_request = TestRequest(username='student@tiss.edu', authenticated=True)
+        dummy_request = TestRequest(username=username, authenticated=True)
         condition.set_http_request(dummy_request)
         proxy = PROXY_SESSION.get_proxy(condition)
         results[nickname] = RUNTIME.get_service_manager(service_name,
                                                         proxy=proxy)
+
     return results
 
 def get_valid_contents(tag):
@@ -178,13 +437,22 @@ class BaseTestCase(TestCase):
         self.assertEqual(_req.status, 200)
 
     def setUp(self):
-        configure_dlkit()
         middleware = []
         self.app = TestApp(app.wsgifunc(*middleware))
 
-        if not os.path.isdir(TEST_DATA_STORE):
-            os.makedirs(TEST_DATA_STORE)
-        shutil.rmtree(TEST_DATA_STORE)
+        if os.path.isdir(TEST_DATA_STORE_PATH):
+            shutil.rmtree(TEST_DATA_STORE_PATH)
+
+        if not os.path.isdir(TEST_DATA_STORE_PATH):
+            os.makedirs(TEST_DATA_STORE_PATH)
+
+        # copy over the test fixture data from tests/fixtures
+        shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
+                        '{0}/authorization'.format(TEST_DATA_STORE_PATH))
+        # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
+        #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
+        shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
+                        '{0}/repository'.format(TEST_DATA_STORE_PATH))
 
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']
@@ -199,4 +467,4 @@ class BaseTestCase(TestCase):
         return new_entry
 
     def tearDown(self):
-        shutil.rmtree(TEST_DATA_STORE)
+        shutil.rmtree(TEST_DATA_STORE_PATH)

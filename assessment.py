@@ -8,8 +8,8 @@ from bson.errors import InvalidId
 
 from cStringIO import StringIO
 
-from dlkit_edx.errors import *
-from dlkit_edx.primordium import Type, DataInputStream, DisplayText
+from dlkit_runtime.errors import *
+from dlkit_runtime.primordium import Type, DataInputStream, DisplayText
 from records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
@@ -59,6 +59,8 @@ urls = (
     "/banks/(.*)/assessmentstaken/(.*)/finish", "FinishAssessmentTaken",
     "/banks/(.*)/assessmentstaken/(.*)", "AssessmentTakenDetails",
     "/banks/(.*)/assessments/(.*)/assessmentsoffered", "AssessmentsOffered",
+    "/banks/(.*)/assessments/(.*)/assignedbankids/(.*)", "AssessmentRemoveAssignedBankIds",
+    "/banks/(.*)/assessments/(.*)/assignedbankids", "AssessmentAssignedBankIds",
     "/banks/(.*)/assessments/(.*)/items/(.*)", "AssessmentItemDetails",
     "/banks/(.*)/assessments/(.*)/items", "AssessmentItemsList",
     "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
@@ -129,13 +131,49 @@ class AssessmentBanksList(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             form = am.get_bank_form_for_create([])
+            data = self.data()
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, data)
 
             new_bank = utilities.convert_dl_object(am.create_bank(form))
 
+            if 'aliasId' in data:
+                am.alias_bank(utilities.clean_id(json.loads(new_bank)['id']),
+                              utilities.clean_id(data['aliasId']))
+
             return new_bank
         except (PermissionDenied, InvalidArgument) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentRemoveAssignedBankIds(utilities.BaseClass):
+    """Remove a single bankId from the list of assignedBankIds"""
+    @utilities.format_response
+    def DELETE(self, bank_id, assessment_id, assigned_bank_id):
+        try:
+            am = autils.get_assessment_manager()
+            assigned_bank_id = am.get_bank(utilities.clean_id(assigned_bank_id)).ident
+            am.unassign_assessment_from_bank(utilities.clean_id(assessment_id),
+                                             assigned_bank_id)
+            return web.Accepted()
+        except (PermissionDenied, IllegalState, InvalidId, OperationFailed) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class AssessmentAssignedBankIds(utilities.BaseClass):
+    """Add the provided bankIds to the list of assignedBankIds"""
+    @utilities.format_response
+    def POST(self, bank_id, assessment_id):
+        try:
+            am = autils.get_assessment_manager()
+            if 'assignedBankIds' in self.data():
+                assessment_id = utilities.clean_id(assessment_id)
+                for assigned_bank_id in self.data()['assignedBankIds']:
+                    assigned_bank_id = am.get_bank(utilities.clean_id(assigned_bank_id)).ident
+                    am.assign_assessment_to_bank(assessment_id,
+                                                 assigned_bank_id)
+            return web.Accepted()
+        except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -177,10 +215,16 @@ class AssessmentBankDetails(utilities.BaseClass):
     def PUT(self, bank_id):
         try:
             am = autils.get_assessment_manager()
+            data = self.data()
+
             form = am.get_bank_form_for_update(utilities.clean_id(bank_id))
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, data)
             updated_bank = am.update_bank(form)
+
+            if 'aliasId' in data:
+                am.alias_bank(updated_bank.ident, utilities.clean_id(data['aliasId']))
+
             bank = utilities.convert_dl_object(updated_bank)
             return bank
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:
@@ -296,6 +340,15 @@ class AssessmentsList(utilities.BaseClass):
                             raise NotFound()
 
                 full_assessment = bank.get_assessment(new_assessment.ident)
+
+            if 'assignedBankIds' in self.data():
+                # on POST, don't need to delete previous because there are no previous ones!
+                # need the non-aliased IDs for assignment
+                for bank_id in self.data()['assignedBankIds']:
+                    bank_id = am.get_bank(utilities.clean_id(bank_id)).ident
+                    am.assign_assessment_to_bank(full_assessment.ident, bank_id)
+                full_assessment = bank.get_assessment(full_assessment.ident)
+
             data = utilities.convert_dl_object(full_assessment)
             return data
         except (PermissionDenied, NotFound, InvalidArgument, InvalidId) as ex:

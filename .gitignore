@@ -9,3 +9,4 @@ dist/
 *.zip
 build/
 CLIx/
+settings.py

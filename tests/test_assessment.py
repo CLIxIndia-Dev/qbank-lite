@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup, Tag
 
 from copy import deepcopy
 
-from dlkit_edx.primordium import Id, Type
+from dlkit_runtime.primordium import Id, Type
 
 from nose.tools import *
 
@@ -21,7 +21,8 @@ from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
 
 from sympy import sympify
 
-from testing_utilities import BaseTestCase, get_managers, create_test_bank, get_valid_contents
+from testing_utilities import BaseTestCase, get_managers, get_fixture_bank,\
+    create_new_bank, get_valid_contents
 from urllib import unquote, quote
 
 import utilities
@@ -172,7 +173,7 @@ class BaseAssessmentTestCase(BaseTestCase):
     def setUp(self):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
-        self._bank = create_test_bank()
+        self._bank = get_fixture_bank()
 
     def tearDown(self):
         super(BaseAssessmentTestCase, self).tearDown()
@@ -900,6 +901,18 @@ class AnswerTypeTests(BaseAssessmentTestCase):
 
 
 class AssessmentCrUDTests(BaseAssessmentTestCase):
+    def create_bank(self):
+        self._alias = "assessment.Bank%3Afoo%40ODL.MIT.EDU"
+        payload = {
+            "name": "test bank 2",
+            "aliasId": self._alias
+        }
+        url = '/api/v1/assessment/banks'
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        return self.json(req)
+
     def item_payload(self):
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
@@ -1895,6 +1908,150 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
 
+    def test_can_assign_to_banks_on_create(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 2)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(assessment['assignedBankIds'][1], new_bank['id'])
+
+    def test_can_assign_to_banks_as_update(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 1)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+
+        url = '{0}/{1}/assignedbankids'.format(assessments_endpoint,
+                                               assessment['id'])
+        payload = {
+            'assignedBankIds': [self._alias]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.code(req, 202)
+
+        url = '{0}/{1}'.format(assessments_endpoint,
+                               assessment['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assignedBankIds']), 2)
+        self.assertEqual(data['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(data['assignedBankIds'][1], new_bank['id'])
+
+    def test_can_get_assessments_in_aliased_bank(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+
+        url = '/api/v1/assessment/banks/{0}/assessments'.format(new_bank['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], assessment['id'])
+
+    def test_can_remove_bank_assignment(self):
+        new_bank = self.create_bank()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "assignedBankIds": [self._alias]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+        self.assertEqual(len(assessment['assignedBankIds']), 2)
+        self.assertEqual(assessment['assignedBankIds'][0], str(self._bank.ident))
+        self.assertEqual(assessment['assignedBankIds'][1], new_bank['id'])
+
+        url = "{0}/{1}/assignedbankids/{2}".format(assessments_endpoint,
+                                                   assessment['id'],
+                                                   self._alias)
+        req = self.app.delete(url)
+        self.code(req, 202)
+
+        url = '{0}/{1}'.format(assessments_endpoint,
+                               assessment['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assignedBankIds']), 1)
+        self.assertEqual(data['assignedBankIds'][0], str(self._bank.ident))
+
+    def test_cannot_remove_from_all_banks(self):
+        assessments_endpoint = self.url + '/assessments'
+
+        # Use POST to create an assessment
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment = self.json(req)
+
+        url = "{0}/{1}/assignedbankids/{2}".format(assessments_endpoint,
+                                                   assessment['id'],
+                                                   assessment['assignedBankIds'][0])
+        self.assertRaises(AppError,
+                          self.app.delete,
+                          url)
+
 
 class AssessmentOfferedTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -2552,6 +2709,66 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         self.assertIn('nOfM', data)
         self.assertEqual(data['nOfM'], payload['nOfM'])
 
+    def test_can_set_genus_type_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        payload = {
+            "genusTypeId": "offered-genus-type%3Asingle-page%40ODL.MIT.EDU"
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertEqual(payload['genusTypeId'], offered['genusTypeId'])
+
+    def test_can_update_genus_type(self):
+        single_page_genus = "offered-genus-type%3Asingle-page%40ODL.MIT.EDU"
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        payload = {
+            "startTime" : {
+                "day"   : 1,
+                "month" : 1,
+                "year"  : 2015
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offered = json.loads(req.body)
+        self.assertNotEqual(single_page_genus, offered['genusTypeId'])
+
+        payload = {
+            "genusTypeId": single_page_genus
+        }
+
+        url = '{0}/assessmentsoffered/{1}'.format(self.url, offered['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        updated_offered = self.json(req)
+        self.assertEqual(offered['id'], updated_offered['id'])
+        self.assertEqual(updated_offered['genusTypeId'], single_page_genus)
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -2795,7 +3012,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
     def test_can_set_username_in_header(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -2805,7 +3022,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         taken = json.loads(req.body)
         taken_id = unquote(taken['id'])
-        self.assertIn(test_student, taken['takingAgentId'])
+        self.assertIn(quote(quote(test_student)), taken['takingAgentId'])
 
         # Student can now take the assessment
         taken_endpoint = self.url + '/assessmentstaken/' + taken_id
@@ -2874,11 +3091,11 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
         req = self.app.get(taken_endpoint)
         data = self.json(req)
-        self.assertIn(test_student, data['takingAgentId'])
+        self.assertIn(quote(quote(test_student)), data['takingAgentId'])
 
     def test_can_finish_taken_to_get_new_taken(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -2911,7 +3128,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
 
     def test_can_get_results_for_offered(self):
         assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
-        test_student = 'foobar'
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
         req = self.app.post(assessment_offering_takens_endpoint,
@@ -2961,6 +3178,77 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             data[0]['questions'][0]['learningObjectiveIds'],
             []
         )
+
+
+class BankTests(BaseAssessmentTestCase):
+    def setUp(self):
+        super(BankTests, self).setUp()
+        self.url += '/banks'
+
+    def tearDown(self):
+        """
+        Remove the test user from all groups in Membership
+        Start from the smallest groupId because need to
+        remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
+        """
+        super(BankTests, self).tearDown()
+
+    def test_can_set_bank_alias_on_create(self):
+        payload = {
+            "name": "New bank",
+            "aliasId": "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               payload['aliasId'])
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], payload['name'])
+
+    def test_can_update_bank_alias(self):
+        alias_id = "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        name = "New Bank"
+        payload = {
+            "name": name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
+
+        payload = {
+            "aliasId": alias_id
+        }
+        url = '{0}/{1}'.format(self.url,
+                               new_bank['id'])
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], name)
 
 
 class BasicServiceTests(BaseAssessmentTestCase):
@@ -3067,7 +3355,7 @@ class HierarchyTests(BaseAssessmentTestCase):
 
     def test_removing_non_root_bank_from_hierarchy_throws_exception(self):
         self.num_banks(1)
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.num_banks(2)
         self.add_root_bank(self._bank.ident)
 
@@ -3106,7 +3394,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_getting_details_for_non_root_bank_throws_exception(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/roots/' + unquote(str(second_bank.ident))
@@ -3115,7 +3403,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                           url)
 
     def test_can_get_children_banks(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3145,7 +3433,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_trying_to_add_child_to_non_root_bank_works(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
@@ -3188,7 +3476,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                           headers={'content-type': 'application/json'})
 
     def test_child_id_required_to_add_child_bank(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3203,9 +3491,8 @@ class HierarchyTests(BaseAssessmentTestCase):
                           params=json.dumps(payload),
                           headers={'content-type': 'application/json'})
 
-
     def test_can_add_child_bank_to_node(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3222,7 +3509,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.code(req, 201)
 
     def test_can_remove_child_from_node(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3266,7 +3553,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         )
 
     def test_can_get_ancestor_and_descendant_levels(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3288,7 +3575,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.query_node_hierarchy(self._bank.ident, 'descendants', 1, [str(second_bank.ident)])
 
     def test_can_query_hierarchy_nodes_with_descendants(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3304,7 +3591,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                             })
         self.code(req, 201)
 
-        third_bank = create_test_bank()
+        third_bank = create_new_bank()
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
 
@@ -3328,7 +3615,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
 
     def test_display_names_flag_shows_in_hierarchy_descendants(self):
-        second_bank = create_test_bank()
+        second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
@@ -3344,7 +3631,7 @@ class HierarchyTests(BaseAssessmentTestCase):
                             })
         self.code(req, 201)
 
-        third_bank = create_test_bank()
+        third_bank = create_new_bank()
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(second_bank.ident)) + '/children'
 
@@ -4562,6 +4849,58 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for answer in data['answers']:
             self.assertNotIn('height=', answer['feedbacks'][0]['text'])
             self.assertNotIn('width=', answer['feedbacks'][0]['text'])
+
+    def test_can_edit_shuffle_option_for_qti_question_via_rest_mw(self):
+        mc_item = self.create_mw_sentence_item()
+        self.assertTrue(mc_item['question']['shuffle'])
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        payload = {
+            "question": {
+                "shuffle": False
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['question']['shuffle'])
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.orderInteraction['shuffle'], 'false')
+
+    def test_can_edit_shuffle_option_for_qti_question_via_rest_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        self.assertFalse(mc_item['question']['shuffle'])
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        payload = {
+            "question": {
+                "shuffle": True
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['question']['shuffle'])
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.choiceInteraction['shuffle'], 'true')
 
     def test_can_edit_unicode_feedback_via_rest_mc(self):
         """the audio feedback script can send back unicode values"""
@@ -9029,6 +9368,60 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
+
+    def test_can_edit_max_strings(self):
+        item = self.create_item()
+        old_max_strings = item['question']['maxStrings']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'maxStrings': 55}
+        }
+        self.assertNotEqual(55, old_max_strings)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['maxStrings'], '55')
+
+    def test_can_edit_expected_length(self):
+        item = self.create_item()
+        old_expected_length = item['question']['expectedLength']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'expectedLength': 55}
+        }
+        self.assertNotEqual(55, old_expected_length)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['expectedLength'], '55')
+
+    def test_can_edit_expected_lines(self):
+        item = self.create_item()
+        old_expected_lines = item['question']['expectedLines']
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        payload = {
+            'question': {'expectedLines': 55}
+        }
+        self.assertNotEqual(55, old_expected_lines)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        soup = BeautifulSoup(req.body, 'xml')
+        self.assertEqual(soup.extendedTextInteraction['expectedLines'], '55')
 
 
 class VideoTagReplacementTests(BaseAssessmentTestCase):

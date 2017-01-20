@@ -30,51 +30,17 @@ urls = (
     '/test', 'video_test',
     '/datastore_path', 'bootloader_storage_path',
     '/version', 'version',
-    '/modules_list', 'modules_list',
-    '/', 'index'
+    '/(.*)', 'index'
 )
 app = web.application(urls, locals())
-
-def list_dir(root, directory, current_level=0, max_level=3):
-    # recursively list the directories under modules. Set limit to 3, given how
-    # the epubs are structured, but let's make that an option
-    # Tools will show up with an extra level of depth.
-    # Sample output:
-    # ['modules/English Elementary', 'modules/English Elementary/G9', 'modules/English Elementary/G9/U1',
-    #  'modules/Tools', 'modules/Tools/Bio- Mechanic', 'modules/Tools/Open Story',
-    #  'modules/Tools/Open Story/css', 'modules/Tools/Open Story/fonts', 'modules/Tools/Physics Video Player',
-    #  'modules/Tools/Police Quad', 'modules/Tools/Turtle Blocks']
-    sub_dirs = []
-    if current_level < max_level:
-        if os.path.isdir('{0}/{1}'.format(root, directory)) and not directory.startswith('.'):
-            for sub_dir in os.listdir('{0}/{1}'.format(root, directory)):
-                new_sub_dir = '{0}/{1}'.format(directory, sub_dir)
-                full_sub_dir_path = '{0}/{1}'.format(root, new_sub_dir)
-                if not sub_dir.startswith('.') and os.path.isdir(full_sub_dir_path):
-                    sub_dirs.append(new_sub_dir)
-                    sub_dirs += list_dir(root, new_sub_dir, current_level=current_level+1)
-            sub_dirs.sort()
-    return sub_dirs
 
 class bootloader_storage_path:
     def GET(self):
         return ABS_PATH
 
 class index:
-    def GET(self):
-        # render the unplatform v2 front-end
-        web.header('Content-type', 'text/html')
-        index_file = '{0}/static/index.html'.format(ABS_PATH)
-        yield open(index_file, 'rb').read()
-
-class modules_list:
-    @utilities.format_response
-    def GET(self):
-        # send the entire
-        # file structure for /modules in one go, so that the
-        # OS doesn't have to be re-walked every time.
-        data = list_dir(ABS_PATH, 'modules')
-        return data
+    def GET(self, path=None):
+        return 'Trying to GET: {0}'.format(path)
 
 class version:
     def GET(self):

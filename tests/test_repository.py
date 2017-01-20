@@ -2,12 +2,12 @@ import os
 
 from bs4 import BeautifulSoup
 
-from dlkit_edx.configs import FILESYSTEM_ASSET_CONTENT_TYPE
-from dlkit_edx.primordium import DataInputStream, Type, Id
+from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
+from dlkit_runtime.primordium import DataInputStream, Type, Id
 
 from nose.tools import *
 
-from testing_utilities import BaseTestCase, create_test_repository, get_managers
+from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
 from urllib import unquote, quote
 
 from records.registry import ASSESSMENT_RECORD_TYPES
@@ -48,7 +48,7 @@ class BaseRepositoryTestCase(BaseTestCase):
     def setUp(self):
         super(BaseRepositoryTestCase, self).setUp()
         self.url = '/api/v1/repository'
-        self._repo = create_test_repository()
+        self._repo = get_fixture_repository()
         test_file = '{0}/tests/files/sample_movie.MOV'.format(ABS_PATH)
 
         self.test_file = open(test_file, 'r')

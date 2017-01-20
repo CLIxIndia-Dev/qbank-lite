@@ -1,0 +1,4 @@
+# You need to create a settings.py file with things like
+# your production root authz user, 
+
+AUTHZ_USER = "user@example.com"
