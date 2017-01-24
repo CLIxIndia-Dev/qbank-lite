@@ -1908,9 +1908,6 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
 
-    def test_can_get_assessment_item_qti_xml(self):
-        self.fail('finish writing the test')
-
     def test_can_assign_to_banks_on_create(self):
         new_bank = self.create_bank()
 
