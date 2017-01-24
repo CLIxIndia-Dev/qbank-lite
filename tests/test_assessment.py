@@ -358,7 +358,7 @@ class AnswerTypeTests(BaseAssessmentTestCase):
     def setUp(self):
         super(AnswerTypeTests, self).setUp()
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/items'
-        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'r')
+        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'rb')
 
     def tearDown(self):
         """
@@ -1907,6 +1907,9 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
+
+    def test_can_get_assessment_item_qti_xml(self):
+        self.fail('finish writing the test')
 
     def test_can_assign_to_banks_on_create(self):
         new_bank = self.create_bank()
@@ -3842,18 +3845,18 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
-        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
-        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
-        self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
-        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
-        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
-        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
-        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
-        self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'r')
-        self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'r')
-        self._unshuffled_order_interaction_question_test_file = open('{0}/tests/files/order_interaction_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
-        self._unshuffled_inline_choice_question_test_file = open('{0}/tests/files/fitb_no_shuffle_test_file.zip'.format(ABS_PATH), 'r')
-        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'rb')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'rb')
+        self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'rb')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'rb')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'rb')
+        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'rb')
+        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'rb')
+        self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'rb')
+        self._unshuffled_mc_question_test_file = open('{0}/tests/files/no_shuffle_mc_test_file.zip'.format(ABS_PATH), 'rb')
+        self._unshuffled_order_interaction_question_test_file = open('{0}/tests/files/order_interaction_no_shuffle_test_file.zip'.format(ABS_PATH), 'rb')
+        self._unshuffled_inline_choice_question_test_file = open('{0}/tests/files/fitb_no_shuffle_test_file.zip'.format(ABS_PATH), 'rb')
+        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'rb')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -5808,10 +5811,10 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered = self.create_taken_for_item(self._bank.ident, self._item.ident)
 
-        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
-        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        self._float_numeric_response_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        # self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'rb')
+        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'rb')
+        self._float_numeric_response_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'rb')
+        # self._float_numeric_response_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'rb')
 
         self.url += '/banks/' + unquote(str(self._bank.ident)) + '/'
 
@@ -6334,50 +6337,50 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def setUp(self):
         super(QTIEndpointTests, self).setUp()
 
-        self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'r')
+        self._test_file = open('{0}/tests/files/sample_qti_choice_interaction.xml'.format(ABS_PATH), 'rb')
         self._test_xml = BeautifulSoup(self._test_file.read(), 'xml').prettify()
 
-        self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
-        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
-        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
-        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
-        self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'r')
-        self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'r')
-        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
-        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
-        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
-        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
-        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
-        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
-        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
-        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        # self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'r')
-        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
-        self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'r')
-        self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'r')
-        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
-        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'r')
-        self._telugu_test_file = open('{0}/tests/files/telugu_question_test_file.zip'.format(ABS_PATH), 'r')
-        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'r')
-        self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'r')
-        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'r')
-        self._fitb_with_punctuation_test_file = open('{0}/tests/files/eb_u01l03a06q03_en.zip'.format(ABS_PATH), 'r')
-        self._square_image = open('{0}/tests/files/square.png'.format(ABS_PATH), 'r')
-        self._diamond_image = open('{0}/tests/files/diamond.png'.format(ABS_PATH), 'r')
-        self._rectangle_image = open('{0}/tests/files/rectangle.png'.format(ABS_PATH), 'r')
-        self._parallelogram_image = open('{0}/tests/files/parallelogram.png'.format(ABS_PATH), 'r')
-        self._green_dot_image = open('{0}/tests/files/green_dot.png'.format(ABS_PATH), 'r')
-        self._h1i_image = open('{0}/tests/files/h1i.png'.format(ABS_PATH), 'r')
-        self._audio_test_file = open('{0}/tests/files/audioTestFile_.mp3'.format(ABS_PATH), 'r')
-        self._intersection_image = open('{0}/tests/files/intersection.png'.format(ABS_PATH), 'r')
-        self._mw_sentence_audio_file = open('{0}/tests/files/ee_u1l01a01r05_.mp3'.format(ABS_PATH), 'r')
-        self._mw_sandbox_audio_file = open('{0}/tests/files/ee_u1l01a01r04_.mp3'.format(ABS_PATH), 'r')
-        self._shapes_image = open('{0}/tests/files/shapes.png'.format(ABS_PATH), 'r')
-        self._picture1 = open('{0}/tests/files/Picture1.png'.format(ABS_PATH), 'r')
-        self._picture2 = open('{0}/tests/files/Picture2.png'.format(ABS_PATH), 'r')
-        self._picture3 = open('{0}/tests/files/Picture3.png'.format(ABS_PATH), 'r')
-        self._picture4 = open('{0}/tests/files/Picture4.png'.format(ABS_PATH), 'r')
+        self._test_file2 = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'rb')
+        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'rb')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'rb')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'rb')
+        self._mw_sentence_missing_audio_test_file = open('{0}/tests/files/mw_sentence_missing_audio_file.zip'.format(ABS_PATH), 'rb')
+        self._xml_after_audio_test_file = open('{0}/tests/files/qti_file_for_testing_xml_output.zip'.format(ABS_PATH), 'rb')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'rb')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'rb')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'rb')
+        self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'rb')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'rb')
+        self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'rb')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'rb')
+        # self._simple_numeric_response_test_file = open('{0}/tests/files/numeric_response_test_file.zip'.format(ABS_PATH), 'rb')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'rb')
+        # self._floating_point_numeric_input_test_file = open('{0}/tests/files/floating_point_numeric_input_test_file.zip'.format(ABS_PATH), 'rb')
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'rb')
+        self._audio_everywhere_test_file = open('{0}/tests/files/audio_everywhere_test_file.zip'.format(ABS_PATH), 'rb')
+        self._audio_in_choices_test_file = open('{0}/tests/files/audio_choices_only_test_file.zip'.format(ABS_PATH), 'rb')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'rb')
+        self._image_in_feedback_test_file = open('{0}/tests/files/image_feedback_test_file.zip'.format(ABS_PATH), 'rb')
+        self._telugu_test_file = open('{0}/tests/files/telugu_question_test_file.zip'.format(ABS_PATH), 'rb')
+        self._survey_question_test_file = open('{0}/tests/files/survey_question_test_file.zip'.format(ABS_PATH), 'rb')
+        self._multi_select_survey_question_test_file = open('{0}/tests/files/survey_question_multi_select_test_file.zip'.format(ABS_PATH), 'rb')
+        self._unicode_feedback_test_file = open('{0}/tests/files/ee_u1l05a04q01_en.zip'.format(ABS_PATH), 'rb')
+        self._fitb_with_punctuation_test_file = open('{0}/tests/files/eb_u01l03a06q03_en.zip'.format(ABS_PATH), 'rb')
+        self._square_image = open('{0}/tests/files/square.png'.format(ABS_PATH), 'rb')
+        self._diamond_image = open('{0}/tests/files/diamond.png'.format(ABS_PATH), 'rb')
+        self._rectangle_image = open('{0}/tests/files/rectangle.png'.format(ABS_PATH), 'rb')
+        self._parallelogram_image = open('{0}/tests/files/parallelogram.png'.format(ABS_PATH), 'rb')
+        self._green_dot_image = open('{0}/tests/files/green_dot.png'.format(ABS_PATH), 'rb')
+        self._h1i_image = open('{0}/tests/files/h1i.png'.format(ABS_PATH), 'rb')
+        self._audio_test_file = open('{0}/tests/files/audioTestFile_.mp3'.format(ABS_PATH), 'rb')
+        self._intersection_image = open('{0}/tests/files/intersection.png'.format(ABS_PATH), 'rb')
+        self._mw_sentence_audio_file = open('{0}/tests/files/ee_u1l01a01r05_.mp3'.format(ABS_PATH), 'rb')
+        self._mw_sandbox_audio_file = open('{0}/tests/files/ee_u1l01a01r04_.mp3'.format(ABS_PATH), 'rb')
+        self._shapes_image = open('{0}/tests/files/shapes.png'.format(ABS_PATH), 'rb')
+        self._picture1 = open('{0}/tests/files/Picture1.png'.format(ABS_PATH), 'rb')
+        self._picture2 = open('{0}/tests/files/Picture2.png'.format(ABS_PATH), 'rb')
+        self._picture3 = open('{0}/tests/files/Picture3.png'.format(ABS_PATH), 'rb')
+        self._picture4 = open('{0}/tests/files/Picture4.png'.format(ABS_PATH), 'rb')
 
         self._item = self.create_item(self._bank.ident)
         self._taken, self._offered, self._assessment = self.create_taken_for_item(self._bank.ident, self._item.ident)
@@ -11454,11 +11457,11 @@ class FileUploadTests(BaseAssessmentTestCase):
     def setUp(self):
         super(FileUploadTests, self).setUp()
 
-        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'r')
-        self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'r')
-        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
-        self._generic_upload_response_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
-        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'r')
+        self._audio_recording_test_file = open('{0}/tests/files/Social_Introductions_Role_Play.zip'.format(ABS_PATH), 'rb')
+        self._audio_response_file = open('{0}/tests/files/349398__sevenbsb__air-impact-wrench.wav'.format(ABS_PATH), 'rb')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'rb')
+        self._generic_upload_response_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'rb')
+        self._mw_sandbox_test_file = open('{0}/tests/files/mw_sandbox.zip'.format(ABS_PATH), 'rb')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -11628,7 +11631,7 @@ class ExtendedTextInteractionTests(BaseAssessmentTestCase):
     def setUp(self):
         super(ExtendedTextInteractionTests, self).setUp()
 
-        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'rb')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
         self._telugu_text = u'తెలుగు'
@@ -11749,10 +11752,10 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
     def setUp(self):
         super(VideoTagReplacementTests, self).setUp()
 
-        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'r')
-        self._video_matrix_test_file = open('{0}/tests/files/video_upload_matrix.tsv'.format(ABS_PATH), 'r')
-        self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
-        self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+        self._video_test_file = open('{0}/tests/files/video_test_file.zip'.format(ABS_PATH), 'rb')
+        self._video_matrix_test_file = open('{0}/tests/files/video_upload_matrix.tsv'.format(ABS_PATH), 'rb')
+        self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'rb')
+        self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'rb')
 
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
@@ -12031,15 +12034,15 @@ class MultiLanguageTests(BaseAssessmentTestCase):
     def setUp(self):
         super(MultiLanguageTests, self).setUp()
 
-        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
-        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
-        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
-        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'r')
-        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
-        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'r')
-        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'r')
-        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'r')
-        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'r')
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'rb')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'rb')
+        self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'rb')
+        self._short_answer_test_file = open('{0}/tests/files/short_answer_test_file.zip'.format(ABS_PATH), 'rb')
+        self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'rb')
+        self._simple_numeric_response_test_file = open('{0}/tests/files/new_numeric_response_format_test_file.zip'.format(ABS_PATH), 'rb')
+        self._floating_point_numeric_input_test_file = open('{0}/tests/files/new_floating_point_numeric_response_test_file.zip'.format(ABS_PATH), 'rb')
+        self._mw_fitb_2_test_file = open('{0}/tests/files/mw_fill_in_the_blank_example_2.zip'.format(ABS_PATH), 'rb')
+        self._audio_file = open('{0}/tests/files/audio_feedback.mp3'.format(ABS_PATH), 'rb')
 
         self._english_text = 'english'
         self._hindi_text = u'हिंदी'
