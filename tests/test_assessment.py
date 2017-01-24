@@ -913,6 +913,14 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         return self.json(req)
 
+    def create_mw_sentence_item(self):
+        url = '{0}/items'.format(self.url)
+        self._mw_sentence_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mw_sentence_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def item_payload(self):
         item_name = 'a really complicated item'
         item_desc = 'meant to differentiate students'
@@ -944,6 +952,8 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         super(AssessmentCrUDTests, self).setUp()
         self.url += '/banks/' + unquote(str(self._bank.ident))
 
+        self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'rb')
+
     def tearDown(self):
         """
         Remove the test user from all groups in Membership
@@ -951,6 +961,8 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
         """
         super(AssessmentCrUDTests, self).tearDown()
+
+        self._mw_sentence_test_file.close()
 
     def test_assessment_offered_crud(self):
         """
@@ -1907,6 +1919,142 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(len(data), 2)
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
+
+    def test_can_get_assessment_item_qti(self):
+        mc_sentence = self.create_mw_sentence_item()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        # Use POST to create an assessment
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "itemIds": [mc_sentence['id']]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment_id = unquote(json.loads(req.body)['id'])
+        assessment_detail_endpoint = assessments_endpoint + '/' + assessment_id
+        assessment_items_endpoint = assessment_detail_endpoint + '/items?qti'
+
+        # should now appear in the Assessment Items List
+        req = self.app.get(assessment_items_endpoint)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertIn('qti', data[0])
+
+        item = data[0]
+
+        item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
+        expected_values = ['id51b2feca-d407-46d5-b548-d6645a021008',
+                           'id881a8e9c-844b-4394-be62-d28a5fda5296',
+                           'idcccac9f8-3b85-4a2f-a95c-1922dec5d04a',
+                           'id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0',
+                           'id78ce22bf-559f-44a4-95ee-156f222ad510',
+                           'id3045d860-24b4-4b30-9ca1-72408a3bcc9b',
+                           'id2cad48be-2782-4625-9669-dfcb2062bf3c']
+        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
+            self.assertEqual(value.string.strip(), expected_values[index])
+
+        item_body = item_qti.itemBody
+
+        order_interaction = item_body.orderInteraction.extract()
+
+        audio_asset_label = 'ee_u1l01a01r05__mp3'
+        image_asset_label = 'medium8081173379968782030intersection_png'
+        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+        image_asset_id = item['question']['fileIds'][image_asset_label]['assetId']
+        image_asset_content_id = item['question']['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}" width="100"/>
+</p>
+
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+        self.assertEqual(
+            len(order_interaction.find_all('simpleChoice')),
+            7
+        )
+        self.assertEqual(
+            order_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            order_interaction['shuffle'],
+            'true'
+        )
+
+        expected_choices = {
+            "id51b2feca-d407-46d5-b548-d6645a021008": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class="noun">
+     Raju
+    </p>
+</simpleChoice>""",
+            "id881a8e9c-844b-4394-be62-d28a5fda5296": """<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
+<p class="verb">
+     left
+    </p>
+</simpleChoice>""",
+            "idcccac9f8-3b85-4a2f-a95c-1922dec5d04a": """<simpleChoice identifier="idcccac9f8-3b85-4a2f-a95c-1922dec5d04a">
+<p class="noun">
+     the bags
+    </p>
+</simpleChoice>""",
+            "id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0": """<simpleChoice identifier="id28a924d9-32ac-4ac5-a4b2-1b1cfe2caba0">
+<p class="adverb">
+     under
+    </p>
+</simpleChoice>""",
+            "id78ce22bf-559f-44a4-95ee-156f222ad510": """<simpleChoice identifier="id78ce22bf-559f-44a4-95ee-156f222ad510">
+<p class="noun">
+     the seat
+    </p>
+</simpleChoice>""",
+            "id3045d860-24b4-4b30-9ca1-72408a3bcc9b": """<simpleChoice identifier="id3045d860-24b4-4b30-9ca1-72408a3bcc9b">
+<p class="prep">
+     on
+    </p>
+</simpleChoice>""",
+            "id2cad48be-2782-4625-9669-dfcb2062bf3c": """<simpleChoice identifier="id2cad48be-2782-4625-9669-dfcb2062bf3c">
+<p class="noun">
+     the bus
+    </p>
+</simpleChoice>"""
+        }
+
+        for choice in order_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
 
     def test_can_assign_to_banks_on_create(self):
         new_bank = self.create_bank()
