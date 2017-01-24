@@ -18,7 +18,8 @@ from inflection import underscore
 
 from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
     ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES, ASSET_GENUS_TYPES,\
-    ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES
+    ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES,\
+    QUESTION_RECORD_TYPES
 
 from urllib import quote
 
@@ -43,6 +44,9 @@ REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
+
+FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
+FILES_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['files'])
 
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
@@ -567,6 +571,8 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
     if 'genus' in answer:
         answer_form.genus_type = Type(answer['genus'])
+    elif 'genusTypeId' in answer:
+        answer_form.genus_type = Type(answer['genusTypeId'])
 
     if 'feedback' in answer:
         if str(MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK) not in answer_form._my_map['recordTypeIds']:
@@ -669,21 +675,31 @@ def set_item_learning_objectives(data, form):
     return form
 
 def update_answer_form(answer, form, question=None):
-    if answer['type'] == 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
+    if 'type' in answer:
+        if isinstance(answer['type'], list):
+            answer_types = answer['type']
+        else:
+            answer_types = [answer['type']]
+    elif 'recordTypeIds' in answer:
+        answer_types = answer['recordTypeIds']
+    else:
+        raise KeyError('missing answer type')
+
+    if 'answer-record-type%3Ashort-text-answer%40ODL.MIT.EDU' in answer_types:
         if 'responseString' in answer:
             form.set_text(answer['responseString'])
-    elif answer['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
+    elif 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU' in answer_types:
         if 'integerValues' in answer:
             form.set_face_values(front_face_value=answer['integerValues']['frontFaceValue'],
                                  side_face_value=answer['integerValues']['sideFaceValue'],
                                  top_face_value=answer['integerValues']['topFaceValue'])
-    elif answer['type'] == 'answer-record-type%3Aeuler-rotation%40ODL.MIT.EDU':
+    elif 'answer-record-type%3Aeuler-rotation%40ODL.MIT.EDU' in answer_types:
         if 'integerValues' in answer:
             form.set_euler_angle_values(x_angle=answer['integerValues']['xAngle'],
                                         y_angle=answer['integerValues']['yAngle'],
                                         z_angle=answer['integerValues']['zAngle'])
-    elif (answer['type'] == 'answer-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU' or
-          answer['type'] == 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'):
+    elif any(t in answer_types for t in['answer-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU',
+                                        'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU']):
         if question is None and 'choiceId' in answer:
             raise InvalidArgument('Missing question parameter for multi-choice')
         if not form.is_for_update():
@@ -703,15 +719,15 @@ def update_answer_form(answer, form, question=None):
             choice_id = choices[int(answer['choiceId']) - 1]  # not sure if we need the OSID Id or string
             form.add_choice_id(choice_id['id'])  # just include the MongoDB ObjectId, not the whole dict
 
-    elif answer['type'] == 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU':
+    elif 'answer-record-type%3Afiles-submission%40ODL.MIT.EDU' in answer_types:
         # no correct answers here...
         return form
-    elif answer['type'] == 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
+    elif 'answer-record-type%3Anumeric-response-edx%40ODL.MIT.EDU' in answer_types:
         if 'decimalValue' in answer:
             form.set_decimal_value(float(answer['decimalValue']))
         if 'tolerance' in answer:
             form.set_tolerance_value(float(answer['tolerance']))
-    elif any(t in answer['type'] for t in ['answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU']):
+    elif any(t in answer_types for t in ['answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU']):
         if 'choiceIds' in answer:
             for choice_id in answer['choiceIds']:
                 try:
@@ -719,15 +735,35 @@ def update_answer_form(answer, form, question=None):
                 except IllegalState:
                     pass
                 form.add_choice_id(choice_id, answer['region'])
-    elif any(t in answer['type'] for t in ['answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU']):
+    elif any(t in answer_types for t in ['answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU']):
         if 'choiceIds' in answer:
             for choice_id in answer['choiceIds']:
                 form.add_choice_id(choice_id)
-    elif 'qti' in answer['type']:
+    elif any('qti' in t for t in answer_types):
         pass
     else:
         raise Unsupported()
 
+    return form
+
+def update_answer_form_with_files(form, data):
+    if 'fileIds' in data:
+        # assumes the asset already exists in the system
+        if str(FILES_ANSWER_RECORD) not in data['recordTypeIds']:
+            record = form.get_answer_form_record(FILES_ANSWER_RECORD)
+            record._init_metadata()
+            record._init_map()
+        form = update_form_with_files(form, data)
+    return form
+
+def update_form_with_files(form, data):
+    for label, asset_data in data['fileIds'].iteritems():
+        # don't let them overwrite files from other languages...
+        if label not in form._my_map['fileIds']:
+            form.add_asset(asset_data['assetId'],
+                           asset_content_id=asset_data['assetContentId'],
+                           label=label,
+                           asset_content_type=asset_data['assetContentTypeId'])
     return form
 
 def update_item_metadata(data, form):
@@ -776,10 +812,17 @@ def update_question_form(question, form, create=False):
     Check the create flag--if creating the question, then all 3 viewset files
     are needed. If not creating, can update only a single file.
     """
-    if question['type'] == 'question-record-type%3Ashort-text-answer%40ODL.MIT.EDU':
+    if 'type' in question:
+        question_types = [question['type']]
+    elif 'recordTypeIds' in question:
+        question_types = question['recordTypeIds']
+    else:
+        raise KeyError('missing question type key')
+
+    if 'question-record-type%3Ashort-text-answer%40ODL.MIT.EDU' in question_types:
         form.set_text(question['questionString'])
-    elif (question['type'] == 'question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU' or
-          question['type'] == 'question-record-type%3Aeuler-rotation%40ODL.MIT.EDU'):
+    elif any(t in question_types for t in ['question-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU',
+                                           'question-record-type%3Aeuler-rotation%40ODL.MIT.EDU']):
         # need to differentiate on create here because update might not use all
         # the fields, whereas we need to enforce a minimum of data on create
         if create:
@@ -818,7 +861,7 @@ def update_question_form(question, form, create=False):
             #     form.set_ovs_view(DataInputStream(files['sideView']), 'sideView')
             # if 'topView' in files:
             #     form.set_ovs_view(DataInputStream(files['topView']), 'topView')
-    elif question['type'] == 'question-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU':
+    elif 'question-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU' in question_types:
         # need to differentiate on create here because update might not use all
         # the fields, whereas we need to enforce a minimum of data on create
         if create:
@@ -896,7 +939,7 @@ def update_question_form(question, form, create=False):
             #     form.set_manip(DataInputStream(files['manip']))
 
             # TODO: change a choice set
-    elif question['type'] == 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU':
+    elif 'question-record-type%3Amulti-choice-edx%40ODL.MIT.EDU' in question_types:
         if "rerandomize" in question:
             form.add_rerandomize(question['rerandomize'])
         if create:
@@ -930,15 +973,15 @@ def update_question_form(question, form, create=False):
                                         choice.get('name', 'Choice ' + str(int(ind) + 1)))
                     else:
                         form.add_choice(choice, 'Choice ' + str(int(ind) + 1))
-    elif question['type'] == 'question-record-type%3Afiles-submission%40ODL.MIT.EDU':
+    elif 'question-record-type%3Afiles-submission%40ODL.MIT.EDU' in question_types:
         form.set_text(str(question['questionString']))
-    elif question['type'] == 'question-record-type%3Anumeric-response-edx%40ODL.MIT.EDU':
+    elif 'question-record-type%3Anumeric-response-edx%40ODL.MIT.EDU' in question_types:
         if create:
             form.set_text(str(question['questionString']))
         else:
             if 'questionString' in question:
                 form.set_text(str(question['questionString']))
-    elif 'qti' in question['type']:
+    elif any('qti' in t for t in question_types):
         if 'questionString' in question:
             try:
                 form.add_text(utilities.create_display_text(question['questionString']))
@@ -1006,9 +1049,35 @@ def update_question_form(question, form, create=False):
             form.set_expected_length(int(question['expectedLength']))
         if 'expectedLines' in question:
             form.set_expected_lines(int(question['expectedLines']))
+        if 'variables' in question:
+            for var_data in question['variables']:
+                if 'format'in var_data:
+                    var_format = var_data['format']
+                else:
+                    var_format = ''
+                if 'step' in var_data:
+                    step = var_data['step']
+                else:
+                    step = 1
+                form.add_variable(var_data['id'],
+                                  var_data['type'],
+                                  var_data['min'],
+                                  var_data['max'],
+                                  var_step=step,
+                                  format=var_format)
     else:
         raise Unsupported()
 
+    return form
+
+def update_question_form_with_files(form, data):
+    if 'fileIds' in data:
+        # assumes the asset already exists in the system
+        if str(FILES_QUESTION_RECORD) not in data['recordTypeIds']:
+            record = form.get_question_form_record(FILES_QUESTION_RECORD)
+            record._init_metadata()
+            record._init_map()
+        form = update_form_with_files(form, data)
     return form
 
 def update_response_form(response, form):
