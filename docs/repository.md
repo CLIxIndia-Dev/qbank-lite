@@ -81,7 +81,10 @@ returns:
 #### PUT
 
 url parameters (optional):
-  - None currently supported
+  - displayName. Edit the `asset` `displayName` text.
+  - description. Edit the `asset` `description` text.
+  - license. Edit the `license` string.
+  - copyright. Edit the `copyright` string.
 
 returns:
   - `Asset` object.
@@ -112,6 +115,8 @@ form data (required):
                           `{returnUrl: true}`, then the returned URL value
                           for the `asset content` will be a valid URL.
                           This can be found at `result.assetContents[0].url`.
+  - license (optional). Set the `license` string.
+  - copyright (optional). Set the `copyright` string.
 
 returns:
   - `Asset` object.

@@ -951,3 +951,22 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             data['description']['text'],
             new_description
         )
+
+    def test_can_get_asset_with_content_urls(self):
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_id = data['id']
+        url = '{0}/{1}?fullUrls'.format(self.url,
+                                        asset_id)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(data['assignedRepositoryIds'][0],
+                                                                                 data['id'],
+                                                                                 data['assetContents'][0]['id']),
+            data['assetContents'][0]['url']
+        )
