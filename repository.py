@@ -192,7 +192,10 @@ class AssetContentDetails(utilities.BaseClass):
                 # default, but can be over-ridden by user params
                 form.set_genus_type(rutils.get_asset_content_genus_type(file_name))
 
-                form.add_display_name(utilities.create_display_text(file_name))
+                try:
+                    form.add_display_name(utilities.create_display_text(file_name))
+                except AttributeError:
+                    form.display_name = file_name
 
                 form.set_data(data)
             except AttributeError:

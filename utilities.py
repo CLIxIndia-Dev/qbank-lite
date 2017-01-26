@@ -42,7 +42,9 @@ class BaseClass:
             url_data = json.loads(web.data())
         except (ValueError, TypeError):
             pass
-        url_data.update(form_data)
+        if isinstance(url_data, dict):
+            # because might pass in list data, like a list of offereds
+            url_data.update(form_data)
         return url_data
 
 def create_display_text(text_string, language_code=None):
