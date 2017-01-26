@@ -128,9 +128,7 @@ class AssetsList(utilities.BaseClass):
 
             asset_map = json.loads(utilities.convert_dl_object(updated_asset))
             if 'returnUrl' in web.input().keys():
-                asset_map['assetContents'][0]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset_map['assignedRepositoryIds'][0],
-                                                                                                                            asset_map['id'],
-                                                                                                                            asset_map['assetContents'][0]['id'])
+                asset_map = rutils.update_asset_map_with_content_url(asset_map)
 
             return json.dumps(asset_map)
         except (PermissionDenied, InvalidId) as ex:
