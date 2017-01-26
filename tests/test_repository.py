@@ -820,16 +820,16 @@ class AssetCRUDTests(BaseRepositoryTestCase):
 
     def test_can_provide_license_on_upload(self):
         self._video_upload_test_file.seek(0)
+        license_ = "BSD"
         req = self.app.post(self.url,
+                            params={"license": license_},
                             upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
         self.ok(req)
         data = self.json(req)
         self.assertEqual(
-            len(data['assetContents']),
-            1
+            data['license']['text'],
+            license_
         )
-
-        self.fail('finish writing the test')
 
     def test_can_provide_copyright_on_upload(self):
         self.fail('finish writing the test')

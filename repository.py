@@ -124,18 +124,35 @@ class AssetsList(utilities.BaseClass):
                 # If that already exists, add the input_file as an asset content.
                 # If that asset does not exist, create it.
                 file_name = x['inputFile'].filename
-                querier = repository.get_asset_query()
-                querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
-                assets = repository.get_assets_by_query(querier)
-                if assets.available() > 0:
-                    asset = assets.next()
-                else:
+
+                if 'createNew' in params.keys() and params['createNew']:
                     asset = rutils.create_asset(repository, file_name)
+                else:
+                    querier = repository.get_asset_query()
+                    querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
+                    assets = repository.get_assets_by_query(querier)
+                    if assets.available() > 0:
+                        asset = assets.next()
+                    else:
+                        asset = rutils.create_asset(repository, file_name)
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
                 rutils.append_asset_contents(repository, asset, file_name, input_file)
             except AttributeError:
+                form = repository.get_asset_form_for_create([])
+                form = utilities.set_form_basics(form, params)
+                asset = repository.create_asset(form)
+
+            from nose.tools import set_trace
+            set_trace()
+            if 'license' in params.keys() or 'copyright' in params.keys():
+                form = repository.get_asset_form_for_update(asset.ident)
+                if 'license' in params.keys():
+                    form.set_license(params['license'])
+                if 'copyright' in params.keys():
+                    form.set_copyright(params['copyright'])
+                asset = repository.update_asset(form)
 
             return utilities.convert_dl_object(repository.get_asset(asset.ident))
         except (PermissionDenied, InvalidId) as ex:
