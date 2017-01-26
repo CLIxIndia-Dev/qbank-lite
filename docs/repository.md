@@ -71,7 +71,8 @@ Return list of `asset`s in the given `repository`, or create a new
 #### GET
 
 url parameters (optional):
-  - None currently supported
+  - fullUrls. If included, the `url` values for each `asset`'s `assetContents` will point
+              to a resolve-able URL, so you can preview the file / image / etc.
 
 returns:
   - list of `Asset` objects.
