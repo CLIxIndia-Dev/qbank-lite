@@ -82,7 +82,11 @@ form data (required):
   - inputFile. The file that you want to save into an `asset content`.
                This version of the RESTful API abstracts out the idea
                of separate `asset` and `asset content` and instead treats
-               them as the same object.
+               them as the same object for CREATE only.
+  - returnUrl (optional). If you include this parameter in the sent data, i.e.
+                          `{returnUrl: true}`, then the returned URL value
+                          for the `asset content` will be a valid URL.
+                          This can be found at `result.assetContents[0].url`.
 
 returns:
   - `Asset` object.
