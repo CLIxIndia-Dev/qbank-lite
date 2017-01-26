@@ -34,24 +34,40 @@ returns:
 
 #### PUT
 
-You would use this to replace the data for a single `asset content`.
-It has been used by some CLIx scripts when you want to keep the same `fileId` and
-pointer in `item`s...it is **not** recommended to use this endpoint for
-actual content management. The ideal tool would create a new `asset` with
-new `asset content` instead of replacing just the data.
+You can use this endpoint to update four things in an `assetContent`.
+Multi-language `assetContent`s support multiple text fields.
+  - the actual data / bits.
+  - the `displayName`.
+  - the `description`.
+  - the `genusTypeId`.
 
-This is included for reference only.
-
-form data (required):
+form data (optional):
   - inputFile. The new file data that you want the `asset content` to
                contain. The ID is not changed.
+  - genusTypeId. The `genusTypeId` of the `asset content`, like:
+                 `asset-content-genus-type%3Athumbnail%40ODL.MIT.EDU` for a thumbnail image.
+  - displayName. Can be a `displayText` object or a string (in which case the
+                 language and script fields are set from the `x-api-locale` header).
+  - editName. A two-item list of the name text you want replaced (with language info).
+              Should be `[<old string>, <new string>]`.
+  - removeName. The text object / string you want removed from the `displayNames`.
+  - description. Can be a `displayText` object or a string (in which case the
+                 language and script fields are set from the `x-api-locale` header).
+  - editDescription. A two-item list of the description text you want replaced (with language info).
+                     Should be `[<old string>, <new string>]`.
+  - removeDescription. The text object / string you want removed from the `descriptions`.
 
 returns:
   - the `asset` that the content belongs to.
 
 ### AssetDetails
 
-Get `asset` details for the given `repository`
+Get `asset` details.
+
+Note that if you provide the `x-api-locale` header, any `assetContents`
+that have multi-language `displayName` or `description` will be returned
+in the given `locale`.
+
 `/api/v2/repository/repositories/<repository_id>/assets/<asset_id>`
 
 #### GET
