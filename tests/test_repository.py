@@ -1,16 +1,18 @@
+# -*- coding: utf-8 -*-
+import json
 import os
 
 from bs4 import BeautifulSoup
 
 from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
-from dlkit_runtime.primordium import DataInputStream, Type, Id
+from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
 
 from nose.tools import *
 
 from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
 from urllib import unquote, quote
 
-from records.registry import ASSESSMENT_RECORD_TYPES
+from records.registry import ASSESSMENT_RECORD_TYPES, ASSET_CONTENT_RECORD_TYPES
 
 import utilities
 
@@ -18,6 +20,7 @@ PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
+MULTI_LANGUAGE_ASSET_CONTENTS = Type(**ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
 
 class BaseRepositoryTestCase(BaseTestCase):
@@ -26,8 +29,16 @@ class BaseRepositoryTestCase(BaseTestCase):
         form.display_name = 'Test asset'
         asset = self._repo.create_asset(form)
 
-        content_form = self._repo.get_asset_content_form_for_create(asset.ident, [FILESYSTEM_ASSET_CONTENT_TYPE])
-        content_form.display_name = 'test asset content'
+        content_form = self._repo.get_asset_content_form_for_create(asset.ident, [MULTI_LANGUAGE_ASSET_CONTENTS,
+                                                                                  FILESYSTEM_ASSET_CONTENT_TYPE])
+        content_form.add_display_name(DisplayText(text='test asset content',
+                                                  language_type='639-2%3AENG%40ISO',
+                                                  format_type='TextFormats%3APLAIN%40okapia.net',
+                                                  script_type='15924%3ALATN%40ISO'))
+        content_form.add_description(DisplayText(text='foo',
+                                                 language_type='639-2%3AENG%40ISO',
+                                                 format_type='TextFormats%3APLAIN%40okapia.net',
+                                                 script_type='15924%3ALATN%40ISO'))
         content_form.set_data(DataInputStream(self.test_file))
         ac = self._repo.create_asset_content(content_form)
 
@@ -59,6 +70,21 @@ class BaseRepositoryTestCase(BaseTestCase):
 
 
 class AssetContentTests(BaseRepositoryTestCase):
+    @staticmethod
+    def _english_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'en'}
+
+    @staticmethod
+    def _hindi_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'hi'}
+
+    @staticmethod
+    def _telugu_headers():
+        return {'content-type': 'application/json',
+                'x-api-locale': 'te'}
+
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -135,6 +161,19 @@ class AssetContentTests(BaseRepositoryTestCase):
         self._replacement_image_file = open('{0}/tests/files/replacement_image.png'.format(ABS_PATH), 'r')
         self._images_in_choices = open('{0}/tests/files/qti_file_with_images.zip'.format(ABS_PATH), 'r')
         self._image_in_question = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
+
+        self._english_text = 'english'
+        self._hindi_text = u'हिंदी'
+        self._telugu_text = u'తెలుగు'
+
+        self._english_language_type = '639-2%3AENG%40ISO'
+        self._english_script_type = '15924%3ALATN%40ISO'
+
+        self._hindi_language_type = '639-2%3AHIN%40ISO'
+        self._hindi_script_type = '15924%3ADEVA%40ISO'
+
+        self._telugu_language_type = '639-2%3ATEL%40ISO'
+        self._telugu_script_type = '15924%3ATELU%40ISO'
 
     def tearDown(self):
         """
@@ -221,6 +260,95 @@ class AssetContentTests(BaseRepositoryTestCase):
             asset_content['displayName']['text']
         )
 
+    def test_can_update_asset_content_with_new_file_and_set_genus_type(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        asset_content = self.asset.get_asset_contents().next()
+        original_genus_type = str(asset_content.genus_type)
+        original_file_name = asset_content.display_name.text
+        original_on_disk_name = asset_content.get_url()
+        original_id = str(asset_content.ident)
+
+        self._replacement_image_file.seek(0)
+        thumbnail_genus = "asset-content-genus%3Athumbnail%40ODL.MIT.EDU"
+        req = self.app.put(self.url,
+                           params={"genusTypeId": thumbnail_genus},
+                           upload_files=[('inputFile',
+                                          self._filename(self._replacement_image_file),
+                                          self._replacement_image_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+        self.assertNotEqual(
+            original_genus_type,
+            asset_content['genusTypeId']
+        )
+        self.assertNotEqual(
+            original_file_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            original_on_disk_name.split('.')[0],
+            asset_content['url'].split('.')[0]
+        )
+        self.assertEqual(
+            original_id,
+            asset_content['id']
+        )
+        self.assertIn(
+            self._replacement_image_file.name.split('/')[-1],
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(asset_content['genusTypeId'], thumbnail_genus)
+
+    def test_can_update_asset_content_name_and_description(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        asset_content = self.asset.get_asset_contents().next()
+        original_genus_type = str(asset_content.genus_type)
+        original_file_name = asset_content.display_name.text
+        original_on_disk_name = asset_content.get_url()
+        original_id = str(asset_content.ident)
+
+        thumbnail_genus = "asset-content-genus%3Athumbnail%40ODL.MIT.EDU"
+        new_name = "foobar"
+        new_description = "a small image"
+        req = self.app.put(self.url,
+                           params=json.dumps({
+                               "genusTypeId": thumbnail_genus,
+                               "displayName": new_name,
+                               "description": new_description
+                           }),
+                           headers={"content-type": "application/json"})
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+        self.assertNotEqual(
+            original_genus_type,
+            asset_content['genusTypeId']
+        )
+        self.assertNotEqual(
+            original_file_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            original_on_disk_name.split('.')[0],
+            asset_content['url'].split('.')[0]
+        )
+        self.assertEqual(
+            original_id,
+            asset_content['id']
+        )
+        self.assertEqual(
+            new_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            new_description,
+            asset_content['description']['text']
+        )
+        self.assertEqual(asset_content['genusTypeId'], thumbnail_genus)
+
     def test_updated_asset_content_in_question_shows_up_properly_in_item_qti(self):
         item = self.create_item_with_image()
         taken, offered = self.create_taken_for_item(self._repo.ident, Id(item['id']))
@@ -300,6 +428,153 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertNotIn('image/png', headers['content-type'])
         self.assertIn('.sltng', headers['content-disposition'])
         self.assertNotEqual(original_content_length, headers['content-length'])
+
+    def test_can_set_asset_content_display_name_and_description_to_foreign_language(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        asset_content = self.asset.get_asset_contents().next()
+        original_genus_type = str(asset_content.genus_type)
+        original_file_name = asset_content.display_name.text
+        original_on_disk_name = asset_content.get_url()
+        original_id = str(asset_content.ident)
+
+        description_genus = "asset-content-genus%3Adescription%40ODL.MIT.EDU"
+        new_name = self._hindi_text
+        new_description = self._hindi_text
+        req = self.app.put(self.url,
+                           params=json.dumps({
+                               "genusTypeId": description_genus,
+                               "displayName": new_name,
+                               "description": new_description
+                           }),
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+        self.assertNotEqual(
+            original_genus_type,
+            asset_content['genusTypeId']
+        )
+        self.assertNotEqual(
+            original_file_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            original_on_disk_name.split('.')[0],
+            asset_content['url'].split('.')[0]
+        )
+        self.assertEqual(
+            original_id,
+            asset_content['id']
+        )
+        self.assertEqual(
+            new_name,
+            asset_content['displayName']['text']
+        )
+        self.assertEqual(
+            self._hindi_language_type,
+            asset_content['displayName']['languageTypeId']
+        )
+        self.assertEqual(
+            self._hindi_script_type,
+            asset_content['displayName']['scriptTypeId']
+        )
+        self.assertEqual(
+            new_description,
+            asset_content['description']['text']
+        )
+        self.assertEqual(
+            self._hindi_language_type,
+            asset_content['description']['languageTypeId']
+        )
+        self.assertEqual(
+            self._hindi_script_type,
+            asset_content['description']['scriptTypeId']
+        )
+        self.assertEqual(asset_content['genusTypeId'], description_genus)
+
+    def test_can_get_asset_content_display_name_and_description_in_foreign_language(self):
+        req = self.app.get(self.url)
+        self.ok(req)
+        asset_content = self.asset.get_asset_contents().next()
+        original_file_name = asset_content.display_name.text
+        original_description = asset_content.description.text
+
+        description_genus = "asset-content-genus%3Adescription%40ODL.MIT.EDU"
+        new_name = self._hindi_text
+        new_description = self._hindi_text
+        req = self.app.put(self.url,
+                           params=json.dumps({
+                               "genusTypeId": description_genus,
+                               "displayName": new_name,
+                               "description": new_description
+                           }),
+                           headers=self._hindi_headers())
+        self.ok(req)
+
+        asset_url = '/api/v1/repository/repositories/{0}/assets/{1}'.format(unquote(str(self._repo.ident)),
+                                                                            unquote(str(self.asset.ident)))
+
+        req = self.app.get(asset_url,
+                           headers=self._english_headers())
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+
+        self.assertEqual(
+            asset_content['displayName']['text'],
+            original_file_name
+        )
+        self.assertEqual(
+            asset_content['displayName']['languageTypeId'],
+            self._english_language_type
+        )
+        self.assertEqual(
+            asset_content['displayName']['scriptTypeId'],
+            self._english_script_type
+        )
+        self.assertEqual(
+            asset_content['description']['text'],
+            original_description
+        )
+        self.assertEqual(
+            asset_content['description']['languageTypeId'],
+            self._english_language_type
+        )
+        self.assertEqual(
+            asset_content['description']['scriptTypeId'],
+            self._english_script_type
+        )
+
+        req = self.app.get(asset_url,
+                           headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        asset_content = data['assetContents'][0]
+        self.assertEqual(
+            asset_content['displayName']['text'],
+            new_name
+        )
+        self.assertEqual(
+            asset_content['displayName']['languageTypeId'],
+            self._hindi_language_type
+        )
+        self.assertEqual(
+            asset_content['displayName']['scriptTypeId'],
+            self._hindi_script_type
+        )
+        self.assertEqual(
+            asset_content['description']['text'],
+            new_description
+        )
+        self.assertEqual(
+            asset_content['description']['languageTypeId'],
+            self._hindi_language_type
+        )
+        self.assertEqual(
+            asset_content['description']['scriptTypeId'],
+            self._hindi_script_type
+        )
 
 
 class AssetUploadTests(BaseRepositoryTestCase):
