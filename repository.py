@@ -151,7 +151,7 @@ class AssetContentDetails(utilities.BaseClass):
             asset_url = '{0}/{1}'.format(ABS_PATH,
                                          asset_url)
 
-            web.header('Content-Type', mimetypes.guess_type(asset_url))
+            web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
             web.header('Content-Length', os.path.getsize(asset_url))
             filename = asset_url.split('/')[-1]
             web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
