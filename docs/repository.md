@@ -62,7 +62,7 @@ returns:
 
 ### AssetDetails
 
-Get `asset` details.
+Get `asset` details or edit an existing asset.
 
 Note that if you provide the `x-api-locale` header, any `assetContents`
 that have multi-language `displayName` or `description` will be returned
@@ -71,6 +71,14 @@ in the given `locale`.
 `/api/v2/repository/repositories/<repository_id>/assets/<asset_id>`
 
 #### GET
+
+url parameters (optional):
+  - fullUrls. Return the `assetContents` with valid URL paths.
+
+returns:
+  - `Asset` object.
+
+#### PUT
 
 url parameters (optional):
   - None currently supported

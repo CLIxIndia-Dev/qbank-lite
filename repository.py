@@ -144,8 +144,6 @@ class AssetsList(utilities.BaseClass):
                 form = utilities.set_form_basics(form, params)
                 asset = repository.create_asset(form)
 
-            from nose.tools import set_trace
-            set_trace()
             if 'license' in params.keys() or 'copyright' in params.keys():
                 form = repository.get_asset_form_for_update(asset.ident)
                 if 'license' in params.keys():
@@ -255,6 +253,13 @@ class AssetDetails(utilities.BaseClass):
             als = rm.get_asset_lookup_session()
             als.use_federated_repository_view()
             data = utilities.convert_dl_object(als.get_asset(utilities.clean_id(asset_id)))
+
+            if 'fullUrls' in self.data().keys():
+                data = json.loads(data)
+
+                data = rutils.
+
+                data = json.dumps(data)
             return data
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)

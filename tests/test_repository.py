@@ -832,16 +832,122 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         )
 
     def test_can_provide_copyright_on_upload(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        copyright_ = "CC BY"
+        req = self.app.post(self.url,
+                            params={"copyright": copyright_},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['copyright']['text'],
+            copyright_
+        )
 
     def test_can_update_asset_with_license(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        license_ = "BSD"
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_id = data['id']
+        self.assertEqual(
+            data['license']['text'],
+            ''
+        )
+
+        payload = {
+            "license": license_
+        }
+        url = '{0}/{1}'.format(self.url,
+                               asset_id)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['license']['text'],
+            license_
+        )
 
     def test_can_update_asset_with_copyright(self):
-        self.fail('finish writign the test')
+        self._video_upload_test_file.seek(0)
+        copyright_ = "CC BY"
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_id = data['id']
+        self.assertEqual(
+            data['copyright']['text'],
+            ''
+        )
+
+        payload = {
+            "copyright": copyright_
+        }
+        url = '{0}/{1}'.format(self.url,
+                               asset_id)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['copyright']['text'],
+            copyright_
+        )
 
     def test_can_update_asset_name(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_id = data['id']
+        original_name = data['displayName']['text']
+        new_name = "foobar"
+        self.assertNotEqual(original_name, new_name)
+
+        payload = {
+            "displayName": new_name
+        }
+        url = '{0}/{1}'.format(self.url,
+                               asset_id)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['displayName']['text'],
+            new_name
+        )
 
     def test_can_update_asset_description(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        asset_id = data['id']
+        original_description = data['displayName']['text']
+        new_description = "foobar"
+        self.assertNotEqual(original_description, new_description)
+
+        payload = {
+            "description": new_description
+        }
+        url = '{0}/{1}'.format(self.url,
+                               asset_id)
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['description']['text'],
+            new_description
+        )
