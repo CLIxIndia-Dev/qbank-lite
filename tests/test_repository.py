@@ -644,9 +644,9 @@ class AssetQueryTests(BaseRepositoryTestCase):
             )
 
 
-class AssetUploadTests(BaseRepositoryTestCase):
+class AssetCRUDTests(BaseRepositoryTestCase):
     def setUp(self):
-        super(AssetUploadTests, self).setUp()
+        super(AssetCRUDTests, self).setUp()
         self.url = '{0}/repositories/{1}/assets'.format(self.url,
                                                         unquote(str(self._repo.ident)))
 
@@ -659,7 +659,7 @@ class AssetUploadTests(BaseRepositoryTestCase):
         Start from the smallest groupId because need to
         remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
         """
-        super(AssetUploadTests, self).tearDown()
+        super(AssetCRUDTests, self).tearDown()
 
         self._video_upload_test_file.close()
         self._caption_upload_test_file.close()
@@ -817,3 +817,31 @@ class AssetUploadTests(BaseRepositoryTestCase):
             'video-js-test-en.vtt',
             data['assetContents'][1]['displayName']['text']
         )
+
+    def test_can_provide_license_on_upload(self):
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            len(data['assetContents']),
+            1
+        )
+
+        self.fail('finish writing the test')
+
+    def test_can_provide_copyright_on_upload(self):
+        self.fail('finish writing the test')
+
+    def test_can_update_asset_with_license(self):
+        self.fail('finish writing the test')
+
+    def test_can_update_asset_with_copyright(self):
+        self.fail('finish writign the test')
+
+    def test_can_update_asset_name(self):
+        self.fail('finish writing the test')
+
+    def test_can_update_asset_description(self):
+        self.fail('finish writing the test')

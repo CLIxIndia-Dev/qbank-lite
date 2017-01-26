@@ -109,36 +109,35 @@ class AssetsList(utilities.BaseClass):
             # once we read in a file
             # https://docs.python.org/2/library/zipfile.html
 
-            input_file = x['inputFile'].file
-            # first, let's search the database to see if an asset exists with
-            # the file name -- file name will be everything minus the
-            # extension and language indicator.
-            # for example, for one video there might be four files:
-            #   * ee_u1l01a01v01.mov
-            #   * ee_u1l01a01v01_en.vtt
-            #   * ee_u1l01a01v01_hi.vtt
-            #   * ee_u1l01a01v01_te.vtt
-            # In this case, the "filename" / asset displayName.text is `ee_u1l01a01v01`.
-            # If that already exists, add the input_file as an asset content.
-            # If that asset does not exist, create it.
-            file_name = x['inputFile'].filename
-            querier = repository.get_asset_query()
-            querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
-            assets = repository.get_assets_by_query(querier)
-            if assets.available() > 0:
-                asset = assets.next()
-            else:
-                asset = rutils.create_asset(repository, file_name)
+            params = self.data()
+            try:
+                input_file = x['inputFile'].file
+                # first, let's search the database to see if an asset exists with
+                # the file name -- file name will be everything minus the
+                # extension and language indicator.
+                # for example, for one video there might be four files:
+                #   * ee_u1l01a01v01.mov
+                #   * ee_u1l01a01v01_en.vtt
+                #   * ee_u1l01a01v01_hi.vtt
+                #   * ee_u1l01a01v01_te.vtt
+                # In this case, the "filename" / asset displayName.text is `ee_u1l01a01v01`.
+                # If that already exists, add the input_file as an asset content.
+                # If that asset does not exist, create it.
+                file_name = x['inputFile'].filename
+                querier = repository.get_asset_query()
+                querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
+                assets = repository.get_assets_by_query(querier)
+                if assets.available() > 0:
+                    asset = assets.next()
+                else:
+                    asset = rutils.create_asset(repository, file_name)
 
-            # now let's create an asset content for this asset, with the
-            # right genus type and file data
-            updated_asset = rutils.append_asset_contents(repository, asset, file_name, input_file)
+                # now let's create an asset content for this asset, with the
+                # right genus type and file data
+                rutils.append_asset_contents(repository, asset, file_name, input_file)
+            except AttributeError:
 
-            asset_map = json.loads(utilities.convert_dl_object(updated_asset))
-            if 'returnUrl' in web.input().keys():
-                asset_map = rutils.update_asset_map_with_content_url(asset_map)
-
-            return json.dumps(asset_map)
+            return utilities.convert_dl_object(repository.get_asset(asset.ident))
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -227,7 +226,7 @@ class AssetContentDetails(utilities.BaseClass):
 class AssetDetails(utilities.BaseClass):
     """
     Get asset details for the given repository
-    api/v2/repository/repositories/<repository_id>/assets/<asset_id>/
+    api/v2/repository/repositories/<repository_id>/assets/<asset_id>
 
     GET
 
@@ -240,6 +239,26 @@ class AssetDetails(utilities.BaseClass):
             als.use_federated_repository_view()
             data = utilities.convert_dl_object(als.get_asset(utilities.clean_id(asset_id)))
             return data
+        except (PermissionDenied, NotFound, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def PUT(self, repository_id, asset_id):
+        try:
+            rm = rutils.get_repository_manager()
+            repo = rm.get_repository(utilities.clean_id(repository_id))
+            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
+
+            params = self.data()
+            form = utilities.set_form_basics(form, params)
+
+            if 'license' in params.keys():
+                form.set_license(params['license'])
+
+            if 'copyright' in params.keys():
+                form.set_copyright(params['copyright'])
+
+            return utilities.convert_dl_object(repo.update_asset(form))
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
