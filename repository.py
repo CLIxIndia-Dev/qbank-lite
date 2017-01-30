@@ -152,7 +152,13 @@ class AssetsList(utilities.BaseClass):
                     form.set_copyright(params['copyright'])
                 asset = repository.update_asset(form)
 
-            return utilities.convert_dl_object(repository.get_asset(asset.ident))
+            # need to get the updated asset with Contents
+            asset = repository.get_asset(asset.ident)
+            asset_map = json.loads(utilities.convert_dl_object(asset))
+            if 'returnUrl' in web.input().keys():
+                asset_map = rutils.update_asset_map_with_content_url(asset_map)
+
+            return json.dumps(asset_map)
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
