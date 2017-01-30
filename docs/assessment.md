@@ -752,6 +752,7 @@ url parameters (optional):
                   Case insensitive matching. Works across all language fields.
   - genusTypeId. Query / filter by the genusTypeId of an `item`.
   - qti. Include the QTI 1 XML in the response objects.
+  - isolated. Only check the current `bankId` for `item`s. Do **not** check child `bank`s.
 
 returns:
   - list of `Item` objects. Note that wrong answers are **not** included.
