@@ -3656,6 +3656,51 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['id'] == str(third_bank.ident))
         self.assertTrue(data['childNodes'][0]['displayName']['text'] == third_bank.display_name.text)
 
+    def test_using_isolated_flag_for_assessments_returns_only_assessments_in_bank(self):
+        second_bank = create_new_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        url = '{0}/banks/{1}/assessments'.format(self.url,
+                                                 str(second_bank.ident))
+        payload = {
+            "name": "for testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        assessment = self.json(req)
+
+        url = '{0}/banks/{1}/assessments'.format(self.url,
+                                                 str(self._bank.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], assessment['id'])
+
+        url = '{0}/banks/{1}/assessments?isolated'.format(self.url,
+                                                          str(self._bank.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
 
 class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
     def create_assessment_offered_for_item(self, bank_id, item_id):
