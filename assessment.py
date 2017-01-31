@@ -1,3 +1,4 @@
+import os
 import re
 import json
 import web
@@ -110,6 +111,7 @@ urls = (
     "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
     "/banks/(.*)/assessments", "AssessmentsList",
     "/banks/(.*)/items/(.*)/videoreplacement", "ItemVideoTagReplacement",
+    "/banks/(.*)/items/(.*)/export", "ItemExport",
     "/banks/(.*)/items/(.*)/qti", "ItemQTIDetails",
     "/banks/(.*)/items/(.*)", "ItemDetails",
     "/banks/(.*)/items", "ItemsList",
@@ -1372,6 +1374,44 @@ class ItemDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
+class ItemExport(utilities.BaseClass):
+    """
+    Export a downloadable zip file in the specified format
+    api/v1/assessment/banks/<bank_id>/items/<item_id>/export
+
+    GET
+    """
+    @utilities.format_xml_response
+    def GET(self, bank_id, sub_id):
+        try:
+            params = self.data()
+            supported_formats = ['qti']
+            if not any(f in params for f in supported_formats):
+                msg = 'No format specified. Must provide one of the following: {0}'.format(json.dumps(supported_formats))
+                raise NotFound(msg)
+
+            am = autils.get_assessment_manager()
+            ils = am.get_item_lookup_session()
+            ils.use_federated_bank_view()
+
+            item = ils.get_item(utilities.clean_id(sub_id))
+            zip_filename = '{0}.zip'.format(str(item.ident))
+
+            if 'qti' in params:
+                file_handle = item.get_qti_zip()
+
+            file_handle.seek(0, os.SEEK_END)
+            content_length = file_handle.tell()
+            web.header('Content-Type', 'application/zip')
+            web.header('Content-Length', content_length)
+            file_handle.seek(0)
+            web.header('Content-Disposition', 'inline; filename={0}'.format(zip_filename))
+
+            yield file_handle.read()
+        except (PermissionDenied, NotFound) as ex:
+            utilities.handle_exceptions(ex)
+
+
 class ItemQTIDetails(utilities.BaseClass):
     """
     Get QTI version of an item
@@ -1397,7 +1437,6 @@ class ItemQTIDetails(utilities.BaseClass):
             return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
-
 
 
 class AssessmentItemsList(utilities.BaseClass):
