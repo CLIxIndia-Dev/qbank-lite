@@ -113,3 +113,10 @@ def match_asset_content_by_name(asset_content_list, name):
         if asset_content.display_name.text == name:
             return asset_content
     return None
+
+def update_asset_map_with_content_url(asset_map):
+    for index, asset_content in enumerate(asset_map['assetContents']):
+        asset_map['assetContents'][index]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset_map['assignedRepositoryIds'][0],
+                                                                                                                        asset_map['id'],
+                                                                                                                        asset_content['id'])
+    return asset_map

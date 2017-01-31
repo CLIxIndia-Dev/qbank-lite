@@ -2,6 +2,7 @@ import mimetypes
 import os
 import sys
 import web
+import json
 
 from bson.errors import InvalidId
 
@@ -123,8 +124,13 @@ class AssetsList(utilities.BaseClass):
 
             # now let's create an asset content for this asset, with the
             # right genus type and file data
-            rutils.append_asset_contents(repository, asset, file_name, input_file)
-            return utilities.convert_dl_object(repository.get_asset(asset.ident))
+            updated_asset = rutils.append_asset_contents(repository, asset, file_name, input_file)
+
+            asset_map = json.loads(utilities.convert_dl_object(updated_asset))
+            if 'returnUrl' in web.input().keys():
+                asset_map = rutils.update_asset_map_with_content_url(asset_map)
+
+            return json.dumps(asset_map)
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
