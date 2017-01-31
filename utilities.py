@@ -35,10 +35,17 @@ class BaseClass:
 
     @staticmethod
     def data():
+        # merge web.data() (url params) and web.input() (form)
+        form_data = web.input()
+        url_data = {}
         try:
-            return json.loads(web.data())
+            url_data = json.loads(web.data())
         except (ValueError, TypeError):
-            return {}
+            pass
+        if isinstance(url_data, dict):
+            # because might pass in list data, like a list of offereds
+            url_data.update(form_data)
+        return url_data
 
 def create_display_text(text_string, language_code=None):
     if isinstance(text_string, dict):

@@ -7,7 +7,7 @@ import json
 from bson.errors import InvalidId
 
 from dlkit_runtime.errors import *
-from dlkit_runtime.primitives import DataInputStream
+from dlkit_runtime.primitives import DataInputStream, Type
 
 import repository_utilities as rutils
 import utilities
@@ -193,18 +193,30 @@ class AssetContentDetails(utilities.BaseClass):
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
 
-            input_file = x['inputFile'].file
-            file_name = x['inputFile'].filename
             repository = rm.get_repository(utilities.clean_id(repository_id))
             form = repository.get_asset_content_form_for_update(asset_content.ident)
 
-            data = DataInputStream(input_file)
-            data.name = file_name
+            try:
+                input_file = x['inputFile'].file
+                file_name = x['inputFile'].filename
 
-            form.set_genus_type(rutils.get_asset_content_genus_type(file_name))
-            form.display_name = file_name
+                data = DataInputStream(input_file)
+                data.name = file_name
 
-            form.set_data(data)
+                # default, but can be over-ridden by user params
+                form.set_genus_type(rutils.get_asset_content_genus_type(file_name))
+
+                try:
+                    form.add_display_name(utilities.create_display_text(file_name))
+                except AttributeError:
+                    form.display_name = file_name
+
+                form.set_data(data)
+            except AttributeError:
+                pass # no file included
+
+            params = self.data()
+            form = utilities.set_form_basics(form, params)
 
             repository.update_asset_content(form)
             return utilities.convert_dl_object(repository.get_asset(asset.ident))
