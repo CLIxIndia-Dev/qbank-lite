@@ -1384,9 +1384,13 @@ class ItemExport(utilities.BaseClass):
     @utilities.format_xml_response
     def GET(self, bank_id, sub_id):
         try:
+            from nose.tools import set_trace
+            set_trace()
             params = self.data()
+            if 'format' not in params:
+                raise NotFound('"format" flag required in CGI params')
             supported_formats = ['qti']
-            if not any(f in params for f in supported_formats):
+            if not any(f == params['format'] for f in supported_formats):
                 msg = 'No format specified. Must provide one of the following: {0}'.format(json.dumps(supported_formats))
                 raise NotFound(msg)
 
@@ -1397,7 +1401,7 @@ class ItemExport(utilities.BaseClass):
             item = ils.get_item(utilities.clean_id(sub_id))
             zip_filename = '{0}.zip'.format(str(item.ident))
 
-            if 'qti' in params:
+            if 'qti' in params['format']:
                 file_handle = item.get_qti_zip()
 
             file_handle.seek(0, os.SEEK_END)

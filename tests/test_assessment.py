@@ -10232,55 +10232,63 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(RIGHT_ANSWER_GENUS)
         )
 
-        self.assertEqual(
-            item['answers'][0]['feedbacks'][0]['text'],
-            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p></p>\n</modalFeedback>'
-        )
-
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
         )
 
-        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
-        req = self.app.get(item_qti_url)
+        url = '{0}/{1}'.format(url, item['id'])
+        req = self.app.get(url)
         self.ok(req)
-        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
-        item_body = qti_xml.itemBody
-
-        audio_asset_label = 'audioTestFile__mp3'
-        audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
-        audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
-
-        expected_string = """<itemBody>
-<p>
-<audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
-</audio>
-</p>
-<p>
-<strong>
-    Introducting a new student
-   </strong>
-</p>
-<p>
-   It's the first day of school after the summer vacations. A new student has joined the class
-  </p>
-<p>
-   Student 1 talks to the new student to make him/her feel comfortable.
-  </p>
-<p>
-   Student 2 talks about herself or himself and asks a few questions about the new school
-  </p>
-<uploadInteraction responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
-                      audio_asset_id,
-                      audio_asset_content_id)
+        data = self.json(req)
 
         self.assertEqual(
-            str(item_body),
-            expected_string
+            data['answers'][0]['feedbacks'][0]['text'],
+            '<modalFeedback  identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p><img src="AssetContent:diamond_png"/></p>\n</modalFeedback>'
         )
+
+        export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
+        req = self.app.get(export_url)
+        self.ok(req)
+        set_trace()
+
+        self.fail('finish writing the test')
+#         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+#         item_body = qti_xml.itemBody
+#
+#         audio_asset_label = 'audioTestFile__mp3'
+#         audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
+#         audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
+#
+#         expected_string = """<itemBody>
+# <p>
+# <audio autoplay="autoplay" controls="controls" style="width: 125px">
+# <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
+# </audio>
+# </p>
+# <p>
+# <strong>
+#     Introducting a new student
+#    </strong>
+# </p>
+# <p>
+#    It's the first day of school after the summer vacations. A new student has joined the class
+#   </p>
+# <p>
+#    Student 1 talks to the new student to make him/her feel comfortable.
+#   </p>
+# <p>
+#    Student 2 talks about herself or himself and asks a few questions about the new school
+#   </p>
+# <uploadInteraction responseIdentifier="RESPONSE_1"/>
+# </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+#                       audio_asset_id,
+#                       audio_asset_content_id)
+#
+#         self.assertEqual(
+#             str(item_body),
+#             expected_string
+#         )
 
     def test_can_create_generic_file_upload_question_via_rest(self):
         url = '{0}/items'.format(self.url)
