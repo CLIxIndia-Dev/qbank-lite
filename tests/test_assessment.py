@@ -3360,6 +3360,33 @@ class BankTests(BaseAssessmentTestCase):
         self.assertEqual(new_bank['id'], fetched_bank['id'])
         self.assertEqual(new_bank['displayName']['text'], payload['name'])
 
+    def test_can_query_on_bank_genus_type(self):
+        genus_type = "assessment-bank-type%3Aedit%40ODL.MIT.EDU"
+        payload = {
+            "name": "New bank",
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
     def test_can_update_bank_alias(self):
         alias_id = "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
         name = "New Bank"
