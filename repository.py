@@ -86,6 +86,14 @@ class AssetsList(utilities.BaseClass):
             assets = repository.get_assets()
             data = utilities.extract_items(assets)
 
+            if 'fullUrls' in web.input():
+                data = json.loads(data)
+                updated_data = []
+                for asset in data:
+                    updated_data.append(rutils.update_asset_map_with_content_url(asset))
+
+                data = json.dumps(updated_data)
+
             return data
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)

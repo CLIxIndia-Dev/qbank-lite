@@ -302,6 +302,73 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertNotEqual(original_content_length, headers['content-length'])
 
 
+class AssetQueryTests(BaseRepositoryTestCase):
+    def setUp(self):
+        super(AssetQueryTests, self).setUp()
+        self.url = '{0}/repositories/{1}/assets'.format(self.url,
+                                                        unquote(str(self._repo.ident)))
+
+        self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
+        self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+
+    def tearDown(self):
+        """
+        Remove the test user from all groups in Membership
+        Start from the smallest groupId because need to
+        remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
+        """
+        super(AssetQueryTests, self).tearDown()
+
+        self._video_upload_test_file.close()
+        self._caption_upload_test_file.close()
+
+    def test_can_get_assets_with_valid_content_urls(self):
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+
+        url = '{0}?fullUrls'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data), 1)
+        asset = data[0]
+        self.assertEqual(
+            len(asset['assetContents']),
+            2
+        )
+
+        for index, asset_content in enumerate(asset['assetContents']):
+            if index == 0:
+                self.assertEqual(
+                    asset_content['genusTypeId'],
+                    'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
+                )
+            else:
+                self.assertEqual(
+                    asset_content['genusTypeId'],
+                    'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
+                )
+            self.assertNotIn(
+                'datastore/repository/AssetContent/',
+                asset_content['url']
+            )
+            self.assertEqual(
+                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset['assignedRepositoryIds'][0],
+                                                                                     asset['id'],
+                                                                                     asset_content['id']),
+                asset_content['url']
+            )
+
+
 class AssetUploadTests(BaseRepositoryTestCase):
     def setUp(self):
         super(AssetUploadTests, self).setUp()
