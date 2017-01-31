@@ -427,6 +427,12 @@ class BaseTestCase(TestCase):
     def deleted(self, _req):
         self.code(_req, 202)
 
+    def header(self, _req, header_name, expected_value):
+        for header in _req.headers:
+            if header[0].lower() == header_name.lower():
+                self.assertEqual(expected_value,
+                                 header[1])
+
     def json(self, _req):
         return json.loads(_req.body)
 

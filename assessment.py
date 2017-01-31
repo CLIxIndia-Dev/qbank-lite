@@ -1381,7 +1381,7 @@ class ItemExport(utilities.BaseClass):
 
     GET
     """
-    @utilities.format_xml_response
+    @utilities.allow_cors
     def GET(self, bank_id, sub_id):
         try:
             from nose.tools import set_trace
@@ -1401,17 +1401,20 @@ class ItemExport(utilities.BaseClass):
             item = ils.get_item(utilities.clean_id(sub_id))
             zip_filename = '{0}.zip'.format(str(item.ident))
 
+            buffer_ = StringIO()
+            zip_file = zipfile.ZipFile(buffer_, 'w')
+            content_length = 0
             if 'qti' in params['format']:
-                file_handle = item.get_qti_zip()
+                item.get_qti_zip(zip_file=zip_file)
+                buffer_.seek(0, os.SEEK_END)
+                content_length = buffer_.tell()
 
-            file_handle.seek(0, os.SEEK_END)
-            content_length = file_handle.tell()
             web.header('Content-Type', 'application/zip')
             web.header('Content-Length', content_length)
-            file_handle.seek(0)
+            buffer_.seek(0)
             web.header('Content-Disposition', 'inline; filename={0}'.format(zip_filename))
 
-            yield file_handle.read()
+            yield buffer_.read()
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 

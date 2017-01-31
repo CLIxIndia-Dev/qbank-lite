@@ -2,6 +2,8 @@
 import csv
 import json
 import os
+import cStringIO
+import zipfile
 
 from bs4 import BeautifulSoup, Tag
 
@@ -10251,6 +10253,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         req = self.app.get(export_url)
         self.ok(req)
         set_trace()
+        self.header(req, 'content-type', 'application/zip')
+        returned_data = cStringIO.StringIO(req.body)
+        zip_file = zipfile.ZipFile(returned_data, 'r')
+        returned_files = zip_file.namelist()
+        self.assertEqual(len(returned_files), 4)
+        self.assertIn('media/diamond.png', returned_files)
+        self.assertIn('media/audioTestFile_.mp3', returned_files)
+        self.assertIn('{0}.xml'.format(item['id']), returned_files)
+        self.assertIn('imsmanifest.xml', returned_files)
+
 
         self.fail('finish writing the test')
 #         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
