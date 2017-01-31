@@ -430,7 +430,6 @@ class ItemsList(utilities.BaseClass):
             inputs = web.input()
 
             if 'isolated' in inputs:
-                assessment_bank._get_provider_session('item_lookup_session') # To make sure the session is tracked
                 assessment_bank.use_isolated_bank_view()
 
             if any(term in inputs for term in ['displayName', 'displayNames',
