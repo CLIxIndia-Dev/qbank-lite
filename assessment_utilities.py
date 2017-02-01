@@ -1049,6 +1049,8 @@ def update_question_form(question, form, create=False):
             form.set_expected_length(int(question['expectedLength']))
         if 'expectedLines' in question:
             form.set_expected_lines(int(question['expectedLines']))
+        if 'maxSeconds' in question:
+            form.set_max_seconds(int(question['maxSeconds']))
         if 'variables' in question:
             for var_data in question['variables']:
                 if 'format'in var_data:
