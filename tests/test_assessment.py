@@ -10296,12 +10296,28 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                          image_file_name)
 
         # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+        item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+        self.assertEqual(audio_file_name,
+                         item_xml.audio.source['src'])
+        self.assertEqual(image_file_name,
+                         item_xml.img['src'])
 
+        # check some IMS headers
+        self.assertEqual(item_xml['xmlns'],
+                         'http://www.imsglobal.org/xsd/imsqti_v2p1')
         # check the ID of the item
+        self.assertEqual(item_xml['identifier'],
+                         item['id'])
+
+        self.assertEqual(item_xml['adaptive'],
+                         "false")
+        self.assertEqual(item_xml['timeDependent'],
+                         "false")
 
         # check the text of the item for feedback and responseDeclaration
-
-        self.fail('finish writing the test')
+        self.assertIsNotNone(item_xml.find('modalFeedback'))
+        self.assertEqual(str(item_xml.responseDeclaration),
+                         '<responseDeclaration baseType="file" cardinality="single" identifier="RESPONSE_1"/>')
 
     def test_can_create_generic_file_upload_question_via_rest(self):
         url = '{0}/items'.format(self.url)
@@ -10997,6 +11013,252 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             )
 
     def test_can_create_fill_in_the_blank_question_via_rest(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+<p>
+<p class="other">
+      Putting things away
+     </p>
+<p class="preposition">
+      in
+     </p>
+<p class="other">
+      the
+     </p>
+<p class="adjective">
+      proper
+     </p>
+<p class="noun">
+      place
+     </p>
+<p class="verb">
+      makes
+     </p>
+<p class="noun">
+      it
+     </p>
+</p>
+
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="false" />
+
+<p>
+<p class="other">
+      to
+     </p>
+<p class="verb">
+      find
+     </p>
+<p class="noun">
+      them
+     </p>
+<p class="adverb">
+      later
+     </p>
+     .
+    </p>
+</span>
+</p>
+</itemBody>""",
+                "inlineRegions": {
+                    "RESPONSE_1": {
+                        "choices": [{
+                            "id": "[_1_1",
+                            "text": """<inlineChoice identifier="[_1_1"><p class="adjective">easy</p></inlineChoice>"""
+                        }, {
+                            "id": "[_1_1_1",
+                            "text": """<inlineChoice identifier="[_1_1_1"><p class="adjective">neat</p></inlineChoice>"""
+                        }, {
+                            "id": "[_2_1_1",
+                            "text": """<inlineChoice identifier="[_2_1_1"><p class="adjective">fast</p></inlineChoice>"""
+                        }, {
+                            "id": "[_3_1_1",
+                            "text": """<inlineChoice identifier="[_3_1_1"><p class="adjective">good</p></inlineChoice>"""
+                        }],
+                    }
+                },
+                "genusTypeId": str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS),
+                "shuffle": True
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ['[_1_1'],
+                "region": "RESPONSE_1",
+                "feedback": """  <modalFeedback  identifier="Feedback372632509" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>You are right! Please try the next question.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": [None],
+                "region": "RESPONSE_1",
+                "feedback": """  <modalFeedback  identifier="Feedback2014412711" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>Please try again.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('RESPONSE_1', item['question']['choices'])
+
+        response_1_choice_ids = [c['id'] for c in item['question']['choices']['RESPONSE_1']]
+
+        self.assertIn('[_1_1', response_1_choice_ids)
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('RESPONSE_1', item['answers'][0]['inlineRegions'])
+
+        self.assertEqual(
+            item['answers'][0]['inlineRegions']['RESPONSE_1']['choiceIds'],
+            ['[_1_1']
+        )
+        self.assertIn('You are right! Please try the next question.', item['answers'][0]['feedbacks'][0]['text'])
+
+        self.assertEqual(
+            item['answers'][1]['genusTypeId'],
+            str(WRONG_ANSWER_GENUS)
+        )
+
+        self.assertIn('Please try again.', item['answers'][1]['feedbacks'][0]['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        # now verify the QTI XML matches the JSON format
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = qti_xml.itemBody
+
+        inline_choice_interaction = item_body.inlineChoiceInteraction.extract()
+
+        expected_string = """<itemBody>
+<p>
+<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+<p>
+<p class="other">
+      Putting things away
+     </p>
+<p class="preposition">
+      in
+     </p>
+<p class="other">
+      the
+     </p>
+<p class="adjective">
+      proper
+     </p>
+<p class="noun">
+      place
+     </p>
+<p class="verb">
+      makes
+     </p>
+<p class="noun">
+      it
+     </p>
+</p>
+
+<p>
+<p class="other">
+      to
+     </p>
+<p class="verb">
+      find
+     </p>
+<p class="noun">
+      them
+     </p>
+<p class="adverb">
+      later
+     </p>
+     .
+    </p>
+</span>
+</p>
+</itemBody>"""
+
+        self.assertEqual(
+            str(item_body),
+            expected_string
+        )
+
+        self.assertEqual(
+            len(inline_choice_interaction.find_all('inlineChoice')),
+            4
+        )
+        self.assertEqual(
+            inline_choice_interaction['responseIdentifier'],
+            'RESPONSE_1'
+        )
+        self.assertEqual(
+            inline_choice_interaction['shuffle'],
+            'false'
+        )
+
+        expected_choices = {
+            "[_1_1": """<inlineChoice identifier="[_1_1">
+<p class="adjective">
+      easy
+     </p>
+</inlineChoice>""",
+            "[_1_1_1": """<inlineChoice identifier="[_1_1_1">
+<p class="adjective">
+      neat
+     </p>
+</inlineChoice>""",
+            "[_2_1_1": """<inlineChoice identifier="[_2_1_1">
+<p class="adjective">
+      fast
+     </p>
+</inlineChoice>""",
+            "[_3_1_1": """<inlineChoice identifier="[_3_1_1">
+<p class="adjective">
+      good
+     </p>
+</inlineChoice>"""
+        }
+
+        for choice in inline_choice_interaction.find_all('simpleChoice'):
+            choice_id = choice['identifier']
+            self.assertEqual(
+                str(choice),
+                expected_choices[choice_id]
+            )
+
+    def test_can_download_fill_in_the_blank_qti(self):
         url = '{0}/items'.format(self.url)
 
         payload = {

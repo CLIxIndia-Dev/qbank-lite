@@ -1384,8 +1384,6 @@ class ItemExport(utilities.BaseClass):
     @utilities.allow_cors
     def GET(self, bank_id, sub_id):
         try:
-            from nose.tools import set_trace
-            set_trace()
             params = self.data()
             if 'format' not in params:
                 raise NotFound('"format" flag required in CGI params')
