@@ -10252,55 +10252,56 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
         req = self.app.get(export_url)
         self.ok(req)
-        set_trace()
+
         self.header(req, 'content-type', 'application/zip')
         returned_data = cStringIO.StringIO(req.body)
         zip_file = zipfile.ZipFile(returned_data, 'r')
         returned_files = zip_file.namelist()
         self.assertEqual(len(returned_files), 4)
-        self.assertIn('media/diamond.png', returned_files)
-        self.assertIn('media/audioTestFile_.mp3', returned_files)
-        self.assertIn('{0}.xml'.format(item['id']), returned_files)
+
+        item_xml_name = '{0}.xml'.format(item['id'])
+        audio_file_name = 'media/{0}.mp3'.format(Id(assets['audioTestFile__mp3']['assetContents'][0]['id']).identifier)
+        image_file_name = 'media/{0}.png'.format(Id(assets['diamond_png']['assetContents'][0]['id']).identifier)
+
+        self.assertIn(image_file_name,
+                      returned_files)
+        self.assertIn(audio_file_name,
+                      returned_files)
+        self.assertIn(item_xml_name, returned_files)
         self.assertIn('imsmanifest.xml', returned_files)
 
+        # check the manifest that the ID, title, and description match
+        manifest = BeautifulSoup(zip_file.open('imsmanifest.xml').read(), 'xml')
+        self.assertEqual(manifest.resource['identifier'],
+                         item['id'])
+        self.assertEqual(str(manifest.lom.identifier.entry.string).strip(),
+                         item['id'])
+        self.assertEqual(str(manifest.lom.general.title.contents[1].string).strip(),
+                         item['displayName']['text'])
+        self.assertEqual(str(manifest.lom.general.description.contents[1].string).strip(),
+                         item['description']['text'])
+        self.assertEqual(str(manifest.lom.qtiMetadata.interactionType.string).strip(),
+                         'uploadInteraction')
+
+        # check the manifest that all three files are listed
+        self.assertEqual(manifest.resource['href'],
+                         item_xml_name)
+        files = manifest.find_all('file')
+        self.assertEqual(len(files), 3)
+        self.assertEqual(files[0]['href'],
+                         item_xml_name)
+        self.assertEqual(files[1]['href'],
+                         audio_file_name)
+        self.assertEqual(files[2]['href'],
+                         image_file_name)
+
+        # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+
+        # check the ID of the item
+
+        # check the text of the item for feedback and responseDeclaration
 
         self.fail('finish writing the test')
-#         qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
-#         item_body = qti_xml.itemBody
-#
-#         audio_asset_label = 'audioTestFile__mp3'
-#         audio_asset_id = item['question']['fileIds'][audio_asset_label]['assetId']
-#         audio_asset_content_id = item['question']['fileIds'][audio_asset_label]['assetContentId']
-#
-#         expected_string = """<itemBody>
-# <p>
-# <audio autoplay="autoplay" controls="controls" style="width: 125px">
-# <source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}" type="audio/mpeg"/>
-# </audio>
-# </p>
-# <p>
-# <strong>
-#     Introducting a new student
-#    </strong>
-# </p>
-# <p>
-#    It's the first day of school after the summer vacations. A new student has joined the class
-#   </p>
-# <p>
-#    Student 1 talks to the new student to make him/her feel comfortable.
-#   </p>
-# <p>
-#    Student 2 talks about herself or himself and asks a few questions about the new school
-#   </p>
-# <uploadInteraction responseIdentifier="RESPONSE_1"/>
-# </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
-#                       audio_asset_id,
-#                       audio_asset_content_id)
-#
-#         self.assertEqual(
-#             str(item_body),
-#             expected_string
-#         )
 
     def test_can_create_generic_file_upload_question_via_rest(self):
         url = '{0}/items'.format(self.url)
