@@ -9753,6 +9753,265 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_download_multi_choice_multi_answer_qti(self):
+        media_files = [self._square_image,
+                       self._diamond_image,
+                       self._parallelogram_image,
+                       self._rectangle_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                    "text": """<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img src="AssetContent:parallelogram_png" alt="parallelagram" width="186" height="147" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                    "text": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>
+<img src="AssetContent:square_png" alt="square" width="144" height="141" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id01913fba-e66d-4a01-9625-94102847faac",
+                    "text": """<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img src="AssetContent:rectangle_png" alt="rectangle" width="201" height="118" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id4f525d00-e24c-4ac3-a104-848a2cd686c0",
+                    "text": """<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img src="AssetContent:diamond_png" alt="diamond shape" width="148" height="146" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id18c8cc80-68d1-4c1f-b9f0-cb345bad2862",
+                    "text": """<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+  <span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">None of these </span>
+  <br />
+</strong>
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS),
+                "shuffle": False,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                              "id47e56db8-ee16-4111-9bcc-b8ac9716bcd4",
+                              "id4f525d00-e24c-4ac3-a104-848a2cd686c0"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p>
+    <strong>
+      <span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">Please try again!</span>
+      <br />
+    </strong>
+  </p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            3
+        )
+
+        self.assertEqual(
+            len(item['answers']),
+            2
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
+        req = self.app.get(export_url)
+        self.ok(req)
+
+        self.header(req, 'content-type', 'application/zip')
+        returned_data = cStringIO.StringIO(req.body)
+        zip_file = zipfile.ZipFile(returned_data, 'r')
+        returned_files = zip_file.namelist()
+        self.assertEqual(len(returned_files), 6)
+
+        item_xml_name = '{0}.xml'.format(item['id'])
+        square_file_name = 'media/{0}.png'.format(Id(assets['square_png']['assetContents'][0]['id']).identifier)
+        diamond_file_name = 'media/{0}.png'.format(Id(assets['diamond_png']['assetContents'][0]['id']).identifier)
+        rectangle_file_name = 'media/{0}.png'.format(Id(assets['rectangle_png']['assetContents'][0]['id']).identifier)
+        parallelogram_file_name = 'media/{0}.png'.format(Id(assets['parallelogram_png']['assetContents'][0]['id']).identifier)
+        image_names = [square_file_name,
+                       diamond_file_name,
+                       rectangle_file_name,
+                       parallelogram_file_name]
+
+        self.assertIn(square_file_name,
+                      returned_files)
+        self.assertIn(diamond_file_name,
+                      returned_files)
+        self.assertIn(rectangle_file_name,
+                      returned_files)
+        self.assertIn(parallelogram_file_name,
+                      returned_files)
+        self.assertIn(item_xml_name, returned_files)
+        self.assertIn('imsmanifest.xml', returned_files)
+
+        # check the manifest that the ID, title, and description match
+        manifest = BeautifulSoup(zip_file.open('imsmanifest.xml').read(), 'xml')
+        self.assertEqual(manifest.resource['identifier'],
+                         item['id'])
+        self.assertEqual(str(manifest.lom.identifier.entry.string).strip(),
+                         item['id'])
+        self.assertEqual(str(manifest.lom.general.title.contents[1].string).strip(),
+                         item['displayName']['text'])
+        self.assertEqual(str(manifest.lom.general.description.contents[1].string).strip(),
+                         item['description']['text'])
+        self.assertEqual(str(manifest.lom.qtiMetadata.interactionType.string).strip(),
+                         'choiceInteraction')
+
+        # check the manifest that all three files are listed
+        self.assertEqual(manifest.resource['href'],
+                         item_xml_name)
+        files = manifest.find_all('file')
+        self.assertEqual(len(files), 5)
+        self.assertEqual(files[0]['href'],
+                         item_xml_name)
+        self.assertIn(files[1]['href'],
+                      image_names)
+        self.assertIn(files[2]['href'],
+                      image_names)
+        self.assertIn(files[3]['href'],
+                      image_names)
+        self.assertIn(files[4]['href'],
+                      image_names)
+
+        # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+        item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+
+        images = item_xml.find_all('img')
+        self.assertEqual(len(images), len(image_names))
+        for image in images:
+            self.assertIn(image['src'], image_names)
+
+        # check some IMS headers
+        self.assertEqual(item_xml['xmlns'],
+                         'http://www.imsglobal.org/xsd/imsqti_v2p1')
+        # check the ID of the item
+        self.assertEqual(item_xml['identifier'],
+                         item['id'])
+
+        self.assertEqual(item_xml['adaptive'],
+                         "false")
+        self.assertEqual(item_xml['timeDependent'],
+                         "false")
+
+        # check the text of the item for feedback and responseDeclaration
+        self.assertIsNotNone(item_xml.find('modalFeedback'))
+        feedbacks = item_xml.find_all('modalFeedback')
+        self.assertEqual(len(feedbacks), 2)
+        self.assertEqual(str(feedbacks[0]),
+                         """<modalFeedback identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p dir="ltr" id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e">
+   You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.
+  </p>
+</modalFeedback>""")
+        self.assertEqual(str(feedbacks[1]),
+                         """<modalFeedback identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">
+     Please try again!
+    </span>
+<br/>
+</strong>
+</p>
+</modalFeedback>""")
+        self.assertEqual(str(item_xml.responseDeclaration),
+                         """<responseDeclaration baseType="identifier" cardinality="single" identifier="RESPONSE_1">
+<correctResponse>
+<value>
+    idb5345daa-a5c2-4924-a92b-e326886b5d1d
+   </value>
+<value>
+    id47e56db8-ee16-4111-9bcc-b8ac9716bcd4
+   </value>
+<value>
+    id4f525d00-e24c-4ac3-a104-848a2cd686c0
+   </value>
+</correctResponse>
+</responseDeclaration>""")
+
     def test_can_create_reflection_single_answer_question_via_rest(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -10323,8 +10582,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(str(item_xml.responseDeclaration),
                          '<responseDeclaration baseType="file" cardinality="single" identifier="RESPONSE_1"/>')
 
-
-
     def test_can_create_generic_file_upload_question_via_rest(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -10407,6 +10664,135 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_can_download_generic_file_upload_qti(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+     Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+    </span>
+<br/>
+</strong>
+</p>
+</itemBody>""",
+                "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "feedback": """<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p>
+</modalFeedback>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['feedbacks'][0]['text'],
+            """<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p><strong><span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">Upload successful!</span><br/></strong></p>
+</modalFeedback>"""
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
+        req = self.app.get(export_url)
+        self.ok(req)
+
+        self.header(req, 'content-type', 'application/zip')
+        returned_data = cStringIO.StringIO(req.body)
+        zip_file = zipfile.ZipFile(returned_data, 'r')
+        returned_files = zip_file.namelist()
+        self.assertEqual(len(returned_files), 2)
+
+        item_xml_name = '{0}.xml'.format(item['id'])
+
+        self.assertIn(item_xml_name, returned_files)
+        self.assertIn('imsmanifest.xml', returned_files)
+
+        # check the manifest that the ID, title, and description match
+        manifest = BeautifulSoup(zip_file.open('imsmanifest.xml').read(), 'xml')
+        self.assertEqual(manifest.resource['identifier'],
+                         item['id'])
+        self.assertEqual(str(manifest.lom.identifier.entry.string).strip(),
+                         item['id'])
+        self.assertEqual(str(manifest.lom.general.title.contents[1].string).strip(),
+                         item['displayName']['text'])
+        self.assertEqual(str(manifest.lom.general.description.contents[1].string).strip(),
+                         item['description']['text'])
+        self.assertEqual(str(manifest.lom.qtiMetadata.interactionType.string).strip(),
+                         'uploadInteraction')
+
+        # check the manifest that the question file is listed
+        self.assertEqual(manifest.resource['href'],
+                         item_xml_name)
+        files = manifest.find_all('file')
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0]['href'],
+                         item_xml_name)
+
+        # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+        item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+
+        # check some IMS headers
+        self.assertEqual(item_xml['xmlns'],
+                         'http://www.imsglobal.org/xsd/imsqti_v2p1')
+        # check the ID of the item
+        self.assertEqual(item_xml['identifier'],
+                         item['id'])
+
+        self.assertEqual(item_xml['adaptive'],
+                         "false")
+        self.assertEqual(item_xml['timeDependent'],
+                         "false")
+
+        # check the text of the item for feedback and responseDeclaration
+        self.assertIsNotNone(item_xml.find('modalFeedback'))
+        feedbacks = item_xml.find_all('modalFeedback')
+        self.assertEqual(len(feedbacks), 1)
+        self.assertEqual(str(feedbacks[0]),
+                         """<modalFeedback identifier="Feedback464983843" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-8000-2639-b910cd8704bf">
+     Upload successful!
+    </span>
+<br/>
+</strong>
+</p>
+</modalFeedback>""")
+        self.assertEqual(str(item_xml.responseDeclaration),
+                         """<responseDeclaration baseType="file" cardinality="single" identifier="RESPONSE_1"/>""")
 
     def test_can_create_mw_sentence_question_via_rest(self):
         media_files = [self._intersection_image,
@@ -11483,7 +11869,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </correctResponse>
 </responseDeclaration>""")
 
-
     def test_can_create_short_answer_question_via_rest(self):
         media_files = [self._shapes_image]
 
@@ -11821,6 +12206,236 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(choice),
                 expected_choices[choice_id]
             )
+
+    def test_can_download_image_sequence_qti(self):
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ['id127df214-2a19-44da-894a-853948313dae',
+                              'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                              'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                              'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertEqual(
+            len(item['answers'][0]['choiceIds']),
+            4
+        )
+        self.assertEqual(
+            len(item['question']['choices']),
+            4
+        )
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
+        req = self.app.get(export_url)
+        self.ok(req)
+
+        self.header(req, 'content-type', 'application/zip')
+        returned_data = cStringIO.StringIO(req.body)
+        zip_file = zipfile.ZipFile(returned_data, 'r')
+        returned_files = zip_file.namelist()
+        self.assertEqual(len(returned_files), 7)
+
+        item_xml_name = '{0}.xml'.format(item['id'])
+        audio_file_name = 'media/{0}.mp3'.format(Id(assets['audioTestFile__mp3']['assetContents'][0]['id']).identifier)
+        picture_1_file_name = 'media/{0}.png'.format(Id(assets['Picture1_png']['assetContents'][0]['id']).identifier)
+        picture_2_file_name = 'media/{0}.png'.format(Id(assets['Picture2_png']['assetContents'][0]['id']).identifier)
+        picture_3_file_name = 'media/{0}.png'.format(Id(assets['Picture3_png']['assetContents'][0]['id']).identifier)
+        picture_4_file_name = 'media/{0}.png'.format(Id(assets['Picture4_png']['assetContents'][0]['id']).identifier)
+        picture_names = [picture_1_file_name,
+                         picture_2_file_name,
+                         picture_3_file_name,
+                         picture_4_file_name]
+
+        self.assertIn(picture_1_file_name,
+                      returned_files)
+        self.assertIn(picture_2_file_name,
+                      returned_files)
+        self.assertIn(picture_3_file_name,
+                      returned_files)
+        self.assertIn(picture_4_file_name,
+                      returned_files)
+        self.assertIn(audio_file_name,
+                      returned_files)
+        self.assertIn(item_xml_name, returned_files)
+        self.assertIn('imsmanifest.xml', returned_files)
+
+        # check the manifest that the ID, title, and description match
+        manifest = BeautifulSoup(zip_file.open('imsmanifest.xml').read(), 'xml')
+        self.assertEqual(manifest.resource['identifier'],
+                         item['id'])
+        self.assertEqual(str(manifest.lom.identifier.entry.string).strip(),
+                         item['id'])
+        self.assertEqual(str(manifest.lom.general.title.contents[1].string).strip(),
+                         item['displayName']['text'])
+        self.assertEqual(str(manifest.lom.general.description.contents[1].string).strip(),
+                         item['description']['text'])
+        self.assertEqual(str(manifest.lom.qtiMetadata.interactionType.string).strip(),
+                         'orderInteraction')
+
+        # check the manifest that all three files are listed
+        self.assertEqual(manifest.resource['href'],
+                         item_xml_name)
+        files = manifest.find_all('file')
+        self.assertEqual(len(files), 6)
+        self.assertEqual(files[0]['href'],
+                         item_xml_name)
+        self.assertEqual(files[5]['href'],
+                         audio_file_name)
+        self.assertEqual(len(list(set(files[1:5]))), len(picture_names))
+        self.assertIn(files[1]['href'],
+                      picture_names)
+        self.assertIn(files[2]['href'],
+                      picture_names)
+        self.assertIn(files[3]['href'],
+                      picture_names)
+        self.assertIn(files[4]['href'],
+                      picture_names)
+
+        # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+        item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+
+        self.assertEqual(audio_file_name,
+                         item_xml.object['data'])
+        images = item_xml.find_all('img')
+        self.assertEqual(len(images), len(picture_names))
+        for image in images:
+            self.assertIn(image['src'], picture_names)
+
+        # check some IMS headers
+        self.assertEqual(item_xml['xmlns'],
+                         'http://www.imsglobal.org/xsd/imsqti_v2p1')
+        # check the ID of the item
+        self.assertEqual(item_xml['identifier'],
+                         item['id'])
+
+        self.assertEqual(item_xml['adaptive'],
+                         "false")
+        self.assertEqual(item_xml['timeDependent'],
+                         "false")
+
+        # check the text of the item for feedback and responseDeclaration
+        self.assertIsNotNone(item_xml.find('modalFeedback'))
+        self.assertEqual(len(item_xml.find_all('modalFeedback')), 1)
+        self.assertEqual(str(item_xml.modalFeedback),
+                         """<modalFeedback identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p dir="ltr" id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e">
+   You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.
+  </p>
+</modalFeedback>""")
+        self.assertEqual(str(item_xml.responseDeclaration),
+                         """<responseDeclaration baseType="identifier" cardinality="ordered" identifier="RESPONSE_1">
+<correctResponse>
+<value>
+    id127df214-2a19-44da-894a-853948313dae
+   </value>
+<value>
+    iddcbf40ab-782e-4d4f-9020-6b8414699a72
+   </value>
+<value>
+    idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b
+   </value>
+<value>
+    ide576c9cc-d20e-4ba3-8881-716100b796a0
+   </value>
+</correctResponse>
+</responseDeclaration>""")
 
     def test_can_create_numeric_response_question_via_rest(self):
         url = '{0}/items'.format(self.url)
