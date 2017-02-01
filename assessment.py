@@ -74,6 +74,8 @@ MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECOR
 MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
 
+TIME_VALUE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['time-value'])
+
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
 QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
 QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
@@ -794,6 +796,12 @@ class ItemsList(utilities.BaseClass):
                             question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
                         elif question_type in [NUMERIC_RESPONSE_QUESTION_GENUS]:
                             question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
+
+                        # add in audio time limit support for MW sandbox and
+
+                        if question_type in [ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                                             UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS]:
+                            question_record_types.append(TIME_VALUE_QUESTION_RECORD)
 
                         q_form = bank.get_question_form_for_create(new_item.ident,
                                                                    question_record_types)
