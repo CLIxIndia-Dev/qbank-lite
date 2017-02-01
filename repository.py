@@ -263,7 +263,7 @@ class AssetDetails(utilities.BaseClass):
             if 'fullUrls' in self.data().keys():
                 data = json.loads(data)
 
-                data = rutils.
+                data = rutils.update_asset_map_with_content_url(data)
 
                 data = json.dumps(data)
             return data
