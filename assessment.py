@@ -302,6 +302,9 @@ class AssessmentsList(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
+            if "isolated" in self.data():
+                assessment_bank.use_isolated_bank_view()
+
             assessments = assessment_bank.get_assessments()
 
             data = utilities.extract_items(assessments)

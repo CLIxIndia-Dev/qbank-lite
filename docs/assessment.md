@@ -515,7 +515,8 @@ Get a list of all `assessment`s in the specified `bank`. Also create an `assessm
 #### GET
 
 url parameters (optional):
-  - None currently supported
+  - isolated. Will only return the `assessments` from the provided `bankId`. Will **not**
+              traverse the hierarchy down.
 
 returns:
   - list of `Assessment` objects.

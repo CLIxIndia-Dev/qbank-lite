@@ -327,25 +327,25 @@ def get_assessment_manager():
     condition.set_http_request(dummy_request)
 
     if 'HTTP_X_API_LOCALE' in web.ctx.env:
-            language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
-            if language_code in ['en', 'hi', 'te']:
-                if language_code == 'en':
-                    language_code = 'ENG'
-                    script_code = 'LATN'
-                elif language_code == 'hi':
-                    language_code = 'HIN'
-                    script_code = 'DEVA'
-                else:
-                    language_code = 'TEL'
-                    script_code = 'TELU'
+        language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
+        if language_code in ['en', 'hi', 'te']:
+            if language_code == 'en':
+                language_code = 'ENG'
+                script_code = 'LATN'
+            elif language_code == 'hi':
+                language_code = 'HIN'
+                script_code = 'DEVA'
             else:
-                language_code = DEFAULT_LANGUAGE_TYPE.identifier
-                script_code = DEFAULT_SCRIPT_TYPE.identifier
+                language_code = 'TEL'
+                script_code = 'TELU'
+        else:
+            language_code = DEFAULT_LANGUAGE_TYPE.identifier
+            script_code = DEFAULT_SCRIPT_TYPE.identifier
 
-            locale = InitializableLocale(language_type_identifier=language_code,
-                                         script_type_identifier=script_code)
+        locale = InitializableLocale(language_type_identifier=language_code,
+                                     script_type_identifier=script_code)
 
-            condition.set_locale(locale)
+        condition.set_locale(locale)
 
     proxy = PROXY_SESSION.get_proxy(condition)
     return RUNTIME.get_service_manager('ASSESSMENT',

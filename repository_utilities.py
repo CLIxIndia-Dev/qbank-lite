@@ -4,12 +4,20 @@ import web
 from dlkit.primordium.id.primitives import Id
 from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
+from dlkit.mongo import types
 
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import NotFound
+from dlkit_runtime.primitives import InitializableLocale
 from dlkit_runtime.proxy_example import TestRequest
 
 from records import registry
+
+import utilities
+
+DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
+DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
+DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
 
 IMAGE_ASSET_GENUS_TYPE = Type(**registry.ASSET_GENUS_TYPES['image'])
 JPG_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['jpg'])
@@ -18,10 +26,11 @@ MP3_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['mp3'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['png'])
 SVG_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['svg'])
 WAV_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['wav'])
+MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
 
 def append_asset_contents(repo, asset, file_name, file_data):
-    asset_content_type_list = []
+    asset_content_type_list = [MULTI_LANGUAGE_ASSET_CONTENT]
     try:
         config = repo._osid_object._runtime.get_configuration()
         parameter_id = Id('parameter:assetContentRecordTypeForFiles@filesystem')
@@ -33,7 +42,11 @@ def append_asset_contents(repo, asset, file_name, file_data):
     acfc = repo.get_asset_content_form_for_create(asset.ident,
                                                   asset_content_type_list)
     acfc.set_genus_type(get_asset_content_genus_type(file_name))
-    acfc.display_name = file_name
+
+    try:
+        acfc.add_display_name(utilities.create_display_text(file_name))
+    except AttributeError:
+        acfc.display_name = file_name
 
     data = DataInputStream(file_data)
     data.name = file_name
@@ -96,6 +109,28 @@ def get_repository_manager():
     dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
                                 authenticated=True)
     condition.set_http_request(dummy_request)
+
+    if 'HTTP_X_API_LOCALE' in web.ctx.env:
+        language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
+        if language_code in ['en', 'hi', 'te']:
+            if language_code == 'en':
+                language_code = 'ENG'
+                script_code = 'LATN'
+            elif language_code == 'hi':
+                language_code = 'HIN'
+                script_code = 'DEVA'
+            else:
+                language_code = 'TEL'
+                script_code = 'TELU'
+        else:
+            language_code = DEFAULT_LANGUAGE_TYPE.identifier
+            script_code = DEFAULT_SCRIPT_TYPE.identifier
+
+        locale = InitializableLocale(language_type_identifier=language_code,
+                                     script_type_identifier=script_code)
+
+        condition.set_locale(locale)
+
     proxy = PROXY_SESSION.get_proxy(condition)
     return RUNTIME.get_service_manager('REPOSITORY',
                                        proxy=proxy)
@@ -113,3 +148,10 @@ def match_asset_content_by_name(asset_content_list, name):
         if asset_content.display_name.text == name:
             return asset_content
     return None
+
+def update_asset_map_with_content_url(asset_map):
+    for index, asset_content in enumerate(asset_map['assetContents']):
+        asset_map['assetContents'][index]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset_map['assignedRepositoryIds'][0],
+                                                                                                                        asset_map['id'],
+                                                                                                                        asset_content['id'])
+    return asset_map
