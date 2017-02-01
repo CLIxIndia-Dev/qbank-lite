@@ -10290,15 +10290,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(len(files), 3)
         self.assertEqual(files[0]['href'],
                          item_xml_name)
-        self.assertEqual(files[1]['href'],
-                         audio_file_name)
         self.assertEqual(files[2]['href'],
+                         audio_file_name)
+        self.assertEqual(files[1]['href'],
                          image_file_name)
 
         # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
         item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+
         self.assertEqual(audio_file_name,
-                         item_xml.audio.source['src'])
+                         item_xml.object['data'])
         self.assertEqual(image_file_name,
                          item_xml.img['src'])
 
@@ -10316,8 +10317,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         # check the text of the item for feedback and responseDeclaration
         self.assertIsNotNone(item_xml.find('modalFeedback'))
+        self.assertEqual(len(item_xml.find_all('modalFeedback')), 1)
+        self.assertEqual(str(item_xml.modalFeedback),
+                         """<modalFeedback identifier="Feedback" outcomeIdentifier="FEEDBACKMODAL" showHide="show">\n<p>\n<img src="{0}"/>\n</p>\n</modalFeedback>""".format(image_file_name))
         self.assertEqual(str(item_xml.responseDeclaration),
                          '<responseDeclaration baseType="file" cardinality="single" identifier="RESPONSE_1"/>')
+
+
 
     def test_can_create_generic_file_upload_question_via_rest(self):
         url = '{0}/items'.format(self.url)
@@ -11401,108 +11407,82 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(self._item.ident)
         )
 
-        # now verify the QTI XML matches the JSON format
-        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
-        req = self.app.get(url)
+        export_url = '{0}/{1}/export?format=qti'.format(url, item['id'])
+        req = self.app.get(export_url)
         self.ok(req)
-        qti_xml = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
-        item_body = qti_xml.itemBody
 
-        inline_choice_interaction = item_body.inlineChoiceInteraction.extract()
+        self.header(req, 'content-type', 'application/zip')
+        returned_data = cStringIO.StringIO(req.body)
+        zip_file = zipfile.ZipFile(returned_data, 'r')
+        returned_files = zip_file.namelist()
+        self.assertEqual(len(returned_files), 2)
 
-        expected_string = """<itemBody>
+        item_xml_name = '{0}.xml'.format(item['id'])
+
+        self.assertIn(item_xml_name, returned_files)
+        self.assertIn('imsmanifest.xml', returned_files)
+
+        # check the manifest that the ID, title, and description match
+        manifest = BeautifulSoup(zip_file.open('imsmanifest.xml').read(), 'xml')
+        self.assertEqual(manifest.resource['identifier'],
+                         item['id'])
+        self.assertEqual(str(manifest.lom.identifier.entry.string).strip(),
+                         item['id'])
+        self.assertEqual(str(manifest.lom.general.title.contents[1].string).strip(),
+                         item['displayName']['text'])
+        self.assertEqual(str(manifest.lom.general.description.contents[1].string).strip(),
+                         item['description']['text'])
+        self.assertEqual(str(manifest.lom.qtiMetadata.interactionType.string).strip(),
+                         'inlineChoiceInteraction')
+
+        # check the manifest that the question file is listed
+        self.assertEqual(manifest.resource['href'],
+                         item_xml_name)
+        files = manifest.find_all('file')
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0]['href'],
+                         item_xml_name)
+
+        # check the text of the item includes src=media/<id>.mp3 instead of "AssetContent:"
+        item_xml = BeautifulSoup(zip_file.open(item_xml_name).read(), 'xml').assessmentItem
+
+        # check some IMS headers
+        self.assertEqual(item_xml['xmlns'],
+                         'http://www.imsglobal.org/xsd/imsqti_v2p1')
+        # check the ID of the item
+        self.assertEqual(item_xml['identifier'],
+                         item['id'])
+
+        self.assertEqual(item_xml['adaptive'],
+                         "false")
+        self.assertEqual(item_xml['timeDependent'],
+                         "false")
+
+        # check the text of the item for feedback and responseDeclaration
+        self.assertIsNotNone(item_xml.find('modalFeedback'))
+        feedbacks = item_xml.find_all('modalFeedback')
+        self.assertEqual(len(feedbacks), 2)
+        self.assertEqual(str(feedbacks[0]),
+                         """<modalFeedback identifier="Feedback372632509" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p>
-<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+   You are right! Please try the next question.
+  </p>
+</modalFeedback>""")
+        self.assertEqual(str(feedbacks[1]),
+                         """<modalFeedback identifier="Feedback2014412711" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p>
-<p class="other">
-      Putting things away
-     </p>
-<p class="preposition">
-      in
-     </p>
-<p class="other">
-      the
-     </p>
-<p class="adjective">
-      proper
-     </p>
-<p class="noun">
-      place
-     </p>
-<p class="verb">
-      makes
-     </p>
-<p class="noun">
-      it
-     </p>
-</p>
+   Please try again.
+  </p>
+</modalFeedback>""")
+        self.assertEqual(str(item_xml.responseDeclaration),
+                         """<responseDeclaration baseType="identifier" cardinality="single" identifier="RESPONSE_1">
+<correctResponse>
+<value>
+    [_1_1
+   </value>
+</correctResponse>
+</responseDeclaration>""")
 
-<p>
-<p class="other">
-      to
-     </p>
-<p class="verb">
-      find
-     </p>
-<p class="noun">
-      them
-     </p>
-<p class="adverb">
-      later
-     </p>
-     .
-    </p>
-</span>
-</p>
-</itemBody>"""
-
-        self.assertEqual(
-            str(item_body),
-            expected_string
-        )
-
-        self.assertEqual(
-            len(inline_choice_interaction.find_all('inlineChoice')),
-            4
-        )
-        self.assertEqual(
-            inline_choice_interaction['responseIdentifier'],
-            'RESPONSE_1'
-        )
-        self.assertEqual(
-            inline_choice_interaction['shuffle'],
-            'false'
-        )
-
-        expected_choices = {
-            "[_1_1": """<inlineChoice identifier="[_1_1">
-<p class="adjective">
-      easy
-     </p>
-</inlineChoice>""",
-            "[_1_1_1": """<inlineChoice identifier="[_1_1_1">
-<p class="adjective">
-      neat
-     </p>
-</inlineChoice>""",
-            "[_2_1_1": """<inlineChoice identifier="[_2_1_1">
-<p class="adjective">
-      fast
-     </p>
-</inlineChoice>""",
-            "[_3_1_1": """<inlineChoice identifier="[_3_1_1">
-<p class="adjective">
-      good
-     </p>
-</inlineChoice>"""
-        }
-
-        for choice in inline_choice_interaction.find_all('simpleChoice'):
-            choice_id = choice['identifier']
-            self.assertEqual(
-                str(choice),
-                expected_choices[choice_id]
-            )
 
     def test_can_create_short_answer_question_via_rest(self):
         media_files = [self._shapes_image]
