@@ -10076,7 +10076,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
 </itemBody>""",
                 "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS),
-                "fileIds": {}
+                "fileIds": {},
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 100
+                }
             },
             "answers": [{
                 "genusTypeId": str(RIGHT_ANSWER_GENUS),
@@ -10121,6 +10126,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
+        )
+
+        self.assertIn(
+            'timeValue',
+            item['question']
+        )
+
+        self.assertEqual(
+            item['question']['timeValue'],
+            {'hours': '00', 'minutes': '01', 'seconds': '40'}
         )
 
         item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
@@ -10624,7 +10639,12 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 }],
                 "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS),
                 "shuffle": True,
-                "fileIds": {}
+                "fileIds": {},
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 360
+                }
             },
             "answers": [{
                 "genusTypeId": str(RIGHT_ANSWER_GENUS),
@@ -10673,6 +10693,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             item['question']['genusTypeId'],
             str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS)
+        )
+
+        self.assertIn(
+            'timeValue',
+            item['question']
+        )
+
+        self.assertEqual(
+            item['question']['timeValue'],
+            {'hours': '00', 'minutes': '06', 'seconds': '00'}
         )
 
         self.assertEqual(

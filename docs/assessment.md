@@ -700,6 +700,8 @@ form data (multi-language, optional):
                  Each object must have `id`, `type` (`int` or `float`), `min`, `max`, and optional
                  `step` and `format` (for `float`) values. The `id` value must match what
                  is present in the `questionString`.
+    - timeValue. A dictionary with (optional) keys `hours`, `minutes`, `seconds`, to set a
+                 time value on the question, for example a limit of audio recording time.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -764,7 +766,7 @@ files, via the `repository` endpoint for `asset`s. This is demonstrated in
 
 Full RESTful documentation is probably best done by example, in viewing the tests.
 You can see the RESTful tests in `tests.test_assessment.py`, specifically the
-`QTIEndpointTests` class.
+`QTIEndpointTests` class. You can also refer to `ItemDetails` `PUT` to see the various fields.
 
 Useful tests to reference are:
   - test_can_create_audio_record_tool_question_via_rest
