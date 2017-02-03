@@ -766,9 +766,17 @@ files, via the `repository` endpoint for `asset`s. This is demonstrated in
 
 Full RESTful documentation is probably best done by example, in viewing the tests.
 You can see the RESTful tests in `tests.test_assessment.py`, specifically the
-`QTIEndpointTests` class. You can also refer to `ItemDetails` `PUT` to see the various fields.
+`QTIEndpointTests` class. Note that it is preferred, when creating items via REST,
+to upload text without the QTI-specific wrappers like `<itemBody>` and `<simpleChoice>`.
+That way the questions can easily be reformatted to other standards.
+You can also refer to `ItemDetails` `PUT` above for more details.
 
 Useful tests to reference are:
+  - test_item_body_and_inline_choice_tags_provided_inline_choice
+  - test_item_body_and_simple_choice_tags_provided_multiple_choice
+  - test_item_body_and_simple_choice_tags_provided_order_interaction
+  - test_item_body_provided_audio_upload
+  - test_item_body_provided_numeric_response
   - test_can_create_audio_record_tool_question_via_rest
   - test_can_create_fill_in_the_blank_question_via_rest
   - test_can_create_generic_file_upload_question_via_rest
