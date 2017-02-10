@@ -162,7 +162,10 @@ it will be set to a default if not provided. You can also set the `LogEntry`'s
 form data (optional):
   - name. Name for identifying the `LogEntry`.
   - description. Description for your `LogEntry.
-  - genusTypeId. If you want to type it.
+  - genusTypeId. If you want to type it. It should be in the expected OSID format of
+                 something like `log-entry-genus%3A<some label you want>%40ODL.MIT.EDU`,
+                 or more generically `namespace%3Aidentifier%40authority`. If you just pass
+                 in a differently-formatted string, the output may not be what you expected.
   - data (required). The JSON or text blob of data you want to save.
 
 returns:
