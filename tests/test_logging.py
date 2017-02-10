@@ -184,7 +184,9 @@ class LogCrUDTests(BaseLoggingTestCase):
 
         url = self.url + '/' + str(log.ident)
         req = self.app.delete(url)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         self.num_logs(0)
 
@@ -420,7 +422,9 @@ class LogEntryCrUDTests(BaseLoggingTestCase):
                                 str(entry.ident))
 
         req = self.app.delete(url)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data)
 
         self.num_entries(0)
 

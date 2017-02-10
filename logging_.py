@@ -51,7 +51,7 @@ class LogDetails(utilities.BaseClass):
             logm = logutils.get_logging_manager()
             logm.delete_log(utilities.clean_id(log_id))
 
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
@@ -235,7 +235,7 @@ class LogEntryDetails(utilities.BaseClass):
             log = logm.get_log(utilities.clean_id(log_id))
             log.delete_log_entry(utilities.clean_id(entry_id))
 
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
