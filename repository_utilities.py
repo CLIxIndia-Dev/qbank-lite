@@ -29,7 +29,7 @@ WAV_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['wav'])
 MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
 
-def append_asset_contents(repo, asset, file_name, file_data):
+def append_asset_contents(repo, asset, file_name, file_data, basics=None):
     asset_content_type_list = [MULTI_LANGUAGE_ASSET_CONTENT]
     try:
         config = repo._osid_object._runtime.get_configuration()
@@ -52,6 +52,10 @@ def append_asset_contents(repo, asset, file_name, file_data):
     data.name = file_name
 
     acfc.set_data(data)
+
+    if basics is not None:
+        acfc = utilities.set_form_basics(acfc, basics)
+
     ac = repo.create_asset_content(acfc)
 
     # really stupid, but set the data again, because for filesystem impl

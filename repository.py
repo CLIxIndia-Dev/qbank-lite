@@ -23,6 +23,7 @@ else:
 urls = (
     "/repositories/(.*)/assets/(.*)/contents/(.*)/stream", "AssetContentStream",
     "/repositories/(.*)/assets/(.*)/contents/(.*)", "AssetContentDetails",
+    "/repositories/(.*)/assets/(.*)/contents", "AssetContentsList",
     "/repositories/(.*)/assets/(.*)", "AssetDetails",
     "/repositories/(.*)/assets", "AssetsList",
     "/repositories/(.*)", "RepositoryDetails",
@@ -74,7 +75,7 @@ class AssetsList(utilities.BaseClass):
     Return list of assets in the given repository.
     api/v2/repository/repositories/<repository_id>/assets/
 
-    GET
+    GET, POST
 
     """
     @utilities.format_response
@@ -197,6 +198,57 @@ class AssetContentStream(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
+class AssetContentsList(utilities.BaseClass):
+    @utilities.format_response
+    def GET(self, repository_id, asset_id):
+        try:
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(utilities.clean_id(repository_id))
+            asset = repository.get_asset(utilities.clean_id(asset_id))
+            data = utilities.extract_items(asset.get_asset_contents())
+
+            if 'fullUrls' in self.data():
+                data = json.dumps(rutils.update_asset_map_with_content_url(asset.object_map)['assetContents'])
+
+            return data
+        except (PermissionDenied, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def POST(self, repository_id, asset_id):
+        try:
+            x = web.input(inputFile={})
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(utilities.clean_id(repository_id))
+            asset = repository.get_asset(utilities.clean_id(asset_id))
+            # get each set of files individually, because
+            # we are doing this in memory, so the file pointer changes
+            # once we read in a file
+            # https://docs.python.org/2/library/zipfile.html
+
+            params = self.data()
+            try:
+                input_file = x['inputFile'].file
+                file_name = x['inputFile'].filename
+
+                # now let's create an asset content for this asset, with the
+                # right genus type and file data. Also set the form basics, if passed in
+                rutils.append_asset_contents(repository, asset, file_name, input_file, params)
+            except AttributeError:
+                form = repository.get_asset_content_form_for_create(asset.ident, [])
+                form = utilities.set_form_basics(form, params)
+                repository.create_asset_content(form)
+
+            # need to get the updated asset with Contents
+            asset = repository.get_asset(asset.ident)
+            asset_map = json.loads(utilities.convert_dl_object(asset))
+            if 'fullUrls' in params:
+                asset_map = rutils.update_asset_map_with_content_url(asset_map)
+
+            return json.dumps(asset_map)
+        except (PermissionDenied, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
 class AssetContentDetails(utilities.BaseClass):
     """
     Get asset content details; or edit asset content
@@ -207,28 +259,28 @@ class AssetContentDetails(utilities.BaseClass):
     """
     @utilities.format_response
     def GET(self, repository_id, asset_id, content_id):
-        return ''
-        # try:
-        #     rm = rutils.get_repository_manager()
-        #     als = rm.get_asset_lookup_session()
-        #     als.use_federated_repository_view()
-        #     asset = als.get_asset(utilities.clean_id(asset_id))
-        #     asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-        #     asset_url = asset_content.get_url()
-        #
-        #     # the asset_url is relative, so add in the path
-        #     asset_url = '{0}/{1}'.format(ABS_PATH,
-        #                                  asset_url)
-        #
-        #     web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
-        #     web.header('Content-Length', os.path.getsize(asset_url))
-        #     filename = asset_url.split('/')[-1]
-        #     web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
-        #
-        #     with open(asset_url, 'rb') as ac_file:
-        #         yield ac_file.read()
-        # except (PermissionDenied, NotFound, InvalidId) as ex:
-        #     utilities.handle_exceptions(ex)
+        try:
+            rm = rutils.get_repository_manager()
+            repository = rm.get_repository(utilities.clean_id(repository_id))
+            asset = repository.get_asset(utilities.clean_id(asset_id))
+            asset_contents = asset.get_asset_contents()
+            data = {}
+
+            for asset_content in asset_contents:
+                if str(asset_content.ident) == str(utilities.clean_id(content_id)):
+                    data = asset_content.object_map
+                    break
+
+            if 'fullUrl' in self.data():
+                contents = rutils.update_asset_map_with_content_url(asset.object_map)['assetContents']
+                for content in contents:
+                    if content['id'] == str(utilities.clean_id(content_id)):
+                        data = content
+                        break
+
+            return json.dumps(data)
+        except (PermissionDenied, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def PUT(self, repository_id, asset_id, content_id):

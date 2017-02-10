@@ -156,6 +156,9 @@ class AssetContentTests(BaseRepositoryTestCase):
                                                                          unquote(str(self.asset.ident)),
                                                                          unquote(str(asset_content.ident)))
 
+        self.contents_url = '/api/v1/repository/repositories/{0}/assets/{1}/contents'.format(unquote(str(self._repo.ident)),
+                                                                                             unquote(str(self.asset.ident)))
+
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._logo_upload_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
         self._replacement_image_file = open('{0}/tests/files/replacement_image.png'.format(ABS_PATH), 'r')
@@ -577,6 +580,33 @@ class AssetContentTests(BaseRepositoryTestCase):
             asset_content['description']['scriptTypeId'],
             self._hindi_script_type
         )
+
+    def test_can_get_asset_contents_list(self):
+        asset_content = self.asset.get_asset_contents().next()
+        req = self.app.get(self.contents_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], str(asset_content.ident))
+        self.assertNotIn('/api/v1', data[0]['url'])
+
+    def test_can_get_asset_contents_list_with_full_urls(self):
+        asset_content = self.asset.get_asset_contents().next()
+        req = self.app.get(self.contents_url + '?fullUrls')
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], str(asset_content.ident))
+        self.assertIn('/api/v1', data[0]['url'])
+
+    def test_can_add_new_asset_content_with_file(self):
+        self.fail('finish writing hte test')
+
+    def test_can_add_new_asset_content_with_json_only(self):
+        self.fail('finish writing hte test')
+
+    def test_can_add_new_asset_with_file_with_full_url(self):
+        self.fail('finish writing the test')
 
 
 class AssetQueryTests(BaseRepositoryTestCase):
