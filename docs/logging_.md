@@ -17,6 +17,7 @@ The following are in the schema of `url` -> `sub-heading`
 /logs/(.*)/logentries/(.*) -> LogEntryDetails
 /logs/(.*)/logentries -> LogEntriesList
 /logs/(.*) -> LogDetails
+/genericlog -> GenericLogEntries
 ```
 
 ### LogsList
@@ -138,3 +139,34 @@ form data (optional):
   - description. A longer text field to describe the `log`. Limited to 1024 characters.
                  Will be set to the default language of `en`.
 
+
+### GenericLogEntries
+
+List all available `LogEntries` or create a new `LogEntry`.
+`/api/v1/logging/genericlog`
+
+#### GET
+
+url parameters (optional):
+  - None currently supported
+
+returns:
+  - list of `LogEntry` objects.
+
+#### POST
+
+The `agentId` who creates the log is pulled from the `x-api-proxy` header, otherwise
+it will be set to a default if not provided. You can also set the `LogEntry`'s
+`displayName`, `description`, or `genusTypeId`.
+
+form data (optional):
+  - name. Name for identifying the `LogEntry`.
+  - description. Description for your `LogEntry.
+  - genusTypeId. If you want to type it. It should be in the expected OSID format of
+                 something like `log-entry-genus%3A<some label you want>%40ODL.MIT.EDU`,
+                 or more generically `namespace%3Aidentifier%40authority`. If you just pass
+                 in a differently-formatted string, the output may not be what you expected.
+  - data (required). The JSON or text blob of data you want to save.
+
+returns:
+  - `LogEntry` object.
