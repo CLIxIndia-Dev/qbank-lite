@@ -21,6 +21,7 @@ else:
 
 
 urls = (
+    "/repositories/(.*)/assets/(.*)/contents/(.*)/stream", "AssetContentStream",
     "/repositories/(.*)/assets/(.*)/contents/(.*)", "AssetContentDetails",
     "/repositories/(.*)/assets/(.*)", "AssetDetails",
     "/repositories/(.*)/assets", "AssetsList",
@@ -163,10 +164,10 @@ class AssetsList(utilities.BaseClass):
             utilities.handle_exceptions(ex)
 
 
-class AssetContentDetails(utilities.BaseClass):
+class AssetContentStream(utilities.BaseClass):
     """
-    Get asset content details; i.e. return pointer to the file
-    api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>
+    Get asset content data stream; i.e. return pointer to the file
+    api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>/stream
 
     GET
 
@@ -194,6 +195,40 @@ class AssetContentDetails(utilities.BaseClass):
                 yield ac_file.read()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
+
+
+class AssetContentDetails(utilities.BaseClass):
+    """
+    Get asset content details; or edit asset content
+    api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>
+
+    GET, PUT
+
+    """
+    @utilities.format_response
+    def GET(self, repository_id, asset_id, content_id):
+        return ''
+        # try:
+        #     rm = rutils.get_repository_manager()
+        #     als = rm.get_asset_lookup_session()
+        #     als.use_federated_repository_view()
+        #     asset = als.get_asset(utilities.clean_id(asset_id))
+        #     asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
+        #     asset_url = asset_content.get_url()
+        #
+        #     # the asset_url is relative, so add in the path
+        #     asset_url = '{0}/{1}'.format(ABS_PATH,
+        #                                  asset_url)
+        #
+        #     web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
+        #     web.header('Content-Length', os.path.getsize(asset_url))
+        #     filename = asset_url.split('/')[-1]
+        #     web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
+        #
+        #     with open(asset_url, 'rb') as ac_file:
+        #         yield ac_file.read()
+        # except (PermissionDenied, NotFound, InvalidId) as ex:
+        #     utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def PUT(self, repository_id, asset_id, content_id):

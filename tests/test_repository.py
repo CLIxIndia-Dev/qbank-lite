@@ -190,7 +190,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         self._image_in_question.close()
 
     def test_can_get_asset_content_file(self):
-        req = self.app.get(self.url)
+        req = self.app.get(self.url + '/stream')
         self.ok(req)
         self.test_file.seek(0)
         self.assertEqual(
@@ -368,7 +368,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertIn('.png', headers['content-disposition'])
         original_content_length = headers['content-length']
 
-        content_url = image['src']
+        # need to get rid of the /stream part of the path to just get the content details URL
+        content_url = image['src'].replace('/stream', '')
         self._logo_upload_test_file.seek(0)
         req = self.app.put(content_url,
                            upload_files=[('inputFile',
@@ -408,7 +409,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertIn('.png', headers['content-disposition'].lower())
         original_content_length = headers['content-length']
 
-        content_url = image['src']
+        # need to get rid of the /stream part of the path to just get the content details URL
+        content_url = image['src'].replace('/stream', '')
         self._logo_upload_test_file.seek(0)
         req = self.app.put(content_url,
                            upload_files=[('inputFile',
@@ -637,9 +639,9 @@ class AssetQueryTests(BaseRepositoryTestCase):
                 asset_content['url']
             )
             self.assertEqual(
-                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset['assignedRepositoryIds'][0],
-                                                                                     asset['id'],
-                                                                                     asset_content['id']),
+                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset['assignedRepositoryIds'][0],
+                                                                                            asset['id'],
+                                                                                            asset_content['id']),
                 asset_content['url']
             )
 
@@ -719,9 +721,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             data['assetContents'][0]['url']
         )
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(data['assignedRepositoryIds'][0],
-                                                                                 data['id'],
-                                                                                 data['assetContents'][0]['id']),
+            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
+                                                                                        data['id'],
+                                                                                        data['assetContents'][0]['id']),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -965,8 +967,8 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(data['assignedRepositoryIds'][0],
-                                                                                 data['id'],
-                                                                                 data['assetContents'][0]['id']),
+            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
+                                                                                        data['id'],
+                                                                                        data['assetContents'][0]['id']),
             data['assetContents'][0]['url']
         )
