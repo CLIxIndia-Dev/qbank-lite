@@ -332,6 +332,9 @@ def set_form_basics(form, data):
 
     return form
 
+def success():
+    return json.dumps({"success": True})
+
 def verify_at_least_one_key_present(_data, _keys_list):
     """
     at least one of the keys is present

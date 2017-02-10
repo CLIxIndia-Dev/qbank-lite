@@ -201,7 +201,7 @@ class AssessmentRemoveAssignedBankIds(utilities.BaseClass):
             assigned_bank_id = am.get_bank(utilities.clean_id(assigned_bank_id)).ident
             am.unassign_assessment_from_bank(utilities.clean_id(assessment_id),
                                              assigned_bank_id)
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId, OperationFailed) as ex:
             utilities.handle_exceptions(ex)
 
@@ -218,7 +218,7 @@ class AssessmentAssignedBankIds(utilities.BaseClass):
                     assigned_bank_id = am.get_bank(utilities.clean_id(assigned_bank_id)).ident
                     am.assign_assessment_to_bank(assessment_id,
                                                  assigned_bank_id)
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -243,7 +243,7 @@ class AssessmentBankDetails(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             data = am.delete_bank(utilities.clean_id(bank_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -960,7 +960,7 @@ class AssessmentDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment(utilities.clean_id(sub_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1081,7 +1081,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
                 child_bank = am.get_bank(utilities.clean_id(child_id))
                 am.add_child_bank(utilities.clean_id(bank_id),
                                                           child_bank.ident)
-            return web.Created()
+            return utilities.success()
         except (PermissionDenied, NotFound, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1167,7 +1167,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
                 raise InvalidArgument()
 
             am.add_root_bank(utilities.clean_id(self.data()['id']))
-            return web.Created()
+            return utilities.success()
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1194,7 +1194,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
                 am.remove_root_bank(utilities.clean_id(bank_id))
             else:
                 raise IllegalState('That bank is not a root.')
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1238,7 +1238,7 @@ class ItemDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_item(utilities.clean_id(sub_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
@@ -1540,7 +1540,7 @@ class AssessmentItemDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.remove_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1622,7 +1622,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_offered(utilities.clean_id(offering_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
@@ -1840,7 +1840,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_taken(utilities.clean_id(taken_id))
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
