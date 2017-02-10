@@ -428,6 +428,10 @@ class ItemsList(utilities.BaseClass):
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
 
             inputs = web.input()
+
+            if 'isolated' in inputs:
+                assessment_bank.use_isolated_bank_view()
+
             if any(term in inputs for term in ['displayName', 'displayNames',
                                                'genusTypeId']):
                 querier = assessment_bank.get_item_query()

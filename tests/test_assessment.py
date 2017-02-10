@@ -3463,6 +3463,19 @@ class HierarchyTests(BaseAssessmentTestCase):
         am = get_managers()['am']
         am.add_root_bank(bank_id)
 
+    def create_item(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE])
+        form.display_name = 'a test item!'
+        form.description = 'for testing with'
+        form.set_genus_type(NUMERIC_RESPONSE_ITEM_GENUS_TYPE)
+        new_item = bank.create_item(form)
+
+        return new_item
+
     def num_banks(self, val):
         am = get_managers()['am']
         self.assertEqual(
@@ -3863,14 +3876,53 @@ class HierarchyTests(BaseAssessmentTestCase):
 
         url = '{0}/banks/{1}/assessments'.format(self.url,
                                                  str(self._bank.ident))
+
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data), 1)
+
         self.assertEqual(data[0]['id'], assessment['id'])
 
         url = '{0}/banks/{1}/assessments?isolated'.format(self.url,
                                                           str(self._bank.ident))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_using_isolated_flag_for_items_returns_only_items_in_bank(self):
+        second_bank = create_new_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        item = self.create_item(second_bank.ident)
+
+        url = '{0}/banks/{1}/items'.format(self.url,
+                                           str(self._bank.ident))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+
+        self.assertEqual(data[0]['id'], str(item.ident))
+
+        url = '{0}/banks/{1}/items?isolated'.format(self.url,
+                                                    str(self._bank.ident))
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
