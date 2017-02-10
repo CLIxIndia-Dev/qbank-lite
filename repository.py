@@ -233,19 +233,19 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                rutils.append_asset_contents(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
             except AttributeError:
                 form = repository.get_asset_content_form_for_create(asset.ident, [])
                 form = utilities.set_form_basics(form, params)
-                repository.create_asset_content(form)
+                asset_content = repository.create_asset_content(form)
 
             # need to get the updated asset with Contents
-            asset = repository.get_asset(asset.ident)
-            asset_map = json.loads(utilities.convert_dl_object(asset))
-            if 'fullUrls' in params:
-                asset_map = rutils.update_asset_map_with_content_url(asset_map)
 
-            return json.dumps(asset_map)
+            asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
+            if 'fullUrl' in params:
+                asset_content_map = rutils.update_asset_map_with_content_url(asset_content_map)
+
+            return json.dumps(asset_content_map)
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

@@ -115,9 +115,10 @@ form data (optional):
   - editDescription. A two-item list of the description text you want replaced (with language info).
                      Should be `[<old string>, <new string>]`.
   - removeDescription. The text object / string you want removed from the `descriptions`.
+  - fullUrl. To get back the "streamable" URL instead of the storage one.
 
 returns:
-  - the updated `asset` that the new content belongs to.
+  - the new `AssetContent`.
 
 ### AssetDetails
 

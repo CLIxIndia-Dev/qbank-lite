@@ -600,13 +600,107 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertIn('/api/v1', data[0]['url'])
 
     def test_can_add_new_asset_content_with_file(self):
-        self.fail('finish writing hte test')
+        self._replacement_image_file.seek(0)
+        payload = {
+            "displayName": 'foo'
+        }
+        # Paste complains if you use unicode in the payload here,
+        # so we'll test unicode language in a different test
+        req = self.app.post(self.contents_url,
+                            params=payload,
+                            upload_files=[('inputFile',
+                                           self._filename(self._replacement_image_file),
+                                           self._replacement_image_file.read())],
+                            headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertNotIn('/api/v1', data['url'])
+
+    def test_can_add_new_asset_content_in_non_english_language(self):
+        payload = {
+            "displayName": self._hindi_text
+        }
+        req = self.app.post(self.contents_url,
+                            params=json.dumps(payload),
+                            headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         self._hindi_text)
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertNotIn('/api/v1', data['url'])
 
     def test_can_add_new_asset_content_with_json_only(self):
-        self.fail('finish writing hte test')
+        payload = {
+            "displayName": 'foo'
+        }
+        req = self.app.post(self.contents_url,
+                            params=json.dumps(payload),
+                            headers={"content-type": "application/json"})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertNotIn('/api/v1', data['url'])
 
     def test_can_add_new_asset_with_file_with_full_url(self):
-        self.fail('finish writing the test')
+        self._replacement_image_file.seek(0)
+        payload = {
+            "displayName": 'foo',
+            "fullUrl": True
+        }
+        # Paste complains if you use unicode in the payload here,
+        # so we'll test unicode language in a different test
+        req = self.app.post(self.contents_url,
+                            params=payload,
+                            upload_files=[('inputFile',
+                                           self._filename(self._replacement_image_file),
+                                           self._replacement_image_file.read())],
+                            headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertIn('/api/v1', data['url'])
 
 
 class AssetQueryTests(BaseRepositoryTestCase):
