@@ -3463,6 +3463,19 @@ class HierarchyTests(BaseAssessmentTestCase):
         am = get_managers()['am']
         am.add_root_bank(bank_id)
 
+    def create_item(self, bank_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE])
+        form.display_name = 'a test item!'
+        form.description = 'for testing with'
+        form.set_genus_type(NUMERIC_RESPONSE_ITEM_GENUS_TYPE)
+        new_item = bank.create_item(form)
+
+        return new_item
+
     def num_banks(self, val):
         am = get_managers()['am']
         self.assertEqual(
@@ -3863,14 +3876,53 @@ class HierarchyTests(BaseAssessmentTestCase):
 
         url = '{0}/banks/{1}/assessments'.format(self.url,
                                                  str(self._bank.ident))
+
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data), 1)
+
         self.assertEqual(data[0]['id'], assessment['id'])
 
         url = '{0}/banks/{1}/assessments?isolated'.format(self.url,
                                                           str(self._bank.ident))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_using_isolated_flag_for_items_returns_only_items_in_bank(self):
+        second_bank = create_new_bank()
+        self.add_root_bank(self._bank.ident)
+
+        url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
+
+        payload = {
+            'ids'   : [str(second_bank.ident)]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={
+                                'content-type': 'application/json'
+                            })
+        self.code(req, 201)
+
+        item = self.create_item(second_bank.ident)
+
+        url = '{0}/banks/{1}/items'.format(self.url,
+                                           str(self._bank.ident))
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+
+        self.assertEqual(data[0]['id'], str(item.ident))
+
+        url = '{0}/banks/{1}/items?isolated'.format(self.url,
+                                                    str(self._bank.ident))
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
@@ -9338,7 +9390,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
     def test_can_create_multi_choice_single_answer_question_via_rest(self):
         media_files = [self._green_dot_image,
-                       self._h1i_image]
+                       self._h1i_image,
+                       self._audio_test_file,
+                       self._diamond_image]
 
         assets = {}
         for media_file in media_files:
@@ -9384,7 +9438,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "choiceIds": ["idc561552b-ed48-46c3-b20d-873150dfd4a2"],
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
   <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
-</modalFeedback>"""
+</modalFeedback>""",
+                "fileIds": {}
             }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
@@ -9394,15 +9449,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
       <br />
     </strong>
   </p>
-</modalFeedback>"""
+</modalFeedback>""",
+                'fileIds': {}
             }]
         }
 
         for label, asset in assets.iteritems():
-            payload['question']['fileIds'][label] = {}
-            payload['question']['fileIds'][label]['assetId'] = asset['id']
-            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
-            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+            target = payload['question']
+            if "audio" in label:
+                target = payload['answers'][0]
+            if "diamond" in label:
+                target = payload['answers'][1]
+            target['fileIds'][label] = {}
+            target['fileIds'][label]['assetId'] = asset['id']
+            target['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            target['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -9428,6 +9489,52 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertNotEqual(
             item['id'],
             str(self._item.ident)
+        )
+
+        self.assertIn('fileIds', item['answers'][0])
+        self.assertEqual(
+            len(item['answers'][0]['fileIds'].keys()),
+            1
+        )
+        audio_label = 'audioTestFile__mp3'
+        self.assertEqual(
+            item['answers'][0]['fileIds'][audio_label]['assetId'],
+            assets[audio_label]['id']
+        )
+        self.assertEqual(
+            item['answers'][0]['fileIds'][audio_label]['assetContentTypeId'],
+            assets[audio_label]['assetContents'][0]['genusTypeId']
+        )
+        self.assertEqual(
+            item['answers'][0]['fileIds'][audio_label]['assetContentId'],
+            assets[audio_label]['assetContents'][0]['id']
+        )
+
+        # verify wrong answer file ids also saved
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['answers']), 2)
+        self.assertEqual(data['answers'][1]['genusTypeId'],
+                         str(WRONG_ANSWER_GENUS))
+        self.assertIn('fileIds', data['answers'][1])
+        self.assertEqual(
+            len(data['answers'][1]['fileIds'].keys()),
+            1
+        )
+        diamond_label = 'diamond_png'
+        self.assertEqual(
+            data['answers'][1]['fileIds'][diamond_label]['assetId'],
+            assets[diamond_label]['id']
+        )
+        self.assertEqual(
+            data['answers'][1]['fileIds'][diamond_label]['assetContentTypeId'],
+            assets[diamond_label]['assetContents'][0]['genusTypeId']
+        )
+        self.assertEqual(
+            data['answers'][1]['fileIds'][diamond_label]['assetContentId'],
+            assets[diamond_label]['assetContents'][0]['id']
         )
 
         # now verify the QTI XML matches the JSON format
