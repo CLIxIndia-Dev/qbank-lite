@@ -1159,7 +1159,9 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
 
         # Delete the offering now
         req = self.app.delete(assessment_offering_detail_endpoint)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         req = self.app.get(assessment_offering_endpoint)
         self.ok(req)
@@ -1813,7 +1815,9 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
 
         assessment_item_details_endpoint = assessment_items_endpoint + '/' + item_id
         req = self.app.delete(assessment_item_details_endpoint)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         req = self.app.get(assessment_items_endpoint)
         self.ok(req)
@@ -2104,7 +2108,9 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
-        self.code(req, 202)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = '{0}/{1}'.format(assessments_endpoint,
                                assessment['id'])
@@ -2166,7 +2172,9 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
                                                    assessment['id'],
                                                    self._alias)
         req = self.app.delete(url)
-        self.code(req, 202)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = '{0}/{1}'.format(assessments_endpoint,
                                assessment['id'])
@@ -3530,7 +3538,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                                 'content-type': 'application/json'
                             })
 
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
         self.num_banks(1)
 
     def test_can_remove_root_bank_from_hierarchy(self):
@@ -3538,7 +3548,9 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.add_root_bank(self._bank.ident)
         url = self.url + '/hierarchies/roots/' + unquote(str(self._bank.ident))
         req = self.app.delete(url)
-        self.code(req, 202)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
         self.num_banks(1)
 
     def test_removing_non_root_bank_from_hierarchy_throws_exception(self):
@@ -3605,7 +3617,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
         req = self.app.get(url)
@@ -3635,7 +3649,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         req = self.app.get(url)
         self.ok(req)
@@ -3694,7 +3710,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
     def test_can_remove_child_from_node(self):
         second_bank = create_new_bank()
@@ -3711,7 +3729,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         req = self.app.get(url)
         self.ok(req)
@@ -3730,7 +3750,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         req = self.app.get(url)
         self.ok(req)
@@ -3755,7 +3777,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         self.query_node_hierarchy(second_bank.ident, 'ancestors', 1, [str(self._bank.ident)])
         self.query_node_hierarchy(self._bank.ident, 'ancestors', 1, [])
@@ -3777,7 +3801,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         third_bank = create_new_bank()
 
@@ -3792,7 +3818,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children?descendants=2'
         req = self.app.get(url)
@@ -3817,7 +3845,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         third_bank = create_new_bank()
 
@@ -3832,7 +3862,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children?descendants=2&display_names'
         req = self.app.get(url)
@@ -3859,7 +3891,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         url = '{0}/banks/{1}/assessments'.format(self.url,
                                                  str(second_bank.ident))
@@ -3907,7 +3941,9 @@ class HierarchyTests(BaseAssessmentTestCase):
                             headers={
                                 'content-type': 'application/json'
                             })
-        self.code(req, 201)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         item = self.create_item(second_bank.ident)
 
@@ -5763,7 +5799,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
@@ -5797,7 +5835,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
@@ -5832,7 +5872,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
@@ -5867,7 +5909,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
@@ -5901,7 +5945,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
@@ -5935,7 +5981,9 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             delete_taken_url = '{0}/assessmentstaken/{1}'.format(self.url,
                                                                  taken_map['id'])
             req = self.app.delete(delete_taken_url)
-            self.code(req, 202)
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['success'])
             create_taken_url = '{0}/assessmentsoffered/{1}/assessmentstaken'.format(self.url,
                                                                                     unquote(str(offered.ident)))
             req = self.app.post(create_taken_url)
