@@ -10,3 +10,5 @@ dist/
 build/
 CLIx/
 settings.py
+.cache/
+
