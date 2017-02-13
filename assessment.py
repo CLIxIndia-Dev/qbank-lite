@@ -526,7 +526,6 @@ class ItemsList(utilities.BaseClass):
                             file_obj = DataInputStream(StringIO(qti_zip.open(zip_file_name).read()))
                             file_obj.name = zip_file_name
                             media_files[file_name] = file_obj
-
                 # now deal with the question xml
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
                     for zip_file_name in qti_zip.namelist():
