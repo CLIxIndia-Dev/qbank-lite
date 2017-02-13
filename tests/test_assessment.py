@@ -7697,7 +7697,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(WRONG_ANSWER_GENUS)
             )
         expected_matches = {
-            "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985": "<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.  </p>",
+            "id8f5eed97-9e0d-4df5-a4c5-2a11bc6ae985": u"<p>Well done!<br/>Zo is hurt. But his wound is not serious - just some light scratches.\xa0</p>",
             "id5bde4781-dcb6-4d1e-8954-8d81f21efe3f": "<p>Listen again and answer.</p>",
             "id8e65e4e1-e891-4c30-a35c-5cc43df18710": "<p>Is Zo in a lot of pain? Does he need to see a doctor immediately?</p>",
             "ida1986000-f320-4346-b289-7310974afd1a": "<p>Zo has hurt himself.</p>"
