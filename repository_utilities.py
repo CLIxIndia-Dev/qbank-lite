@@ -29,7 +29,7 @@ WAV_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['wav'])
 MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
 
-def append_asset_contents(repo, asset, file_name, file_data):
+def append_asset_contents(repo, asset, file_name, file_data, basics=None):
     asset_content_type_list = [MULTI_LANGUAGE_ASSET_CONTENT]
     try:
         config = repo._osid_object._runtime.get_configuration()
@@ -52,6 +52,10 @@ def append_asset_contents(repo, asset, file_name, file_data):
     data.name = file_name
 
     acfc.set_data(data)
+
+    if basics is not None:
+        acfc = utilities.set_form_basics(acfc, basics)
+
     ac = repo.create_asset_content(acfc)
 
     # really stupid, but set the data again, because for filesystem impl
@@ -63,7 +67,7 @@ def append_asset_contents(repo, asset, file_name, file_data):
     acfu.set_data(data)
     repo.update_asset_content(acfu)
 
-    return repo.get_asset(asset.ident)
+    return repo.get_asset(asset.ident), ac
 
 def convert_ac_name_to_label(asset_content):
     return asset_content.display_name.text.replace('.', '_')
@@ -150,8 +154,14 @@ def match_asset_content_by_name(asset_content_list, name):
     return None
 
 def update_asset_map_with_content_url(asset_map):
-    for index, asset_content in enumerate(asset_map['assetContents']):
-        asset_map['assetContents'][index]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset_map['assignedRepositoryIds'][0],
-                                                                                                                        asset_map['id'],
-                                                                                                                        asset_content['id'])
+    if 'assetContents' in asset_map:
+        for index, asset_content in enumerate(asset_map['assetContents']):
+            asset_map['assetContents'][index]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset_map['assignedRepositoryIds'][0],
+                                                                                                                                   asset_map['id'],
+                                                                                                                                   asset_content['id'])
+    else:
+        # for an assetContent
+        asset_map['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset_map['assignedRepositoryIds'][0],
+                                                                                                       asset_map['assetId'],
+                                                                                                       asset_map['id'])
     return asset_map

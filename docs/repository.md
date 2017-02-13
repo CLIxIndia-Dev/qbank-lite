@@ -11,18 +11,20 @@ QBank uses various headers to represent the user and settings. They are outlined
 The following are in the schema of `url` -> `sub-heading`
 
 ```
+/repositories/(.*)/assets/(.*)/contents/(.*)/stream -> AssetContentStream
 /repositories/(.*)/assets/(.*)/contents/(.*) -> AssetContentDetails
+/repositories/(.*)/assets/(.*)/contents -> AssetContentsList
 /repositories/(.*)/assets/(.*) -> AssetDetails
 /repositories/(.*)/assets -> AssetsList
 /repositories/(.*) -> RepositoryDetails
 /repositories -> RepositoriesList
 ```
 
-### AssetContentDetails
+### AssetContentStream
 
 Serves up the specified `asset content` file, so images, audio clips,
 and videos appear correctly in the browser.
-`/api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>`
+`/api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>/stream`
 
 #### GET
 
@@ -31,6 +33,21 @@ url parameters (optional):
 
 returns:
   - file contents of the specified `asset content`.
+
+
+### AssetContentDetails
+
+Data on a specific asset content.
+`/api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents/<content_id>`
+
+#### GET
+
+url parameters (optional):
+  - fullUrl. Returns the streamable URL where you can get the actual object in a browser,
+             instead of the "storage" path.
+
+returns:
+  - `AssetContent` object.
 
 #### PUT
 
@@ -59,6 +76,49 @@ form data (optional):
 
 returns:
   - the `asset` that the content belongs to.
+
+### AssetContentsList
+
+Manage the `AssetContent`s for a given `Asset`.
+`/api/v2/repository/repositories/<repository_id>/assets/<asset_id>/contents`
+
+#### GET
+
+url parameters (optional):
+  - fullUrls. Returns the streamable URLs for each `AssetContent` where you can get
+              the actual object in a browser, instead of the "storage" path.
+
+returns:
+  - List of `AssetContent` objects.
+
+#### POST
+
+You can use this endpoint to create an `assetContent` for the given `asset`.
+Multi-language `assetContent`s support multiple text fields.
+  - the actual data / bits.
+  - the `displayName`.
+  - the `description`.
+  - the `genusTypeId`.
+
+form data (optional):
+  - inputFile. The new file data that you want the `asset content` to
+               contain. The ID is not changed.
+  - genusTypeId. The `genusTypeId` of the `asset content`, like:
+                 `asset-content-genus-type%3Athumbnail%40ODL.MIT.EDU` for a thumbnail image.
+  - displayName. Can be a `displayText` object or a string (in which case the
+                 language and script fields are set from the `x-api-locale` header).
+  - editName. A two-item list of the name text you want replaced (with language info).
+              Should be `[<old string>, <new string>]`.
+  - removeName. The text object / string you want removed from the `displayNames`.
+  - description. Can be a `displayText` object or a string (in which case the
+                 language and script fields are set from the `x-api-locale` header).
+  - editDescription. A two-item list of the description text you want replaced (with language info).
+                     Should be `[<old string>, <new string>]`.
+  - removeDescription. The text object / string you want removed from the `descriptions`.
+  - fullUrl. To get back the "streamable" URL instead of the storage one.
+
+returns:
+  - the new `AssetContent`.
 
 ### AssetDetails
 

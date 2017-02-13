@@ -526,7 +526,6 @@ class ItemsList(utilities.BaseClass):
                             file_obj = DataInputStream(StringIO(qti_zip.open(zip_file_name).read()))
                             file_obj.name = zip_file_name
                             media_files[file_name] = file_obj
-
                 # now deal with the question xml
                 with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
                     for zip_file_name in qti_zip.namelist():
@@ -538,7 +537,9 @@ class ItemsList(utilities.BaseClass):
                     qti_xml = qti_file.read()
 
                     # clean out &nbsp; non-breaking spaces (unicode char \xa0)
-                    qti_xml = qti_xml.replace('\xa0', ' ').replace('\xc2', ' ')
+                    # deprecate this -- seems to cause issues with Hindi questions,
+                    #   per issue from Tanvi Feb 13, 2017
+                    # qti_xml = qti_xml.replace('\xa0', ' ').replace('\xc2', ' ')
 
                     # to handle video tags, we need to do a blanket replace
                     # of  &lt; => <
