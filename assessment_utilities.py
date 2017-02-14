@@ -386,6 +386,46 @@ def get_ovs_file_set(files, index):
     return (small_file, big_file)
 
 
+def get_question_records(item_genus_type):
+    """get the question records from the item genus type"""
+    question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
+
+    if item_genus_type in [CHOICE_INTERACTION_QUESTION_GENUS,
+                         CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
+                         CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
+                         CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
+                         ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                         ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                         ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+        question_record_types.append(RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD)
+
+    if item_genus_type in [CHOICE_INTERACTION_QUESTION_GENUS,
+                         CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
+                         CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
+                         CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD)
+    elif item_genus_type in [UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS,
+                           UPLOAD_INTERACTION_GENERIC_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD)
+    elif item_genus_type in [ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
+                           ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                           ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD)
+    elif item_genus_type in [EXTENDED_TEXT_INTERACTION_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD)
+    elif item_genus_type in [INLINE_CHOICE_MW_FITB_INTERACTION_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
+    elif item_genus_type in [NUMERIC_RESPONSE_QUESTION_GENUS]:
+        question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
+
+    # add in audio time limit support for MW sandbox and
+
+    if item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
+                         UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS]:
+        question_record_types.append(TIME_VALUE_QUESTION_RECORD)
+
+    return question_record_types
+
 def get_question_status(bank, section, question_id):
     """
     Return the question status of answered or not, and if so, right or wrong

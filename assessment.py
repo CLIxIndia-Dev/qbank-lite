@@ -1314,24 +1314,30 @@ class ItemDetails(utilities.BaseClass):
 
             if 'question' in local_data_map:
                 question = local_data_map['question']
-                existing_question = updated_item.get_question()
-                existing_question_map = existing_question.object_map
-                q_id = existing_question.ident
+                if updated_item.object_map['question'] is not None:
+                    existing_question = updated_item.get_question()
+                    existing_question_map = existing_question.object_map
+                    q_id = existing_question.ident
 
-                if 'type' not in question:
-                    question['type'] = existing_question_map['recordTypeIds'][0]
-                if 'recordTypeIds' not in question:
-                    question['recordTypeIds'] = existing_question_map['recordTypeIds']
+                    if 'type' not in question:
+                        question['type'] = existing_question_map['recordTypeIds'][0]
+                    if 'recordTypeIds' not in question:
+                        question['recordTypeIds'] = existing_question_map['recordTypeIds']
 
-                if 'rerandomize' in local_data_map and 'rerandomize' not in question:
-                    question['rerandomize'] = local_data_map['rerandomize']
+                    if 'rerandomize' in local_data_map and 'rerandomize' not in question:
+                        question['rerandomize'] = local_data_map['rerandomize']
 
-                qfu = bank.get_question_form_for_update(updated_item.ident)
-                qfu = autils.update_question_form(question, qfu)
+                    qf = bank.get_question_form_for_update(updated_item.ident)
+                    method = bank.update_question
+                else:
+                    qf = bank.get_question_form_for_create(updated_item.ident, [])
+                    method = bank.create_question
 
-                qfu = autils.update_question_form_with_files(qfu, question)
+                qf = autils.update_question_form(question, qf)
 
-                updated_question = bank.update_question(qfu)
+                qf = autils.update_question_form_with_files(qf, question)
+
+                method(qf)
 
             if 'answers' in local_data_map:
                 for answer in local_data_map['answers']:
