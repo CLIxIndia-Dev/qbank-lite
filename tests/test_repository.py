@@ -156,6 +156,9 @@ class AssetContentTests(BaseRepositoryTestCase):
                                                                          unquote(str(self.asset.ident)),
                                                                          unquote(str(asset_content.ident)))
 
+        self.contents_url = '/api/v1/repository/repositories/{0}/assets/{1}/contents'.format(unquote(str(self._repo.ident)),
+                                                                                             unquote(str(self.asset.ident)))
+
         self._generic_upload_test_file = open('{0}/tests/files/generic_upload_test_file.zip'.format(ABS_PATH), 'r')
         self._logo_upload_test_file = open('{0}/tests/files/Epidemic2.sltng'.format(ABS_PATH), 'r')
         self._replacement_image_file = open('{0}/tests/files/replacement_image.png'.format(ABS_PATH), 'r')
@@ -190,7 +193,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         self._image_in_question.close()
 
     def test_can_get_asset_content_file(self):
-        req = self.app.get(self.url)
+        req = self.app.get(self.url + '/stream')
         self.ok(req)
         self.test_file.seek(0)
         self.assertEqual(
@@ -368,7 +371,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertIn('.png', headers['content-disposition'])
         original_content_length = headers['content-length']
 
-        content_url = image['src']
+        # need to get rid of the /stream part of the path to just get the content details URL
+        content_url = image['src'].replace('/stream', '')
         self._logo_upload_test_file.seek(0)
         req = self.app.put(content_url,
                            upload_files=[('inputFile',
@@ -408,7 +412,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertIn('.png', headers['content-disposition'].lower())
         original_content_length = headers['content-length']
 
-        content_url = image['src']
+        # need to get rid of the /stream part of the path to just get the content details URL
+        content_url = image['src'].replace('/stream', '')
         self._logo_upload_test_file.seek(0)
         req = self.app.put(content_url,
                            upload_files=[('inputFile',
@@ -576,6 +581,127 @@ class AssetContentTests(BaseRepositoryTestCase):
             self._hindi_script_type
         )
 
+    def test_can_get_asset_contents_list(self):
+        asset_content = self.asset.get_asset_contents().next()
+        req = self.app.get(self.contents_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], str(asset_content.ident))
+        self.assertNotIn('/api/v1', data[0]['url'])
+
+    def test_can_get_asset_contents_list_with_full_urls(self):
+        asset_content = self.asset.get_asset_contents().next()
+        req = self.app.get(self.contents_url + '?fullUrls')
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['id'], str(asset_content.ident))
+        self.assertIn('/api/v1', data[0]['url'])
+
+    def test_can_add_new_asset_content_with_file(self):
+        self._replacement_image_file.seek(0)
+        payload = {
+            "displayName": 'foo'
+        }
+        # Paste complains if you use unicode in the payload here,
+        # so we'll test unicode language in a different test
+        req = self.app.post(self.contents_url,
+                            params=payload,
+                            upload_files=[('inputFile',
+                                           self._filename(self._replacement_image_file),
+                                           self._replacement_image_file.read())],
+                            headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertNotIn('/api/v1', data['url'])
+
+    def test_can_add_new_asset_content_in_non_english_language(self):
+        payload = {
+            "displayName": self._hindi_text
+        }
+        req = self.app.post(self.contents_url,
+                            params=json.dumps(payload),
+                            headers=self._hindi_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         self._hindi_text)
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertNotIn('/api/v1', data['url'])
+
+    def test_can_add_new_asset_content_with_json_only(self):
+        payload = {
+            "displayName": 'foo'
+        }
+        req = self.app.post(self.contents_url,
+                            params=json.dumps(payload),
+                            headers={"content-type": "application/json"})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertNotIn('/api/v1', data['url'])
+
+    def test_can_add_new_asset_with_file_with_full_url(self):
+        self._replacement_image_file.seek(0)
+        payload = {
+            "displayName": 'foo',
+            "fullUrl": True
+        }
+        # Paste complains if you use unicode in the payload here,
+        # so we'll test unicode language in a different test
+        req = self.app.post(self.contents_url,
+                            params=payload,
+                            upload_files=[('inputFile',
+                                           self._filename(self._replacement_image_file),
+                                           self._replacement_image_file.read())],
+                            headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['assetId'], str(self.asset.ident))
+        asset = self._repo.get_asset(self.asset.ident)
+
+        self.assertEqual(asset.get_asset_contents().available(), 2)
+        contents = asset.get_asset_contents()
+        contents.next()
+        self.assertEqual(str(contents.next().ident),
+                         data['id'])
+        self.assertEqual(data['displayName']['text'],
+                         'foo')
+        self.assertEqual(data['displayName']['languageTypeId'],
+                         self._hindi_language_type)
+        self.assertIn('/api/v1', data['url'])
+
 
 class AssetQueryTests(BaseRepositoryTestCase):
     def setUp(self):
@@ -637,9 +763,9 @@ class AssetQueryTests(BaseRepositoryTestCase):
                 asset_content['url']
             )
             self.assertEqual(
-                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(asset['assignedRepositoryIds'][0],
-                                                                                     asset['id'],
-                                                                                     asset_content['id']),
+                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset['assignedRepositoryIds'][0],
+                                                                                            asset['id'],
+                                                                                            asset_content['id']),
                 asset_content['url']
             )
 
@@ -719,9 +845,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             data['assetContents'][0]['url']
         )
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(data['assignedRepositoryIds'][0],
-                                                                                 data['id'],
-                                                                                 data['assetContents'][0]['id']),
+            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
+                                                                                        data['id'],
+                                                                                        data['assetContents'][0]['id']),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -965,8 +1091,8 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}'.format(data['assignedRepositoryIds'][0],
-                                                                                 data['id'],
-                                                                                 data['assetContents'][0]['id']),
+            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
+                                                                                        data['id'],
+                                                                                        data['assetContents'][0]['id']),
             data['assetContents'][0]['url']
         )

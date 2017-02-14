@@ -6,7 +6,13 @@ from dlkit_runtime.primordium import Id
 
 from paste.fixture import AppError
 
+from urllib import quote
+
 from testing_utilities import BaseTestCase, get_managers, get_fixture_bank
+
+
+def osid_agent(name):
+    return 'osid.agent.Agent%3A{0}%40MIT-ODL'.format(quote(quote(name)))
 
 
 class BaseLoggingTestCase(BaseTestCase):
@@ -179,7 +185,9 @@ class LogCrUDTests(BaseLoggingTestCase):
 
         url = self.url + '/' + str(log.ident)
         req = self.app.delete(url)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['success'])
 
         self.num_logs(0)
 
@@ -415,6 +423,99 @@ class LogEntryCrUDTests(BaseLoggingTestCase):
                                 str(entry.ident))
 
         req = self.app.delete(url)
-        self.deleted(req)
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data)
 
         self.num_entries(0)
+
+
+class LoggingTests(BaseLoggingTestCase):
+    """Test the logging endpoints with default log
+
+    """
+
+    def setUp(self):
+        super(LoggingTests, self).setUp()
+        self.url = '/api/v1/logging/genericlog'
+        # self.data_dir = '{0}/webapps/CLIx/datastore/logging'.format(ABS_PATH)
+        # if os.path.isdir(self.data_dir):
+        #     shutil.rmtree(self.data_dir)
+
+    def tearDown(self):
+        super(LoggingTests, self).tearDown()
+        # if os.path.isdir(self.data_dir):
+        #     shutil.rmtree(self.data_dir)
+
+    def test_can_get_log_entries(self):
+        payload = {
+            'name': 'my new log entry',
+            'description': 'for testing with',
+            'data': {
+                'action': 'pause audio',
+                'questionId': 'assessment.Item%3A57b954e0ed849b7a420859dc%40ODL.MIT.EDU',
+                'assessmentOfferedId': 'assessment.AssessmentOffered:57bfcc21ed849b11f52fc80a@ODL.MIT.EDU',
+                'mediaId': '',
+                'mediaTime': 9.142857
+            }
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+
+        req = self.app.get(self.url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['displayName']['text'], 'my new log entry')
+        self.assertEqual(data[0]['description']['text'], 'for testing with')
+        self.assertEqual(data[0]['text']['text'], json.dumps(payload['data']))
+
+    def test_can_create_log_entry_with_default_user(self):
+        payload = {
+            'data': {
+                'action': 'pause audio',
+                'questionId': 'assessment.Item%3A57b954e0ed849b7a420859dc%40ODL.MIT.EDU',
+                'assessmentOfferedId': 'assessment.AssessmentOffered:57bfcc21ed849b11f52fc80a@ODL.MIT.EDU',
+                'mediaId': '',
+                'mediaTime': 9.142857
+            }
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        entry = self.json(req)
+        self.assertTrue(
+            json.loads(entry['text']['text']) == payload['data'])
+        self.assertEqual(
+            entry['agentId'],
+            osid_agent('student@tiss.edu')
+        )
+
+    def test_session_id_passes_through_from_header_if_provided(self):
+        payload = {
+            'data': {
+                'action': 'pause audio',
+                'questionId': 'assessment.Item%3A57b954e0ed849b7a420859dc%40ODL.MIT.EDU',
+                'assessmentOfferedId': 'assessment.AssessmentOffered:57bfcc21ed849b11f52fc80a@ODL.MIT.EDU',
+                'mediaId': '',
+                'mediaTime': 9.142857,
+                'session_id': 'foo'
+            }
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json',
+                                     'x-api-proxy': 'student@tiss.edu'})
+        self.ok(req)
+        entry = self.json(req)
+        self.assertTrue(
+            json.loads(entry['text']['text']) == payload['data'])
+        self.assertEqual(
+            entry['agentId'],
+            osid_agent('student@tiss.edu')
+        )

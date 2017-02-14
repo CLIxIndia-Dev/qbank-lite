@@ -17,13 +17,15 @@ import logging_utilities as logutils
 import utilities
 
 
+DEFAULT_LOG_GENUS_TYPE = 'log-genus-type%3Adefault-clix%40ODL.MIT.EDU'
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
 urls = (
     "/logs", "LogsList",
     "/logs/(.*)/logentries/(.*)", "LogEntryDetails",
     "/logs/(.*)/logentries", "LogEntriesList",
-    "/logs/(.*)", "LogDetails"
+    "/logs/(.*)", "LogDetails",
+    "/genericlog", "GenericLogEntries"
 )
 
 
@@ -49,7 +51,7 @@ class LogDetails(utilities.BaseClass):
             logm = logutils.get_logging_manager()
             logm.delete_log(utilities.clean_id(log_id))
 
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
@@ -233,7 +235,7 @@ class LogEntryDetails(utilities.BaseClass):
             log = logm.get_log(utilities.clean_id(log_id))
             log.delete_log_entry(utilities.clean_id(entry_id))
 
-            return web.Accepted()
+            return utilities.success()
         except (PermissionDenied, IllegalState, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -274,6 +276,55 @@ class LogEntryDetails(utilities.BaseClass):
 
             return utilities.convert_dl_object(entry)
         except (PermissionDenied, InvalidArgument, KeyError, InvalidId) as ex:
+            utilities.handle_exceptions(ex)
+
+
+class GenericLogEntries(utilities.BaseClass):
+    def _get_log(self):
+        logm = logutils.get_logging_manager()
+
+        logs = logm.get_logs()
+        default_log = None
+        for log in logs:
+            if str(log.genus_type) == DEFAULT_LOG_GENUS_TYPE:
+                default_log = log
+                break
+        if default_log is None:
+            form = logm.get_log_form_for_create([])
+            form.set_genus_type(Type(DEFAULT_LOG_GENUS_TYPE))
+            form.display_name = 'Default CLIx QBank log'
+            form.description = 'For logging info from unplatform and tools, which do not know about catalog IDs'
+
+            default_log = logm.create_log(form)
+        return default_log
+
+    @utilities.format_response
+    def GET(self):
+        default_log = self._get_log()
+        log_entries = [le.object_map for le in default_log.get_log_entries()]
+        return log_entries
+
+    @utilities.format_response
+    def POST(self):
+        # get or find a default log genus type
+        try:
+            input_data = self.data()
+            utilities.verify_keys_present(input_data, ['data'])
+            log = self._get_log()
+
+            form = log.get_log_entry_form_for_create([TEXT_BLOB_RECORD_TYPE])
+
+            if isinstance(input_data['data'], dict):
+                blob = json.dumps(input_data['data'])
+            else:
+                blob = str(input_data['data'])
+
+            form.set_text(blob)
+            form = utilities.set_form_basics(form, input_data)
+            entry = log.create_log_entry(form)
+
+            return utilities.convert_dl_object(entry)
+        except (PermissionDenied, InvalidArgument, IllegalState, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
 
