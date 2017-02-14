@@ -181,19 +181,20 @@ class AssetContentStream(utilities.BaseClass):
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-            asset_url = asset_content.get_url()
+            asset_content_url = asset_content.get_url()
+            asset_content_data = asset_content.get_data()
 
             # the asset_url is relative, so add in the path
-            asset_url = '{0}/{1}'.format(ABS_PATH,
-                                         asset_url)
+            # How would you do this with GSTUDIO??
+            asset_content_url = '{0}/{1}'.format(ABS_PATH,
+                                                 asset_content_url)
 
-            web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
-            web.header('Content-Length', os.path.getsize(asset_url))
-            filename = asset_url.split('/')[-1]
+            web.header('Content-Type', mimetypes.guess_type(asset_content_url)[0])
+            web.header('Content-Length', os.path.getsize(asset_content_url))
+            filename = asset_content_url.split('/')[-1]
             web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
 
-            with open(asset_url, 'rb') as ac_file:
-                yield ac_file.read()
+            yield asset_content_data.read()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
