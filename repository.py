@@ -249,6 +249,7 @@ class AssetContentsList(utilities.BaseClass):
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
+
 class AssetContentDetails(utilities.BaseClass):
     """
     Get asset content details; or edit asset content
