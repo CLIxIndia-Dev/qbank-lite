@@ -296,8 +296,10 @@ class BaseAssessmentTestCase(BaseTestCase):
             data = None
             if isinstance(req, list):
                 for item in req:
-                    if (item['id'] == _id or
-                        item['id'] == quote(_id)):
+                    if (
+                        item['id'] == _id or
+                        item['id'] == quote(_id)
+                    ):
                         data = item
             elif isinstance(req, dict):
                 if (req['id'] == _id or
@@ -342,14 +344,14 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
 
         return {
-            "name"                  : item_name,
-            "description"           : item_desc,
-            "question"              : {
+            "name"               : item_name,
+            "description"        : item_desc,
+            "question"           : {
                 "type"           : question_type,
                 "questionString" : question_body,
                 "choices"        : question_choices
             },
-            "answers"               : [{
+            "answers"       : [{
                 "type"      : answer_type,
                 "choiceId"  : answer
             }],
@@ -935,14 +937,14 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         answer_type = 'answer-record-type%3Amulti-choice-edx%40ODL.MIT.EDU'
 
         return {
-            "name"                  : item_name,
-            "description"           : item_desc,
-            "question"              : {
+            "name"               : item_name,
+            "description"        : item_desc,
+            "question"           : {
                 "type"           : question_type,
                 "questionString" : question_body,
                 "choices"        : question_choices
             },
-            "answers"               : [{
+            "answers"       : [{
                 "type"      : answer_type,
                 "choiceId"  : answer
             }],
@@ -1084,8 +1086,8 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         req = self.app.get(assessment_offering_endpoint)
         self.ok(req)
         self.verify_offerings(req,
-                             'AssessmentOffering',
-                             [payload])
+                              'AssessmentOffering',
+                              [payload])
 
         # For the offering detail endpoint, GET, PUT, DELETE should work
         # Check that POST returns error code 405--we don't support this
@@ -1138,13 +1140,13 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
 
         funny_payload = {
             "duration"  : {
-                "hours" :   2
+                "hours"   : 2
             }
         }
         expected_converted_payload = funny_payload
         expected_converted_payload.update(new_start_time)
         expected_converted_payload.update({
-            "id"    : quote_safe_offering_id
+            "id": quote_safe_offering_id
         })
         req = self.app.put(assessment_offering_detail_endpoint,
                            params=json.dumps(funny_payload),
@@ -1182,7 +1184,7 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
             "duration"  : {
                 "days"  : 2
             }
-                   },{
+        }, {
             "startTime" : {
                 "day"   : 9,
                 "month" : 1,
@@ -2583,14 +2585,14 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         offering_id = unquote(offering['id'])
 
         # verify that the offering has defaulted to reviewOptions all true
-        review_options = ['afterAttempt','afterDeadline','beforeDeadline','duringAttempt']
+        review_options = ['afterAttempt', 'afterDeadline', 'beforeDeadline', 'duringAttempt']
         for opt in review_options:
             self.assertTrue(offering['reviewOptions']['whetherCorrect'][opt])
 
         payload = {
-            "reviewOptions" : {
-                "whetherCorrect" : {
-                    "duringAttempt" : False
+            "reviewOptions": {
+                "whetherCorrect": {
+                    "duringAttempt": False
                 }
             }
         }
@@ -2604,7 +2606,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         offering = json.loads(req.body)
 
         # verify that the offering has duringAttempt = False
-        review_options = ['afterAttempt','afterDeadline','beforeDeadline','duringAttempt']
+        review_options = ['afterAttempt', 'afterDeadline', 'beforeDeadline', 'duringAttempt']
         for opt in review_options:
             if opt == 'duringAttempt':
                 self.assertFalse(offering['reviewOptions']['whetherCorrect'][opt])
@@ -2648,7 +2650,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         offering_id = unquote(offering['id'])
 
         # verify that the offering has defaulted to reviewOptions all true
-        review_options = ['afterAttempt','afterDeadline','beforeDeadline','duringAttempt']
+        review_options = ['afterAttempt', 'afterDeadline', 'beforeDeadline', 'duringAttempt']
         for opt in review_options:
             self.assertTrue(offering['reviewOptions']['whetherCorrect'][opt])
 
@@ -2689,7 +2691,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         offering_id = unquote(offering['id'])
 
         # verify that the offering has duringAttempt = False
-        review_options = ['afterAttempt','afterDeadline','beforeDeadline','duringAttempt']
+        review_options = ['afterAttempt', 'afterDeadline', 'beforeDeadline', 'duringAttempt']
         for opt in review_options:
             if opt == 'duringAttempt':
                 self.assertFalse(offering['reviewOptions']['whetherCorrect'][opt])
@@ -3126,8 +3128,8 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             "choiceIds": [right_choice]
         }
         req = self.app.post(question_submit_endpoint,
-                             params=json.dumps(right_response),
-                             headers={'content-type': 'application/json'})
+                            params=json.dumps(right_response),
+                            headers={'content-type': 'application/json'})
         self.ok(req)
         self.verify_submission(req, _expected_result=True)
 
@@ -4537,7 +4539,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             }],
         }
 
-        params = ['questionString','choices','choiceId']
+        params = ['questionString', 'choices', 'choiceId']
         for param in params:
             test_payload = deepcopy(payload)
             if param == 'choiceId':
@@ -4754,10 +4756,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                          item_name,
                          item_desc)
         self.verify_questions_answers(req,
-                                     question_string,
-                                     question_type,
-                                     [answer_string],
-                                     [answer_type])
+                                      question_string,
+                                      question_type,
+                                      [answer_string],
+                                      [answer_type])
 
         req = self.app.get(items_endpoint)
         self.ok(req)
@@ -5414,8 +5416,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                          ['id8188b5cd-89b0-4140-b12a-aed5426bd81b',
                           'id5f1fc52a-a04e-4fa1-b855-51da24967a31'],
                          ['id5f1fc52a-a04e-4fa1-b855-51da24967a31',
-                         'id31392307-c87e-476b-8f92-b0f12ed66300',
-                         'id8188b5cd-89b0-4140-b12a-aed5426bd81b']]
+                          'id31392307-c87e-476b-8f92-b0f12ed66300',
+                          'id8188b5cd-89b0-4140-b12a-aed5426bd81b']]
         for choice_payload in test_payloads:
             payload = {
                 'choiceIds': choice_payload,
@@ -6298,7 +6300,6 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         # self.assertNotIn('Correct!', data['feedback'])
         self.assertIn('<p/>', data['feedback'])
-
 
     def test_cannot_submit_non_integer_to_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
@@ -7805,9 +7806,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
                 if any(n == text['text'] for n in ['the bags', 'the bus',
-                                                     'the bridge', "Raju's",
-                                                     'the seat', 'the airport',
-                                                     'the city', 'the bicycle']):
+                                                   'the bridge', "Raju's",
+                                                   'the seat', 'the airport',
+                                                   'the city', 'the bicycle']):
                     self.assertIn('"noun"', text['text'])
                 elif any(p == text['text'] for p in ['on']):
                     self.assertIn('"prep"', text['text'])
@@ -8130,7 +8131,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-           str(RIGHT_ANSWER_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
@@ -8233,7 +8234,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertIn('No, please listen to the story again.', item['answers'][1]['feedbacks'][0]['text'])
-
 
         self.assertNotEqual(
             item['id'],
@@ -11106,9 +11106,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
                 if any(n == text['text'] for n in ['the bags', 'the bus',
-                                                     'the bridge', "Raju's",
-                                                     'the seat', 'the airport',
-                                                     'the city', 'the bicycle']):
+                                                   'the bridge', "Raju's",
+                                                   'the seat', 'the airport',
+                                                   'the city', 'the bicycle']):
                     self.assertIn('"noun"', text['text'])
                 elif any(p == text['text'] for p in ['on']):
                     self.assertIn('"prep"', text['text'])
@@ -11837,7 +11837,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-           str(RIGHT_ANSWER_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
@@ -12347,7 +12347,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
 </modalFeedback>"""
-            },{
+            }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
@@ -12502,7 +12502,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
 </modalFeedback>"""
-            },{
+            }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>

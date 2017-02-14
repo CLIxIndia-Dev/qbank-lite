@@ -17,6 +17,7 @@ class BaseLoggingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseLoggingTestCase, self).tearDown()
 
+
 class BasicServiceTests(BaseLoggingTestCase):
     """Test the views for getting the basic service calls
 
@@ -417,4 +418,3 @@ class LogEntryCrUDTests(BaseLoggingTestCase):
         self.deleted(req)
 
         self.num_entries(0)
-

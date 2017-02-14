@@ -22,6 +22,7 @@ def allow_user_to_add_authorizations(vault, username):
 
         create_authz(vault, create_agent_id(username), function_id, vault.ident)
 
+
 def check_authz_on_authz(vault, authorization_id):
     # make sure that someone is not trying to delete
     # a hidden, "super" authorization
@@ -33,15 +34,18 @@ def check_authz_on_authz(vault, authorization_id):
     if vault.get_authorizations_by_query(querier).available() == 0:
         raise PermissionDenied
 
+
 def create_agent_id(username, authority='MIT-ODL'):
     return Id(identifier=username,
               namespace='osid.agent.Agent',
               authority=authority)
 
+
 def create_function_id(function, namespace):
     return Id(identifier=function,
               namespace=namespace,
               authority='ODL.MIT.EDU')
+
 
 def create_qualifier_id(identifier, namespace, authority='ODL.MIT.EDU'):
     if identifier == 'ROOT':
@@ -49,6 +53,7 @@ def create_qualifier_id(identifier, namespace, authority='ODL.MIT.EDU'):
     return Id(identifier=identifier,
               namespace=namespace,
               authority=authority)
+
 
 def create_vault(request):
     from testing_utilities import BOOTSTRAP_VAULT_GENUS
@@ -59,11 +64,13 @@ def create_vault(request):
     form.set_genus_type(BOOTSTRAP_VAULT_GENUS)
     return authzm.create_vault(form)
 
+
 def get_non_super_authz(vault):
     from testing_utilities import SUPER_USER_AUTHZ_GENUS
     querier = vault.get_authorization_query()
     querier.match_genus_type(SUPER_USER_AUTHZ_GENUS, False)
     return vault.get_authorizations_by_query(querier)
+
 
 def get_vault():
     from testing_utilities import get_super_authz_user_request

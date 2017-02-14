@@ -40,17 +40,21 @@ urls = (
 )
 app = web.application(urls, locals())
 
+
 class bootloader_storage_path:
     def GET(self):
         return ABS_PATH
+
 
 class index:
     def GET(self, path=None):
         return 'Trying to GET: {0}'.format(path)
 
+
 class version:
     def GET(self):
         return '1.2.0'
+
 
 class video_test:
     def GET(self):
@@ -61,10 +65,11 @@ class video_test:
 # INITIALIZER
 ################################################
 
+
 def is_test():
     if 'WEBPY_ENV' in os.environ:
         return os.environ['WEBPY_ENV'] == 'test'
     return False
 
 if (not is_test()) and __name__ == "__main__":
-    app.run()
+    app.run
