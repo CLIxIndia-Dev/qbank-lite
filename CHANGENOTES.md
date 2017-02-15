@@ -1,3 +1,6 @@
+1.5.0:
+  - Allow you to delete an item's existing choice.
+
 1.4.0:
   - Allow you to delete an item's existing answer.
 
