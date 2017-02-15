@@ -91,6 +91,7 @@ DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
 def _unescaped(string):
     return ':' in string and '@' in string
 
+
 def add_file_ids_to_form(form, file_ids):
     """
     Add existing asset_ids to a form
@@ -101,6 +102,7 @@ def add_file_ids_to_form(form, file_ids):
     for label, file_id in file_ids.iteritems():
         form.add_asset(Id(file_id['assetId']), label, Id(file_id['assetContentTypeId']))
     return form
+
 
 def add_files_to_form(form, files):
     """
@@ -175,11 +177,14 @@ def add_files_to_form(form, files):
         form.add_file(file_data, _clean(label), genus, ac_genus_type, display_name, description)
     return form
 
+
 def archive_bank_names(original_id):
     return 'Archive for {0}'.format(str(original_id))
 
+
 def archive_bank_genus():
     return Type('bank-genus-type%3Aclix-archive%40ODL.MIT.EDU')
+
 
 def archive_item(original_bank, item):
     """archive this item to a clone of the original bank
@@ -222,9 +227,10 @@ def archive_item(original_bank, item):
             form.display_name = expected_name
             form.description = 'For Archiving Items'
             archive = am.create_bank(form)
-        
+
     am.assign_item_to_bank(item.ident, archive.ident)
     am.unassign_item_from_bank(item.ident, original_bank.ident)
+
 
 def check_assessment_has_items(bank, assessment_id):
     """
@@ -236,6 +242,7 @@ def check_assessment_has_items(bank, assessment_id):
     items = bank.get_assessment_items(assessment_id)
     if not items.available():
         raise LookupError('No items')
+
 
 def create_new_item(bank, data):
     if ('question' in data and
@@ -275,20 +282,20 @@ def create_new_item(bank, data):
 
         form.add_text(data['question']['questionString'], 'questionString')
 
-        optional = ['python_script','latex','edxml','solution']
+        optional = ['python_script', 'latex', 'edxml', 'solution']
         for opt in optional:
             if opt in data:
                 form.add_text(data[opt], opt)
 
-        metadata = ['attempts','markdown','showanswer','weight']
-        # metadata = ['attempts','markdown','rerandomize','showanswer','weight']
-                    # 'author','author_comments','student_display_name']
+        metadata = ['attempts', 'markdown', 'showanswer', 'weight']
+        # metadata = ['attempts', 'markdown', 'rerandomize', 'showanswer', 'weight']
+        #            'author', 'author_comments', 'student_display_name']
         for datum in metadata:
             if datum in data:
                 method = getattr(form, 'add_' + datum)
                 method(data[datum])
 
-        irt = ['difficulty','discrimination']
+        irt = ['difficulty', 'discrimination']
         for datum in irt:
             if datum in data:
                 method = getattr(form, 'set_' + datum + '_value')
@@ -311,6 +318,7 @@ def create_new_item(bank, data):
 
     new_item = bank.create_item(form)
     return new_item
+
 
 def evaluate_inline_choice(answers, submission):
     correct = False
@@ -336,11 +344,13 @@ def evaluate_inline_choice(answers, submission):
             correct = True
     return correct
 
+
 def find_answer_in_answers(ans_id, ans_list):
     for ans in ans_list:
         if ans.ident == ans_id:
             return ans
     return None
+
 
 def get_answer_records(answer):
     """answer is a dictionary"""
@@ -353,6 +363,7 @@ def get_answer_records(answer):
     if 'genus' in answer and answer['genus'] == str(Type(**ANSWER_GENUS_TYPES['wrong-answer'])):
         a_types += [MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK]
     return a_types
+
 
 def get_assessment_manager():
     condition = PROXY_SESSION.get_proxy_condition()
@@ -385,6 +396,7 @@ def get_assessment_manager():
     return RUNTIME.get_service_manager('ASSESSMENT',
                                        proxy=proxy)
 
+
 def get_choice_files(files):
     """
     Adapted from http://stackoverflow.com/questions/4558983/slicing-a-dictionary-by-keys-that-start-with-a-certain-string
@@ -394,12 +406,14 @@ def get_choice_files(files):
     # return {k:v for k,v in files.iteritems() if k.startswith('choice')}
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
+
 def get_media_path(bank):
     host_path = web.ctx.get('homedomain', '')
     rm = rutils.get_repository_manager()
     repo = rm.get_repository(bank.ident)
     return '{0}/api/v1/repository/repositories/{1}/assets'.format(host_path,
                                                                   str(repo.ident))
+
 
 def get_object_bank(manager, object_id, object_type='item', bank_id=None):
     """Get the object's bank even without the bankId"""
@@ -410,6 +424,7 @@ def get_object_bank(manager, object_id, object_type='item', bank_id=None):
         object_ = getattr(lookup_session, 'get_{0}'.format(object_type))(utilities.clean_id(object_id))
         bank_id = object_.object_map['assignedBankIds'][0]
     return manager.get_bank(utilities.clean_id(bank_id))
+
 
 def get_ovs_file_set(files, index):
     choice_files = get_choice_files(files)
@@ -438,8 +453,8 @@ def get_answer_records_from_item_genus(item_genus_type):
                            ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
         answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
     elif item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                        UPLOAD_INTERACTION_AUDIO_GENUS,
-                        UPLOAD_INTERACTION_GENERIC_GENUS]:
+                             UPLOAD_INTERACTION_AUDIO_GENUS,
+                             UPLOAD_INTERACTION_GENERIC_GENUS]:
         answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
     elif item_genus_type == EXTENDED_TEXT_INTERACTION_GENUS:
         answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
@@ -491,6 +506,7 @@ def get_question_records_from_item_genus(item_genus_type):
 
     return question_record_types
 
+
 def get_question_status(bank, section, question_id):
     """
     Return the question status of answered or not, and if so, right or wrong
@@ -512,21 +528,22 @@ def get_question_status(bank, section, question_id):
         # compare these answers to the submitted response
         response = student_response._my_map
         response.update({
-            'type' : str(response['recordTypeIds'][0]).replace('answer-record-type', 'answer-record-type')
+            'type': str(response['recordTypeIds'][0]).replace('answer-record-type', 'answer-record-type')
         })
         try:
             correct = student_response.is_correct()
         except (AttributeError, IllegalState):
             correct = validate_response(student_response._my_map, answers)
         data = {
-            'responded' : True,
-            'correct'   : correct
+            'responded': True,
+            'correct': correct
         }
     else:
         data = {
-            'responded' : False
+            'responded': False
         }
     return data
+
 
 def get_response_submissions(response):
     if response['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
@@ -550,6 +567,7 @@ def get_response_submissions(response):
         raise Unsupported
     return submission
 
+
 def is_file_submission(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -564,6 +582,7 @@ def is_file_submission(response):
                                                      'qti-upload-interaction-generic',
                                                      'qti-order-interaction-mw-sandbox'])
 
+
 def is_inline_choice(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -571,6 +590,7 @@ def is_inline_choice(response):
                    for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
     else:
         return any(mc in response['type'] for mc in ['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+
 
 def is_multiple_choice(response):
     if isinstance(response['type'], list):
@@ -592,6 +612,7 @@ def is_multiple_choice(response):
                                                      'qti-choice-interaction-survey',
                                                      'qti-choice-interaction-multi-select-survey'])
 
+
 def is_mw_sandbox(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -600,6 +621,7 @@ def is_mw_sandbox(response):
     else:
         return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sandbox'])
 
+
 def is_numeric_response(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -607,6 +629,7 @@ def is_numeric_response(response):
                    for mc in ['qti-numeric-response'])
     else:
         return any(mc in response['type'] for mc in ['qti-numeric-response'])
+
 
 def is_ordered_choice(response):
     if isinstance(response['type'], list):
@@ -618,6 +641,7 @@ def is_ordered_choice(response):
         return any(mc in response['type'] for mc in ['qti-order-interaction-mw-sentence',
                                                      'qti-order-interaction-object-manipulation'])
 
+
 def is_short_answer(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -625,6 +649,7 @@ def is_short_answer(response):
                    for mc in ['qti-extended-text-interaction'])
     else:
         return any(mc in response['type'] for mc in ['qti-extended-text-interaction'])
+
 
 def is_survey(response):
     if isinstance(response['type'], list):
@@ -636,9 +661,11 @@ def is_survey(response):
         return any(mc in response['type'] for mc in ['qti-choice-interaction-survey',
                                                      'qti-choice-interaction-multi-select-survey'])
 
+
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
+
 
 def match_submission_to_answer(answers, response):
     submission = get_response_submissions(response)
@@ -671,6 +698,7 @@ def match_submission_to_answer(answers, response):
         return default_answer
     else:
         return answer_match
+
 
 def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
@@ -708,6 +736,7 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
             los = answer['confusedLearningObjectiveIds']
         answer_form.set_confused_learning_objective_ids(los)
     return answer_form
+
 
 def set_assessment_offerings(bank, offerings, assessment_id, update=False):
     return_data = []
@@ -750,11 +779,11 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if 'reviewOptions' in offering and 'whetherCorrect' in offering['reviewOptions']:
             for timing, value in offering['reviewOptions']['whetherCorrect'].iteritems():
-                offering_form.set_review_whether_correct(**{underscore(timing) : value})
+                offering_form.set_review_whether_correct(**{underscore(timing): value})
 
         if 'reviewOptions' in offering and 'solution' in offering['reviewOptions']:
             for timing, value in offering['reviewOptions']['solution'].iteritems():
-                offering_form.set_review_solution(**{underscore(timing) : value})
+                offering_form.set_review_solution(**{underscore(timing): value})
 
         if 'maxAttempts' in offering:
             offering_form.set_max_attempts(offering['maxAttempts'])
@@ -765,6 +794,7 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
         new_offering = execute(offering_form)
         return_data.append(new_offering)
     return return_data
+
 
 def set_item_learning_objectives(data, form):
     # over-writes current ID list
@@ -778,6 +808,7 @@ def set_item_learning_objectives(data, form):
             id_list.append(Id(_id))
     form.set_learning_objectives(id_list)
     return form
+
 
 def update_answer_form(answer, form, question=None):
     if 'type' in answer:
@@ -850,6 +881,7 @@ def update_answer_form(answer, form, question=None):
 
     return form
 
+
 def update_answer_form_with_files(form, data):
     if 'fileIds' in data:
         # assumes the asset already exists in the system
@@ -859,6 +891,7 @@ def update_answer_form_with_files(form, data):
             record._init_map()
         form = update_form_with_files(form, data)
     return form
+
 
 def update_form_with_files(form, data):
     for label, asset_data in data['fileIds'].iteritems():
@@ -870,6 +903,7 @@ def update_form_with_files(form, data):
                            asset_content_type=asset_data['assetContentTypeId'])
     return form
 
+
 def update_item_metadata(data, form):
     """Update the metadata / IRT for an edX item
 
@@ -878,10 +912,12 @@ def update_item_metadata(data, form):
     :param form:
     :return:
     """
-    if ('type' in data and
-        'edx' in data['type']):
-        valid_fields = ['attempts','markdown','showanswer','weight',
-                        'difficulty','discrimination']
+    if (
+        'type' in data and
+        'edx' in data['type']
+    ):
+        valid_fields = ['attempts', 'markdown', 'showanswer', 'weight',
+                        'difficulty', 'discrimination']
         for field in valid_fields:
             if field in data:
                 if hasattr(form, 'add_' + field):
@@ -910,6 +946,7 @@ def update_item_metadata(data, form):
         pass
 
     return form
+
 
 def update_question_form(question, form, create=False):
     """
@@ -1009,7 +1046,7 @@ def update_question_form(question, form, create=False):
                     if len(choice_files.keys()) % 2 != 0:
                         raise NullArgument('Large and small image files')
                     num_files = len(choice_files.keys()) / 2
-                    for i in range(0,num_files):
+                    for i in range(0, num_files):
                         # this goes with the code ~20 lines above, where
                         # the right choice files are saved with the manip...
                         # but, regardless, make a choice for each provided
@@ -1049,7 +1086,7 @@ def update_question_form(question, form, create=False):
         if "rerandomize" in question:
             form.add_rerandomize(question['rerandomize'])
         if create:
-            expected = ['questionString','choices']
+            expected = ['questionString', 'choices']
             utilities.verify_keys_present(question, expected)
 
             should_be_list = ['choices']
@@ -1110,6 +1147,8 @@ def update_question_form(question, form, create=False):
                 elif 'id' in choice and 'removeText' in choice:
                     old_choice = utilities.create_display_text(choice['removeText'])
                     form.clear_choice(old_choice, choice['id'])
+                elif 'id' in choice and 'delete' in choice and choice['delete']:
+                    form.remove_choice(choice['id'])
                 elif 'id' in choice:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']),
@@ -1134,6 +1173,8 @@ def update_question_form(question, form, create=False):
                     elif 'id' in choice and 'removeText' in choice:
                         old_choice = utilities.create_display_text(choice['removeText'])
                         form.clear_choice(old_choice, choice['id'], region)
+                    elif 'id' in choice and 'delete' in choice and choice['delete']:
+                        form.remove_choice(choice['id'], region)
                     elif 'id' in choice:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']),
@@ -1178,6 +1219,7 @@ def update_question_form(question, form, create=False):
 
     return form
 
+
 def update_question_form_with_files(form, data):
     if 'fileIds' in data:
         # assumes the asset already exists in the system
@@ -1187,6 +1229,7 @@ def update_question_form_with_files(form, data):
             record._init_map()
         form = update_form_with_files(form, data)
     return form
+
 
 def update_response_form(response, form):
     """
@@ -1271,6 +1314,7 @@ def update_response_form(response, form):
         raise Unsupported()
     return form
 
+
 def validate_response(response, answers):
     correct = False
     # for longer submissions / multi-answer questions, need to make
@@ -1311,9 +1355,11 @@ def validate_response(response, answers):
             if ans_type == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
                 if isinstance(submission, basestring):
                     submission = json.loads(submission)
-                if (int(answer.get_front_face_value()) == int(submission['frontFaceValue']) and
+                if (
+                    int(answer.get_front_face_value()) == int(submission['frontFaceValue']) and
                     int(answer.get_side_face_value()) == int(submission['sideFaceValue']) and
-                    int(answer.get_top_face_value()) == int(submission['topFaceValue'])):
+                    int(answer.get_top_face_value()) == int(submission['topFaceValue'])
+                ):
                     correct = True
                     break
             elif (ans_type == 'answer-record-type%3Amulti-choice-ortho%40ODL.MIT.EDU' or

@@ -9,11 +9,11 @@ TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
 
 FILESYSTEM_ASSET_CONTENT_TYPE = Type(**
-                              {
-                              'authority': 'odl.mit.edu',
-                              'namespace': 'asset_content_record_type',
-                              'identifier': 'filesystem'
-                              })
+                                     {
+                                         'authority': 'odl.mit.edu',
+                                         'namespace': 'asset_content_record_type',
+                                         'identifier': 'filesystem'
+                                     })
 
 ###################################################
 # PRODUCTION SETTINGS
@@ -224,7 +224,6 @@ BOOTSTRAP = {
         'implKey': impl_key_dict('service'),
     }
 }
-
 
 
 ###################################################

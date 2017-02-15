@@ -6,9 +6,9 @@ builders/
 sessions/
 test_datastore/
 dist/
-*.zip
 build/
 CLIx/
 settings.py
 .cache/
-
+htmlcov/
+.DS_Store

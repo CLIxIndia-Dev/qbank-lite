@@ -34,17 +34,21 @@ urls = (
 )
 app = web.application(urls, locals())
 
+
 class bootloader_storage_path:
     def GET(self):
         return ABS_PATH
+
 
 class index:
     def GET(self, path=None):
         return 'Trying to GET: {0}'.format(path)
 
+
 class version:
     def GET(self):
-        return '1.4.0'
+        return '1.5.0'
+
 
 class video_test:
     def GET(self):

@@ -47,6 +47,7 @@ class BaseClass:
             url_data.update(form_data)
         return url_data
 
+
 def create_display_text(text_string, language_code=None):
     if isinstance(text_string, dict):
         return DisplayText(display_text_map=text_string)
@@ -77,7 +78,7 @@ def create_display_text(text_string, language_code=None):
                 language_code = 'TEL'
                 script_code = 'TELU'
             locale = InitializableLocale(language_type_identifier=language_code,
-                                          script_type_identifier=script_code)
+                                         script_type_identifier=script_code)
             language_type_id = locale.language_type
             script_type_id = locale.script_type
         else:
@@ -90,6 +91,7 @@ def create_display_text(text_string, language_code=None):
             'formatTypeId': str(DEFAULT_FORMAT_TYPE),
             'scriptTypeId': str(script_type_id)
         })
+
 
 def format_response_mit_type(func):
     """wrap original response in a {"format": "MIT-CLIx-OEA", "data": "<foo>"} object
@@ -126,6 +128,7 @@ def format_response_mit_type(func):
         return response
     return wrapper
 
+
 def format_response(func):
     """set json header and convert response to json string"""
     @functools.wraps(func)
@@ -143,6 +146,7 @@ def format_response(func):
             return results
     return wrapper
 
+
 def format_xml_response(func):
     """set json header and convert response to json string"""
     @functools.wraps(func)
@@ -159,6 +163,7 @@ def format_xml_response(func):
         else:
             return results
     return wrapper
+
 
 def allow_cors(func):
     """set cors headers"""
@@ -215,6 +220,7 @@ def allow_cors(func):
 #                                                                      proxy=proxy)
 #     return session
 
+
 def clean_id(_id):
     """
     Django seems to un-url-safe the IDs passed in to the rest framework views,
@@ -225,20 +231,23 @@ def clean_id(_id):
     else:
         return Id(_id)
 
+
 def construct_qti_id(qti_id, namespace='assessment.Item'):
     return Id(identifier=qti_id,
               namespace=namespace,
               authority='QTI.IMS.COM')
+
 
 def convert_dl_object(obj):
     """
     convert a DLKit object into a "real" json-able object
     """
     try:
-        #return json.loads(json.loads(json.dumps(obj, cls=DLEncoder)))
+        # return json.loads(json.loads(json.dumps(obj, cls=DLEncoder)))
         return json.dumps(obj.object_map)
     except:
         return json.dumps(obj)
+
 
 def extract_items(item_list):
     try:
@@ -253,7 +262,7 @@ def extract_items(item_list):
                     except AttributeError:
                         # Hierarchy Nodes do not have .object_map
                         results.append(item.get_node_map())
-                    except Exception: # yes, this is overly broad and violets PEP8
+                    except Exception:  # yes, this is overly broad and violets PEP8
                         # but we are suppressing all errors that might happen
                         # due to bad items
                         pass
@@ -270,6 +279,7 @@ def extract_items(item_list):
                 return json.dumps(item_list)
         return json.dumps([])
 
+
 def handle_exceptions(ex):
     if 'WEBENV' in os.environ and os.environ['WEBENV'] == 'test':
         pass
@@ -284,6 +294,7 @@ def handle_exceptions(ex):
     else:
         web.message = 'Bad request {}'.format(ex)
         raise web.NotFound()
+
 
 def set_form_basics(form, data):
     def _grab_first_match(keys):
@@ -332,8 +343,10 @@ def set_form_basics(form, data):
 
     return form
 
+
 def success():
     return json.dumps({"success": True})
+
 
 def verify_at_least_one_key_present(_data, _keys_list):
     """
@@ -348,12 +361,14 @@ def verify_at_least_one_key_present(_data, _keys_list):
     if not present:
         raise KeyError('At least one of the following must be passed in: ' + json.dumps(_keys_list))
 
+
 def verify_keys_present(my_dict, list_of_keys):
     if not isinstance(list_of_keys, list):
         list_of_keys = [list_of_keys]
     for key in list_of_keys:
         if key not in my_dict:
             raise KeyError('"' + key + '" required in input parameters but not provided.')
+
 
 def verify_min_length(my_dict, list_of_keys, expected_len):
     for key in list_of_keys:
@@ -362,4 +377,3 @@ def verify_min_length(my_dict, list_of_keys, expected_len):
         else:
             if len(my_dict[key]) < int(expected_len):
                 raise TypeError('"' + key + '" is shorter than ' + str(expected_len) + '.')
-

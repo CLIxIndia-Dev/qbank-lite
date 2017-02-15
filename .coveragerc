@@ -1,0 +1,19 @@
+[run]
+branch = True
+source = .
+data_file=/tmp/coverage
+omit =
+    *_test.py
+    *_tests.py
+    dlkit/*
+    dlkit_runtime/*
+    records/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+show_missing = False
+precision = 2
+
+[html]
+directory = htmlcov

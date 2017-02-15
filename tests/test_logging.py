@@ -23,6 +23,7 @@ class BaseLoggingTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseLoggingTestCase, self).tearDown()
 
+
 class BasicServiceTests(BaseLoggingTestCase):
     """Test the views for getting the basic service calls
 
@@ -518,4 +519,3 @@ class LoggingTests(BaseLoggingTestCase):
             entry['agentId'],
             osid_agent('student@tiss.edu')
         )
-

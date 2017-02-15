@@ -69,8 +69,10 @@ def append_asset_contents(repo, asset, file_name, file_data, basics=None):
 
     return repo.get_asset(asset.ident), ac
 
+
 def convert_ac_name_to_label(asset_content):
     return asset_content.display_name.text.replace('.', '_')
+
 
 def create_asset(repo, file_name):
     afc = repo.get_asset_form_for_create([])
@@ -78,11 +80,13 @@ def create_asset(repo, file_name):
     afc.set_description('File uploaded from a script')
     return repo.create_asset(afc)
 
+
 def get_asset_content_by_id(asset, asset_content_id):
     for asset_content in asset.get_asset_contents():
         if str(asset_content_id) == str(asset_content.ident):
             return asset_content
     return None
+
 
 def get_asset_content_genus_type(file_name):
     extension = get_file_extension(file_name).lower()
@@ -102,11 +106,13 @@ def get_asset_content_genus_type(file_name):
         ac_genus_type = Type(identifier=extension,
                              namespace='asset-content-genus-type',
                              authority='ODL.MIT.EDU')
-        #ac_genus_type = GENERIC_ASSET_CONTENT_GENUS_TYPE
+        # ac_genus_type = GENERIC_ASSET_CONTENT_GENUS_TYPE
     return ac_genus_type
+
 
 def get_file_extension(file_name):
     return os.path.splitext(os.path.basename(file_name))[-1].replace('.', '')
+
 
 def get_repository_manager():
     condition = PROXY_SESSION.get_proxy_condition()
@@ -139,6 +145,7 @@ def get_repository_manager():
     return RUNTIME.get_service_manager('REPOSITORY',
                                        proxy=proxy)
 
+
 def get_singular_filename(file_name):
     file_name = file_name.replace('-', '_')  # just to handle both cases
     extension = get_file_extension(file_name).lower()
@@ -147,11 +154,13 @@ def get_singular_filename(file_name):
     else:
         return file_name.split('.')[0]
 
+
 def match_asset_content_by_name(asset_content_list, name):
     for asset_content in asset_content_list:
         if asset_content.display_name.text == name:
             return asset_content
     return None
+
 
 def update_asset_map_with_content_url(asset_map):
     if 'assetContents' in asset_map:

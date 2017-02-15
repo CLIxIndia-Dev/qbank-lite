@@ -35,7 +35,7 @@ class RepositoriesList(utilities.BaseClass):
     """
     List all available repositories.
     api/v2/repository/repositories/
-      
+
     """
     @utilities.format_response
     def GET(self):
@@ -53,7 +53,7 @@ class RepositoriesList(utilities.BaseClass):
 
 class RepositoryDetails(utilities.BaseClass):
     """
-    Shows details for a specific repository. This can be orchestrated with an 
+    Shows details for a specific repository. This can be orchestrated with an
     existing assessment bank.
     api/v2/repository/repositories/<repository_id>/
 
@@ -249,6 +249,7 @@ class AssetContentsList(utilities.BaseClass):
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
+
 class AssetContentDetails(utilities.BaseClass):
     """
     Get asset content details; or edit asset content
@@ -320,7 +321,7 @@ class AssetContentDetails(utilities.BaseClass):
 
                 form.set_data(data)
             except AttributeError:
-                pass # no file included
+                pass  # no file included
 
             params = self.data()
             form = utilities.set_form_basics(form, params)

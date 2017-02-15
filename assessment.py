@@ -362,7 +362,7 @@ class AssessmentsList(utilities.BaseClass):
                     a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
                     a_form.load_from_qti_item(qti_xml)
                     bank.create_answer(a_form)
-            except AttributeError:  #'dict' object has no attribute 'file'
+            except AttributeError:  # 'dict' object has no attribute 'file'
                 form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
                 form = utilities.set_form_basics(form, self.data())
@@ -694,7 +694,7 @@ class ItemsList(utilities.BaseClass):
 
                         bank.create_answer(a_form)
 
-            except AttributeError:  #'dict' object has no attribute 'file'
+            except AttributeError:  # 'dict' object has no attribute 'file'
                 # let's do QTI questions differently
                 if 'genusTypeId' in self.data() and 'qti' in self.data()['genusTypeId']:
                     # do QTI-ish stuff
@@ -1026,7 +1026,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
             for child_id in self.data()['ids']:
                 child_bank = am.get_bank(utilities.clean_id(child_id))
                 am.add_child_bank(utilities.clean_id(bank_id),
-                                                          child_bank.ident)
+                                  child_bank.ident)
             return utilities.success()
         except (PermissionDenied, NotFound, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1061,9 +1061,9 @@ class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
 
             am = autils.get_assessment_manager()
             node_data = am.get_bank_nodes(utilities.clean_id(bank_id),
-                                                                  ancestor_levels,
-                                                                  descendant_levels,
-                                                                  include_siblings)
+                                          ancestor_levels,
+                                          descendant_levels,
+                                          include_siblings)
 
             data = node_data.get_object_node_map()
             return data
@@ -1189,8 +1189,8 @@ class ItemDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('This Item is being used in one or more '
-                                              'Assessments. Delink it first, before '
-                                              'deleting it.'))
+                                                 'Assessments. Delink it first, before '
+                                                 'deleting it.'))
 
     @utilities.format_response
     def GET(self, bank_id, sub_id):
@@ -1370,7 +1370,6 @@ class ItemQTIDetails(utilities.BaseClass):
             return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
-
 
 
 class AssessmentItemsList(utilities.BaseClass):
@@ -1557,7 +1556,7 @@ class AssessmentsOffered(utilities.BaseClass):
             utilities.handle_exceptions(ex)
         except LookupError as ex:
             utilities.handle_exceptions(type(ex)('Cannot create an assessment offering for '
-                                              'an assessment with no items.'))
+                                                 'an assessment with no items.'))
 
 
 class AssessmentOfferedDetails(utilities.BaseClass):
@@ -1588,8 +1587,8 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('There are still AssessmentTakens '
-                                              'associated with this AssessmentOffered. '
-                                              'Delete them first.'))
+                                                 'associated with this AssessmentOffered. '
+                                                 'Delete them first.'))
 
     @utilities.format_response
     def GET(self, bank_id, offering_id):
