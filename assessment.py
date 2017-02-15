@@ -1302,6 +1302,7 @@ class ItemDetails(utilities.BaseClass):
                         afu = autils.update_answer_form(answer, afu)
                         afu = autils.set_answer_form_genus_and_feedback(answer, afu)
                         bank.update_answer(afu)
+                    # how to delete answers?
                     else:
                         # also let you add files here?
                         a_types = autils.get_answer_records_from_item_genus(updated_item.genus_type)
