@@ -50,4 +50,3 @@ MANAGER_PATHS = {
                        'dlkit.filesystem.repository.managers.RepositoryProxyManager')
     }
 }
-

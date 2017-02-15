@@ -1,21 +1,19 @@
-import os
 import json
+import os
 import shutil
-
-from bs4 import Tag
-
-from dlkit_runtime.primordium import Type
-from nose.tools import *
-from paste.fixture import TestApp
-from records.registry import LOG_ENTRY_RECORD_TYPES
 from unittest import TestCase
 
+from bs4 import Tag
+from paste.fixture import TestApp
+
+import dlkit_runtime.configs
+from authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
 from dlkit_runtime import PROXY_SESSION, RUNTIME
+from dlkit_runtime.primordium import Type
 from dlkit_runtime.proxy_example import TestRequest
 from dlkit_runtime.utilities import impl_key_dict
-import dlkit_runtime.configs
-
-from authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
+from main import app
+from records.registry import LOG_ENTRY_RECORD_TYPES
 
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
@@ -276,8 +274,6 @@ def configure_dlkit():
 # the settings file post-facto, like with Django
 configure_dlkit()
 
-from main import app
-
 
 def create_authz(vault, agent, function, qualifier, is_super=False, end_date=None):
     form = vault.get_authorization_form_for_create_for_agent(agent, function, qualifier, [])
@@ -290,6 +286,7 @@ def create_authz(vault, agent, function, qualifier, is_super=False, end_date=Non
 
     return vault.create_authorization(form)
 
+
 def create_super_authz_authorizations(vault):
     req = get_super_authz_user_request()
     authzm = req['authzm']
@@ -301,6 +298,7 @@ def create_super_authz_authorizations(vault):
                                       function_tuple[1])
 
         create_authz(vault, agent_id, function, vault.ident, is_super=True)
+
 
 def create_user_authorizations(vault, username="student@tiss.edu", new_catalogs=[]):
     identifiers = BASE_IDENTIFIERS + new_catalogs
@@ -329,6 +327,7 @@ def create_user_authorizations(vault, username="student@tiss.edu", new_catalogs=
 #
 #     restore_services_config(original_config)
 
+
 def create_new_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
@@ -344,6 +343,7 @@ def create_new_bank():
     #                            new_catalogs=[new_bank.ident.identifier])
 
     return new_bank
+
 
 def create_test_repository():
     # from authorization_utilities import get_vault
@@ -363,10 +363,11 @@ def create_test_repository():
     #                            new_catalogs=[new_repo.ident.identifier])
     # create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
 
-
     return new_repo
 
 # don't use test in the name, otherwise the nose test runner thinks this is a test
+
+
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
@@ -374,14 +375,18 @@ def get_fixture_bank():
     return am.get_bank(fixture_repo.ident)
 
 # don't use test in the name, otherwise the nose test runner thinks this is a test
+
+
 def get_fixture_repository():
     # from authorization_utilities import get_vault
     rm = get_managers()['rm']
     return rm.get_repositories().next()
 
+
 def get_super_authz_user_request():
     import settings
     return get_managers(username=settings.AUTHZ_USER)
+
 
 def get_managers(username='student@tiss.edu'):
     managers = [('am', 'ASSESSMENT'),
@@ -401,12 +406,12 @@ def get_managers(username='student@tiss.edu'):
 
     return results
 
+
 def get_valid_contents(tag):
     return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
 
+
 class BaseTestCase(TestCase):
-    """
-    """
     @staticmethod
     def _filename(file_object):
         return file_object.name.split('/')[-1]

@@ -6,11 +6,11 @@ from .utilities import impl_key_dict
 DATA_STORE_PATH = 'webapps/qbank-lite/CLIx/datastore'
 
 FILESYSTEM_ASSET_CONTENT_TYPE = Type(**
-                              {
-                              'authority': 'odl.mit.edu',
-                              'namespace': 'asset_content_record_type',
-                              'identifier': 'filesystem'
-                              })
+                                     {
+                                         'authority': 'odl.mit.edu',
+                                         'namespace': 'asset_content_record_type',
+                                         'identifier': 'filesystem'
+                                     })
 
 ###################################################
 # PRODUCTION SETTINGS
