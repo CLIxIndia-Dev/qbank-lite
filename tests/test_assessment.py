@@ -6413,7 +6413,6 @@ class NumericAnswerTests(BaseAssessmentTestCase):
         # self.assertNotIn('Correct!', data['feedback'])
         self.assertIn('<p/>', data['feedback'])
 
-
     def test_cannot_submit_non_integer_to_simple_numeric(self):
         mc_item = self.create_simple_numeric_response_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(mc_item['id']))
