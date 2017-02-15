@@ -453,8 +453,8 @@ def get_answer_records_from_item_genus(item_genus_type):
                            ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
         answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
     elif item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                        UPLOAD_INTERACTION_AUDIO_GENUS,
-                        UPLOAD_INTERACTION_GENERIC_GENUS]:
+                             UPLOAD_INTERACTION_AUDIO_GENUS,
+                             UPLOAD_INTERACTION_GENERIC_GENUS]:
         answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
     elif item_genus_type == EXTENDED_TEXT_INTERACTION_GENUS:
         answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
@@ -505,6 +505,7 @@ def get_question_records_from_item_genus(item_genus_type):
         question_record_types.append(TIME_VALUE_QUESTION_RECORD)
 
     return question_record_types
+
 
 def get_question_status(bank, section, question_id):
     """
@@ -1146,6 +1147,8 @@ def update_question_form(question, form, create=False):
                 elif 'id' in choice and 'removeText' in choice:
                     old_choice = utilities.create_display_text(choice['removeText'])
                     form.clear_choice(old_choice, choice['id'])
+                elif 'id' in choice and 'delete' in choice and choice['delete']:
+                    form.remove_choice(choice['id'])
                 elif 'id' in choice:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']),
@@ -1170,6 +1173,8 @@ def update_question_form(question, form, create=False):
                     elif 'id' in choice and 'removeText' in choice:
                         old_choice = utilities.create_display_text(choice['removeText'])
                         form.clear_choice(old_choice, choice['id'], region)
+                    elif 'id' in choice and 'delete' in choice and choice['delete']:
+                        form.remove_choice(choice['id'], region)
                     elif 'id' in choice:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']),

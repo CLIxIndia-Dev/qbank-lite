@@ -1324,9 +1324,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
                 if any(n == text['text'] for n in ['the bags', 'the bus',
-                                                     'the bridge', "Raju's",
-                                                     'the seat', 'the airport',
-                                                     'the city', 'the bicycle']):
+                                                   'the bridge', "Raju's",
+                                                   'the seat', 'the airport',
+                                                   'the city', 'the bicycle']):
                     self.assertIn('"noun"', text['text'])
                 elif any(p == text['text'] for p in ['on']):
                     self.assertIn('"prep"', text['text'])
@@ -1649,7 +1649,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-           str(RIGHT_ANSWER_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
@@ -1752,7 +1752,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         self.assertIn('No, please listen to the story again.', item['answers'][1]['feedbacks'][0]['text'])
-
 
         self.assertNotEqual(
             item['id'],
@@ -5961,9 +5960,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
                 if any(n == text['text'] for n in ['the bags', 'the bus',
-                                                     'the bridge', "Raju's",
-                                                     'the seat', 'the airport',
-                                                     'the city', 'the bicycle']):
+                                                   'the bridge', "Raju's",
+                                                   'the seat', 'the airport',
+                                                   'the city', 'the bicycle']):
                     self.assertIn('"noun"', text['text'])
                 elif any(p == text['text'] for p in ['on']):
                     self.assertIn('"prep"', text['text'])
@@ -6313,9 +6312,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             for text in choice['texts']:
                 self.assertIn('<p class="', text['text'])
                 if any(n == text['text'] for n in ['the bags', 'the bus',
-                                                     'the bridge', "Raju's",
-                                                     'the seat', 'the airport',
-                                                     'the city', 'the bicycle']):
+                                                   'the bridge', "Raju's",
+                                                   'the seat', 'the airport',
+                                                   'the city', 'the bicycle']):
                     self.assertIn('"noun"', text['text'])
                 elif any(p == text['text'] for p in ['on']):
                     self.assertIn('"prep"', text['text'])
@@ -7299,7 +7298,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-           str(RIGHT_ANSWER_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
@@ -7431,7 +7430,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
-           str(RIGHT_ANSWER_GENUS)
+            str(RIGHT_ANSWER_GENUS)
         )
 
         self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
@@ -8172,7 +8171,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
 </modalFeedback>"""
-            },{
+            }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
@@ -8340,7 +8339,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
 </modalFeedback>"""
-            },{
+            }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
@@ -8495,7 +8494,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
 </modalFeedback>"""
-            },{
+            }, {
                 "genusTypeId": str(WRONG_ANSWER_GENUS),
                 "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p></p>
@@ -8611,4 +8610,3 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
-
