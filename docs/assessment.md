@@ -631,6 +631,7 @@ form data (single language, optional):
              the `asset` already exists and you can provide the `assetId`.
     - id. If editing an existing answer, provide the qbank ID of the answer. Otherwise
           this endpoint will create a new answer.
+    - delete. If passed as `true`, this will delete the given `answer`.
     - genusTypeId. Correct answers should have this set to `answer-type%3Aright-answer%40ODL.MIT.EDU`.
                    Incorrect answers should have this set to `answer-type%3Awrong-answer%40ODL.MIT.EDU`.
     - fileIds. If necessary, this is a list of objects, indicating new `asset`s attached
@@ -710,6 +711,7 @@ form data (multi-language, optional):
              the `asset` already exists and you can provide the `assetId`.
     - id. If editing an existing answer, provide the qbank ID of the answer. Otherwise
           this endpoint will create a new answer.
+    - delete. If passed as `true`, this will delete the given `answer`.
     - genusTypeId. Correct answers should have this set to `answer-type%3Aright-answer%40ODL.MIT.EDU`.
                    Incorrect answers should have this set to `answer-type%3Awrong-answer%40ODL.MIT.EDU`.
     - fileIds. If necessary, this is a list of objects, indicating new `asset`s attached
