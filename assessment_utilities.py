@@ -61,6 +61,7 @@ ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interac
 ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
 ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
 RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-choice-randomized'])
+EDX_MULTI_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-choice-edx'])
 
 MULTI_LANGUAGE_QUESTION_STRING_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-question-string'])
 MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-multiple-choice'])
@@ -423,6 +424,9 @@ def get_answer_records_from_item_genus(item_genus_type):
     # records depends on the genusTypeId of the ITEM
     # can't rely on answer genus type because that's used for
     # right / wrong answers
+    if item_genus_type == EDX_MULTI_CHOICE_PROBLEM_TYPE:
+        return [EDX_MULTI_CHOICE_ANSWER_RECORD]
+
     answer_record_types = [QTI_ANSWER,
                            MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
                            FILES_ANSWER_RECORD]
@@ -815,7 +819,6 @@ def update_answer_form(answer, form, question=None):
             elif int(answer['choiceId']) < 1:
                 raise KeyError('Correct answer ' + str(answer['choiceId']) + ' is not valid. '
                                'Must be between 1 and # of choices.')
-
             # choices are 0 indexed
             choice_id = choices[int(answer['choiceId']) - 1]  # not sure if we need the OSID Id or string
             form.add_choice_id(choice_id['id'])  # just include the MongoDB ObjectId, not the whole dict
