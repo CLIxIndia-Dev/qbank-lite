@@ -48,6 +48,39 @@ RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
 FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
 FILES_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['files'])
 
+CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
+CHOICE_INTERACTION_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-survey'])
+CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select-survey'])
+EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
+INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
+UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
+UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
+ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
+RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-choice-randomized'])
+
+MULTI_LANGUAGE_QUESTION_STRING_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-question-string'])
+MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-multiple-choice'])
+MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-ordered-choice'])
+MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-inline-choice'])
+MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-text-interaction'])
+MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
+MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
+
+TIME_VALUE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['time-value'])
+QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
+MULTI_LANGUAGE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language'])
+QTI_ANSWER = Type(**ANSWER_RECORD_TYPES['qti'])
+SIMPLE_INLINE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['inline-choice-answer'])
+SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-choice-answer'])
+FILE_SUBMISSION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['file-submission'])
+EXTENDED_TEXT_INTERACTION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['extended-text-answer'])
+MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-numeric-response-with-feedback'])
+MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
+
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
 DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
@@ -386,42 +419,70 @@ def get_ovs_file_set(files, index):
     return (small_file, big_file)
 
 
-def get_question_records(item_genus_type):
+def get_answer_records_from_item_genus(item_genus_type):
+    # records depends on the genusTypeId of the ITEM
+    # can't rely on answer genus type because that's used for
+    # right / wrong answers
+    answer_record_types = [QTI_ANSWER,
+                           MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
+                           FILES_ANSWER_RECORD]
+    if item_genus_type in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                           CHOICE_INTERACTION_SURVEY_GENUS,
+                           CHOICE_INTERACTION_GENUS,
+                           CHOICE_INTERACTION_MULTI_GENUS,
+                           ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                           ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
+        answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
+    elif item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                        UPLOAD_INTERACTION_AUDIO_GENUS,
+                        UPLOAD_INTERACTION_GENERIC_GENUS]:
+        answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
+    elif item_genus_type == EXTENDED_TEXT_INTERACTION_GENUS:
+        answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
+    elif item_genus_type == INLINE_CHOICE_INTERACTION_GENUS:
+        answer_record_types.append(SIMPLE_INLINE_CHOICE_ANSWER_RECORD)
+    elif item_genus_type == NUMERIC_RESPONSE_INTERACTION_GENUS:
+        answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
+
+    return answer_record_types
+
+
+def get_question_records_from_item_genus(item_genus_type):
     """get the question records from the item genus type"""
     question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
 
-    if item_genus_type in [CHOICE_INTERACTION_QUESTION_GENUS,
-                         CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
-                         CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
-                         CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
-                         ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                         ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                         ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+    if item_genus_type in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                           CHOICE_INTERACTION_SURVEY_GENUS,
+                           CHOICE_INTERACTION_GENUS,
+                           CHOICE_INTERACTION_MULTI_GENUS,
+                           ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                           ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                           ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
         question_record_types.append(RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD)
 
-    if item_genus_type in [CHOICE_INTERACTION_QUESTION_GENUS,
-                         CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
-                         CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
-                         CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS]:
+    if item_genus_type in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
+                           CHOICE_INTERACTION_SURVEY_GENUS,
+                           CHOICE_INTERACTION_GENUS,
+                           CHOICE_INTERACTION_MULTI_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD)
-    elif item_genus_type in [UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS,
-                           UPLOAD_INTERACTION_GENERIC_QUESTION_GENUS]:
+    elif item_genus_type in [UPLOAD_INTERACTION_AUDIO_GENUS,
+                             UPLOAD_INTERACTION_GENERIC_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD)
-    elif item_genus_type in [ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                           ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                           ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
+    elif item_genus_type in [ORDER_INTERACTION_MW_SENTENCE_GENUS,
+                             ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                             ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD)
-    elif item_genus_type in [EXTENDED_TEXT_INTERACTION_QUESTION_GENUS]:
+    elif item_genus_type in [EXTENDED_TEXT_INTERACTION_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD)
-    elif item_genus_type in [INLINE_CHOICE_MW_FITB_INTERACTION_QUESTION_GENUS]:
+    elif item_genus_type in [INLINE_CHOICE_INTERACTION_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
-    elif item_genus_type in [NUMERIC_RESPONSE_QUESTION_GENUS]:
+    elif item_genus_type in [NUMERIC_RESPONSE_INTERACTION_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
 
     # add in audio time limit support for MW sandbox and
 
-    if item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                         UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS]:
+    if item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
+                           UPLOAD_INTERACTION_AUDIO_GENUS]:
         question_record_types.append(TIME_VALUE_QUESTION_RECORD)
 
     return question_record_types
@@ -854,6 +915,8 @@ def update_question_form(question, form, create=False):
     """
     if 'type' in question:
         question_types = [question['type']]
+    elif 'genusTypeId' in question:
+        question_types = [question['genusTypeId']]
     elif 'recordTypeIds' in question:
         question_types = question['recordTypeIds']
     else:

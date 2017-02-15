@@ -771,42 +771,7 @@ class ItemsList(utilities.BaseClass):
                     if 'question' in item_json:
                         question = item_json['question']
                         # need to add the right records here, depending on question / item type
-                        question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
-                        question_type = Type(question['genusTypeId'])
-
-                        if question_type in [CHOICE_INTERACTION_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS,
-                                             ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                                             ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                                             ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
-                            question_record_types.append(RANDOMIZED_MULTI_CHOICE_QUESTION_RECORD)
-
-                        if question_type in [CHOICE_INTERACTION_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_MULTI_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_SURVEY_QUESTION_GENUS,
-                                             CHOICE_INTERACTION_MULTI_SELECT_SURVEY_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_MULTIPLE_CHOICE_QUESTION_RECORD)
-                        elif question_type in [UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS,
-                                               UPLOAD_INTERACTION_GENERIC_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD)
-                        elif question_type in [ORDER_INTERACTION_MW_SENTENCE_QUESTION_GENUS,
-                                               ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                                               ORDER_INTERACTION_OBJECT_MANIPULATION_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_ORDERED_CHOICE_QUESTION_RECORD)
-                        elif question_type in [EXTENDED_TEXT_INTERACTION_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD)
-                        elif question_type in [INLINE_CHOICE_MW_FITB_INTERACTION_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
-                        elif question_type in [NUMERIC_RESPONSE_QUESTION_GENUS]:
-                            question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
-
-                        # add in audio time limit support for MW sandbox and
-
-                        if question_type in [ORDER_INTERACTION_MW_SANDBOX_QUESTION_GENUS,
-                                             UPLOAD_INTERACTION_AUDIO_QUESTION_GENUS]:
-                            question_record_types.append(TIME_VALUE_QUESTION_RECORD)
+                        question_record_types = autils.get_question_records_from_item_genus(item_genus)
 
                         q_form = bank.get_question_form_for_create(new_item.ident,
                                                                    question_record_types)
@@ -829,27 +794,7 @@ class ItemsList(utilities.BaseClass):
                             # records depends on the genusTypeId of the ITEM
                             # can't rely on answer genus type because that's used for
                             # right / wrong answers
-                            answer_record_types = [QTI_ANSWER,
-                                                   MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
-                                                   FILES_ANSWER_RECORD]
-                            if item_genus in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
-                                              CHOICE_INTERACTION_SURVEY_GENUS,
-                                              CHOICE_INTERACTION_GENUS,
-                                              CHOICE_INTERACTION_MULTI_GENUS,
-                                              ORDER_INTERACTION_MW_SENTENCE_GENUS,
-                                              ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
-                                answer_record_types.append(SIMPLE_MULTIPLE_CHOICE_ANSWER_RECORD)
-                            elif item_genus in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
-                                                UPLOAD_INTERACTION_AUDIO_GENUS,
-                                                UPLOAD_INTERACTION_GENERIC_GENUS]:
-                                answer_record_types.append(FILE_SUBMISSION_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str(EXTENDED_TEXT_INTERACTION_GENUS):
-                                answer_record_types.append(EXTENDED_TEXT_INTERACTION_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str(INLINE_CHOICE_INTERACTION_GENUS):
-                                answer_record_types.append(SIMPLE_INLINE_CHOICE_ANSWER_RECORD)
-                            elif item_json['genusTypeId'] == str(NUMERIC_RESPONSE_INTERACTION_GENUS):
-                                answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
-
+                            answer_record_types = autils.get_answer_records_from_item_genus(item_genus)
                             a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
 
                             # set genusTypeId to right / wrong and feedback
@@ -1330,7 +1275,11 @@ class ItemDetails(utilities.BaseClass):
                     qf = bank.get_question_form_for_update(updated_item.ident)
                     method = bank.update_question
                 else:
-                    qf = bank.get_question_form_for_create(updated_item.ident, [])
+                    question_records = autils.get_question_records_from_item_genus(updated_item.genus_type)
+                    qf = bank.get_question_form_for_create(updated_item.ident, question_records)
+                    # to enable the various update methods later on.
+                    question['recordTypeIds'] = qf._my_map['recordTypeIds']
+                    qf = utilities.set_form_basics(qf, question)
                     method = bank.create_question
 
                 qf = autils.update_question_form(question, qf)
@@ -1338,7 +1287,7 @@ class ItemDetails(utilities.BaseClass):
                 qf = autils.update_question_form_with_files(qf, question)
 
                 method(qf)
-
+            updated_item = bank.get_item(updated_item.ident)
             if 'answers' in local_data_map:
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
@@ -1355,14 +1304,15 @@ class ItemDetails(utilities.BaseClass):
                         bank.update_answer(afu)
                     else:
                         # also let you add files here?
-                        a_types = autils.get_answer_records(answer)
+                        a_types = autils.get_answer_records_from_item_genus(updated_item.genus_type)
                         afc = bank.get_answer_form_for_create(utilities.clean_id(sub_id),
                                                               a_types)
                         afc = autils.set_answer_form_genus_and_feedback(answer, afc)
                         if 'recordTypeIds' not in answer:
                             answer['recordTypeIds'] = [str(t) for t in a_types]
 
-                        if 'multi-choice' in answer['type']:
+                        if (('type' in answer and 'multi-choice' in answer['type']) or
+                                any('multi-choice' in ar for ar in answer['recordTypeIds'])):
                             # because multiple choice answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed
                             # in by the consumer.
@@ -1370,6 +1320,7 @@ class ItemDetails(utilities.BaseClass):
                             afc = autils.update_answer_form(answer, afc, question)
                         else:
                             afc = autils.update_answer_form(answer, afc)
+                        afc = autils.update_answer_form_with_files(afc, answer)
                         bank.create_answer(afc)
 
             full_item = bank.get_item(utilities.clean_id(sub_id))
