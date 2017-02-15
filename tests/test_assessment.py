@@ -899,6 +899,70 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             payload['answers'][0]['confusedLearningObjectiveIds']
         )
 
+    def test_can_delete_right_answer(self):
+        payload = self.item_payload()
+        payload['answers'][0].update({
+            'genus': str(Type(**ANSWER_GENUS_TYPES['right-answer']))
+        })
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            payload['answers'][0]['genus']
+        )
+
+        url = '{0}/{1}'.format(self.url, item['id'])
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'delete': True
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(len(item['answers']), 0)
+
+    def test_can_delete_wrong_answer(self):
+        payload = self.item_payload()
+        payload['answers'][0].update({
+            'genus': str(Type(**ANSWER_GENUS_TYPES['wrong-answer']))
+        })
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            payload['answers'][0]['genus']
+        )
+
+        url = '{0}/{1}'.format(self.url, item['id'])
+        payload = {
+            'answers': [{
+                'id': item['answers'][0]['id'],
+                'delete': True
+            }]
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(len(item['answers']), 0)
+
 
 class AssessmentCrUDTests(BaseAssessmentTestCase):
     def create_bank(self):

@@ -1292,17 +1292,19 @@ class ItemDetails(utilities.BaseClass):
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
-                        afu = bank.get_answer_form_for_update(a_id)
+                        if 'delete' in answer and answer['delete']:
+                            bank.delete_answer(a_id)
+                        else:
+                            afu = bank.get_answer_form_for_update(a_id)
 
-                        if 'recordTypeIds' not in answer:
-                            answer['recordTypeIds'] = afu._my_map['recordTypeIds']
+                            if 'recordTypeIds' not in answer:
+                                answer['recordTypeIds'] = afu._my_map['recordTypeIds']
 
-                        afu = autils.update_answer_form_with_files(afu, answer)
+                            afu = autils.update_answer_form_with_files(afu, answer)
 
-                        afu = autils.update_answer_form(answer, afu)
-                        afu = autils.set_answer_form_genus_and_feedback(answer, afu)
-                        bank.update_answer(afu)
-                    # how to delete answers?
+                            afu = autils.update_answer_form(answer, afu)
+                            afu = autils.set_answer_form_genus_and_feedback(answer, afu)
+                            bank.update_answer(afu)
                     else:
                         # also let you add files here?
                         a_types = autils.get_answer_records_from_item_genus(updated_item.genus_type)
