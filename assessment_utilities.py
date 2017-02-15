@@ -1146,6 +1146,8 @@ def update_question_form(question, form, create=False):
                 elif 'id' in choice and 'removeText' in choice:
                     old_choice = utilities.create_display_text(choice['removeText'])
                     form.clear_choice(old_choice, choice['id'])
+                elif 'id' in choice and 'delete' in choice and choice['delete']:
+                    form.remove_choice(choice['id'])
                 elif 'id' in choice:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']),
@@ -1170,6 +1172,8 @@ def update_question_form(question, form, create=False):
                     elif 'id' in choice and 'removeText' in choice:
                         old_choice = utilities.create_display_text(choice['removeText'])
                         form.clear_choice(old_choice, choice['id'], region)
+                    elif 'id' in choice and 'delete' in choice and choice['delete']:
+                        form.remove_choice(choice['id'], region)
                     elif 'id' in choice:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']),
