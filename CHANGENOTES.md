@@ -1,3 +1,6 @@
+1.4.0:
+  - Allow you to delete an item's existing answer.
+
 1.3.1:
   - Allow you to add a question during item update, when question in null on create.
 
