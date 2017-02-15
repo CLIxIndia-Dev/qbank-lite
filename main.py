@@ -53,7 +53,7 @@ class index:
 
 class version:
     def GET(self):
-        return '1.2.1'
+        return '1.3.1'
 
 
 class video_test:
@@ -72,4 +72,4 @@ def is_test():
     return False
 
 if (not is_test()) and __name__ == "__main__":
-    app.run
+    app.run()
