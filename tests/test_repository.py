@@ -29,8 +29,15 @@ class BaseRepositoryTestCase(BaseTestCase):
         form.display_name = 'Test asset'
         asset = self._repo.create_asset(form)
 
-        content_form = self._repo.get_asset_content_form_for_create(asset.ident, [MULTI_LANGUAGE_ASSET_CONTENTS,
-                                                                                  FILESYSTEM_ASSET_CONTENT_TYPE])
+        asset_records = [MULTI_LANGUAGE_ASSET_CONTENTS]
+        try:
+            config = asset._runtime.get_configuration()
+            parameter_id = utilities.clean_id('parameter:assetContentRecordTypeForFiles@mongo')
+            asset_records.append(config.get_value_by_parameter(parameter_id).get_type_value())
+        except (AttributeError, KeyError):
+            pass
+
+        content_form = self._repo.get_asset_content_form_for_create(asset.ident, asset_records)
         content_form.add_display_name(DisplayText(text='test asset content',
                                                   language_type='639-2%3AENG%40ISO',
                                                   format_type='TextFormats%3APLAIN%40okapia.net',
