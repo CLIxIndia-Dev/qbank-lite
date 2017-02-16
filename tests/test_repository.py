@@ -5,9 +5,8 @@ import os
 from bs4 import BeautifulSoup
 
 from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
+from dlkit_runtime.errors import NotFound
 from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
-
-from nose.tools import *
 
 from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
 from urllib import unquote, quote
@@ -34,7 +33,7 @@ class BaseRepositoryTestCase(BaseTestCase):
             config = asset._runtime.get_configuration()
             parameter_id = utilities.clean_id('parameter:assetContentRecordTypeForFiles@mongo')
             asset_records.append(config.get_value_by_parameter(parameter_id).get_type_value())
-        except (AttributeError, KeyError):
+        except (AttributeError, KeyError, NotFound):
             pass
 
         content_form = self._repo.get_asset_content_form_for_create(asset.ident, asset_records)
