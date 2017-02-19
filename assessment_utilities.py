@@ -466,6 +466,45 @@ def get_answer_records_from_item_genus(item_genus_type):
     return answer_record_types
 
 
+def get_choice_ids_in_order(new_choice_list, existing_choice_list):
+    choice_order = []
+    if all('order' in c for c in new_choice_list):
+        # sort the new choice list by 'order' first
+        new_choice_list = sorted(new_choice_list, key=lambda k: k['order'])
+        found_choice_ids = []  # to account for possibly duplicated text
+
+        for choice in new_choice_list:
+            # need to get the choiceId. For existing choices, this means
+            #   an Id was passed in. For new choices, need to fallback to
+            #   match on text.
+            # for multi-language, need to check in each 'text' of ['choices']['texts']
+            # for single-language, need to check in 'text' field of ['choices']
+            if 'id' in choice:  # then let's just grab the matching ID
+                choice_id = [c['id']
+                             for c in existing_choice_list
+                             if c['id'] == choice['id']][0]
+            else:
+                if 'texts' in existing_choice_list[0]:
+                    matching_choice_ids = [c['id']
+                                           for c in existing_choice_list
+                                           if any(text['text'] == choice['text'] for text in c['texts'])]
+                else:
+                    matching_choice_ids = [c['id']
+                                           for c in existing_choice_list
+                                           if c['text'] == choice['text']]
+                choice_id = matching_choice_ids[0]
+                if len(matching_choice_ids) > 1:
+                    for matching_choice_id in matching_choice_ids:
+                        if matching_choice_id not in found_choice_ids:
+                            choice_id = matching_choice_id
+                            break
+
+                found_choice_ids.append(choice_id)
+
+            choice_order.append(choice_id)
+    return choice_order
+
+
 def get_question_records_from_item_genus(item_genus_type):
     """get the question records from the item genus type"""
     question_record_types = [QTI_QUESTION, MULTI_LANGUAGE_QUESTION_RECORD]
@@ -1156,11 +1195,24 @@ def update_question_form(question, form, create=False):
                     except (InvalidArgument, AttributeError):
                         # support legacy formats
                         form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
-                else:
+                elif 'text' in choice:
                     try:
                         form.add_choice(utilities.create_display_text(choice['text']))
                     except InvalidArgument:
                         form.add_choice(u'{0}'.format(choice['text']).encode('utf8'))
+            desired_choices = [c for c in question['choices'] if 'delete' not in c]
+
+            choice_order = get_choice_ids_in_order(desired_choices, form._my_map['choices'])
+            # now re-order the choices per what is sent in
+            # need to also account for mix of new choices and old choices
+            if (len(choice_order) == len(desired_choices) and
+                    len(choice_order) > 0 and
+                    len(choice_order) == len(form._my_map['choices'])):
+                try:
+                    form.set_choice_order(choice_order)
+                except AttributeError:
+                    pass
+
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
                 if region not in form.my_osid_object_form._my_map['choices']:
@@ -1183,11 +1235,26 @@ def update_question_form(question, form, create=False):
                         except AttributeError:
                             # support legacy formats
                             form.edit_choice(choice['id'], u'{0}'.format(choice['text']).encode('utf8'))
-                    else:
+                    elif 'text' in choice:
                         try:
                             form.add_choice(utilities.create_display_text(choice['text']), region)
                         except InvalidArgument:
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
+
+                desired_choices = [c for c in region_data['choices'] if 'delete' not in c]
+
+                choice_order = get_choice_ids_in_order(desired_choices,
+                                                       form._my_map['choices'][region])
+
+                # now re-order the choices per what is sent in
+                # need to also account for mix of new choices and old choices
+                if (len(choice_order) == len(desired_choices) and
+                        len(choice_order) > 0 and
+                        len(choice_order) == len(form._my_map['choices'][region])):
+                    try:
+                        form.set_choice_order(choice_order, region)
+                    except AttributeError:
+                        pass
         if 'shuffle' in question:
             form.set_shuffle(bool(question['shuffle']))
         if 'maxStrings' in question:
@@ -1199,6 +1266,7 @@ def update_question_form(question, form, create=False):
         if 'timeValue' in question:
             form.set_time_value(Duration(**question['timeValue']))
         if 'variables' in question:
+            # TODO: edit existing variable
             for var_data in question['variables']:
                 if 'format'in var_data:
                     var_format = var_data['format']

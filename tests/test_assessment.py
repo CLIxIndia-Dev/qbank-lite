@@ -6124,6 +6124,136 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         current_choice_ids = [c['id'] for c in data['question']['choices']]
         self.assertNotIn(choice_id_to_delete, current_choice_ids)
 
+    def test_can_reorder_choices_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 5)
+        new_choice_order = mc_item['question']['choices'][0::]
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        new_choice_order[0]['order'] = len(new_choice_order) + 1
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 5)
+        current_choice_ids = [c['id'] for c in data['question']['choices']]
+        sorted_desired_choices = sorted(new_choice_order, key=lambda k: k['order'])
+        desired_choice_ids = [c['id'] for c in sorted_desired_choices]
+        self.assertEqual(current_choice_ids, desired_choice_ids)
+
+    def test_can_reorder_and_add_new_choice_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 5)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 6)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_delete_choice_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 5)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 4)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_add_and_delete_choice_mc(self):
+        mc_item = self.create_mc_multi_select_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 5)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 5)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
     def test_can_remove_choice_survey(self):
         mc_item = self.create_mc_survey_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -6150,6 +6280,138 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertEqual(len(data['question']['choices']), 2)
         current_choice_ids = [c['id'] for c in data['question']['choices']]
         self.assertNotIn(choice_id_to_delete, current_choice_ids)
+
+    def test_can_reorder_choices_survey(self):
+        mc_item = self.create_mc_survey_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 3)
+        new_choice_order = mc_item['question']['choices'][0::]
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        new_choice_order[0]['order'] = len(new_choice_order) + 1
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 3)
+        current_choice_ids = [c['id'] for c in data['question']['choices']]
+        sorted_desired_choices = sorted(new_choice_order, key=lambda k: k['order'])
+        desired_choice_ids = [c['id'] for c in sorted_desired_choices]
+        self.assertEqual(current_choice_ids, desired_choice_ids)
+
+    def test_can_reorder_and_add_new_choices_survey(self):
+        mc_item = self.create_mc_survey_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 3)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 4)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_delete_choices_survey(self):
+        mc_item = self.create_mc_survey_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 3)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[1]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 2)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_add_and_delete_choices_survey(self):
+        mc_item = self.create_mc_survey_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 3)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[1]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 3)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
 
     def test_can_remove_choice_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
@@ -6178,6 +6440,138 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         current_choice_ids = [c['id'] for c in data['question']['choices']]
         self.assertNotIn(choice_id_to_delete, current_choice_ids)
 
+    def test_can_reorder_choices_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][0::]
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        new_choice_order[0]['order'] = len(new_choice_order) + 1
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 7)
+        current_choice_ids = [c['id'] for c in data['question']['choices']]
+        sorted_desired_choices = sorted(new_choice_order, key=lambda k: k['order'])
+        desired_choice_ids = [c['id'] for c in sorted_desired_choices]
+        self.assertEqual(current_choice_ids, desired_choice_ids)
+
+    def test_can_reorder_and_add_new_choices_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 8)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_delete_choices_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 6)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_add_and_delete_choices_mw_sentence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 7)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
     def test_can_remove_choice_image_sequence(self):
         mc_item = self.create_mw_sentence_item()
         url = '{0}/items/{1}'.format(self.url,
@@ -6204,6 +6598,138 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertEqual(len(data['question']['choices']), 6)
         current_choice_ids = [c['id'] for c in data['question']['choices']]
         self.assertNotIn(choice_id_to_delete, current_choice_ids)
+
+    def test_can_reorder_choices_image_sequence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][0::]
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        new_choice_order[0]['order'] = len(new_choice_order) + 1
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 7)
+        current_choice_ids = [c['id'] for c in data['question']['choices']]
+        sorted_desired_choices = sorted(new_choice_order, key=lambda k: k['order'])
+        desired_choice_ids = [c['id'] for c in sorted_desired_choices]
+        self.assertEqual(current_choice_ids, desired_choice_ids)
+
+    def test_can_reorder_and_add_new_choices_image_sequence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 8)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_delete_choices_image_sequence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 6)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_add_and_delete_choices_image_sequence(self):
+        mc_item = self.create_mw_sentence_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 7)
+        new_choice_order = mc_item['question']['choices'][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'choices': new_choice_order,
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices']), 7)
+        current_choice_texts = [c['text'] for c in data['question']['choices']]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
 
     def test_can_remove_choice_mw_fitb(self):
         mc_item = self.create_mw_fitb_item()
@@ -6237,6 +6763,162 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertEqual(len(data['question']['choices'][region]), 3)
         current_choice_ids = [c['id'] for c in data['question']['choices'][region]]
         self.assertNotIn(choice_id_to_delete, current_choice_ids)
+
+    def test_can_reorder_choices_mw_fitb(self):
+        mc_item = self.create_mw_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 2)
+        region = mc_item['question']['choices'].keys()[0]
+        self.assertEqual(len(mc_item['question']['choices'][region]), 4)
+        new_choice_order = mc_item['question']['choices'][region][0::]
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        new_choice_order[0]['order'] = len(new_choice_order) + 1
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': new_choice_order,
+                    }
+                },
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices'][region]), 4)
+        current_choice_ids = [c['id'] for c in data['question']['choices'][region]]
+        sorted_desired_choices = sorted(new_choice_order, key=lambda k: k['order'])
+        desired_choice_ids = [c['id'] for c in sorted_desired_choices]
+        self.assertEqual(current_choice_ids, desired_choice_ids)
+
+    def test_can_reorder_and_add_new_choices_mw_fitb(self):
+        mc_item = self.create_mw_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 2)
+        region = mc_item['question']['choices'].keys()[0]
+        self.assertEqual(len(mc_item['question']['choices'][region]), 4)
+        new_choice_order = mc_item['question']['choices'][region][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][region][0])
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': new_choice_order
+                    }
+                },
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices'][region]), 5)
+        current_choice_texts = [c['text'] for c in data['question']['choices'][region]]
+        desired_choice_texts = [c['text'] for c in new_choice_order]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_delete_choices_mw_fitb(self):
+        mc_item = self.create_mw_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 2)
+        region = mc_item['question']['choices'].keys()[0]
+        self.assertEqual(len(mc_item['question']['choices'][region]), 4)
+        new_choice_order = mc_item['question']['choices'][region][1::]
+        new_choice_order.append(mc_item['question']['choices'][region][0])
+
+        new_choice_order[3]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': new_choice_order
+                    }
+                },
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices'][region]), 3)
+        current_choice_texts = [c['text'] for c in data['question']['choices'][region]]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
+
+    def test_can_reorder_and_add_and_delete_choices_mw_fitb(self):
+        mc_item = self.create_mw_fitb_item()
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+        self.assertEqual(len(mc_item['question']['choices']), 2)
+        region = mc_item['question']['choices'].keys()[0]
+        self.assertEqual(len(mc_item['question']['choices'][region]), 4)
+        new_choice_order = mc_item['question']['choices'][region][1::]
+        new_choice_order.append({'text': 'new choice!'})
+        new_choice_order.append(mc_item['question']['choices'][region][0])
+
+        new_choice_order[2]['delete'] = True
+
+        for index, choice in enumerate(new_choice_order):
+            choice['order'] = index
+
+        payload = {
+            'question': {
+                'inlineRegions': {
+                    region: {
+                        'choices': new_choice_order
+                    }
+                },
+                'shuffle': False
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['choices'][region]), 4)
+        current_choice_texts = [c['text'] for c in data['question']['choices'][region]]
+        desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
+        self.assertEqual(current_choice_texts, desired_choice_texts)
 
 
 class NumericAnswerTests(BaseAssessmentTestCase):
