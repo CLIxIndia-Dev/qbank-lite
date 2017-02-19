@@ -6413,7 +6413,6 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         desired_choice_texts = [c['text'] for c in new_choice_order if 'delete' not in c]
         self.assertEqual(current_choice_texts, desired_choice_texts)
 
-
     def test_can_remove_choice_mw_sentence(self):
         mc_item = self.create_mw_sentence_item()
         url = '{0}/items/{1}'.format(self.url,

@@ -471,6 +471,7 @@ def get_choice_ids_in_order(new_choice_list, existing_choice_list):
     if all('order' in c for c in new_choice_list):
         # sort the new choice list by 'order' first
         new_choice_list = sorted(new_choice_list, key=lambda k: k['order'])
+        found_choice_ids = []  # to account for possibly duplicated text
 
         for choice in new_choice_list:
             # need to get the choiceId. For existing choices, this means
@@ -484,13 +485,22 @@ def get_choice_ids_in_order(new_choice_list, existing_choice_list):
                              if c['id'] == choice['id']][0]
             else:
                 if 'texts' in existing_choice_list[0]:
-                    choice_id = [c['id']
-                                 for c in existing_choice_list
-                                 if any(text['text'] == choice['text'] for text in c['texts'])][0]
+                    matching_choice_ids = [c['id']
+                                           for c in existing_choice_list
+                                           if any(text['text'] == choice['text'] for text in c['texts'])]
                 else:
-                    choice_id = [c['id']
-                                 for c in existing_choice_list
-                                 if c['text'] == choice['text']][0]
+                    matching_choice_ids = [c['id']
+                                           for c in existing_choice_list
+                                           if c['text'] == choice['text']]
+                choice_id = matching_choice_ids[0]
+                if len(matching_choice_ids) > 1:
+                    for matching_choice_id in matching_choice_ids:
+                        if matching_choice_id not in found_choice_ids:
+                            choice_id = matching_choice_id
+                            break
+
+                found_choice_ids.append(choice_id)
+
             choice_order.append(choice_id)
     return choice_order
 
@@ -1195,7 +1205,9 @@ def update_question_form(question, form, create=False):
             choice_order = get_choice_ids_in_order(desired_choices, form._my_map['choices'])
             # now re-order the choices per what is sent in
             # need to also account for mix of new choices and old choices
-            if len(choice_order) == len(desired_choices):
+            if (len(choice_order) == len(desired_choices) and
+                    len(choice_order) > 0 and
+                    len(choice_order) == len(form._my_map['choices'])):
                 try:
                     form.set_choice_order(choice_order)
                 except AttributeError:
@@ -1236,7 +1248,9 @@ def update_question_form(question, form, create=False):
 
                 # now re-order the choices per what is sent in
                 # need to also account for mix of new choices and old choices
-                if len(choice_order) == len(desired_choices):
+                if (len(choice_order) == len(desired_choices) and
+                        len(choice_order) > 0 and
+                        len(choice_order) == len(form._my_map['choices'][region])):
                     try:
                         form.set_choice_order(choice_order, region)
                     except AttributeError:
