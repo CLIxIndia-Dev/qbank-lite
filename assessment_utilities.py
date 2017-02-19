@@ -1190,12 +1190,12 @@ def update_question_form(question, form, create=False):
                         form.add_choice(utilities.create_display_text(choice['text']))
                     except InvalidArgument:
                         form.add_choice(u'{0}'.format(choice['text']).encode('utf8'))
+            desired_choices = [c for c in question['choices'] if 'delete' not in c]
 
-            choice_order = get_choice_ids_in_order(question['choices'], form._my_map['choices'])
+            choice_order = get_choice_ids_in_order(desired_choices, form._my_map['choices'])
             # now re-order the choices per what is sent in
             # need to also account for mix of new choices and old choices
-
-            if len(choice_order) == len(question['choices']):
+            if len(choice_order) == len(desired_choices):
                 try:
                     form.set_choice_order(choice_order)
                 except AttributeError:
@@ -1229,11 +1229,14 @@ def update_question_form(question, form, create=False):
                         except InvalidArgument:
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
 
-                choice_order = get_choice_ids_in_order(region_data['choices'],
+                desired_choices = [c for c in region_data['choices'] if 'delete' not in c]
+
+                choice_order = get_choice_ids_in_order(desired_choices,
                                                        form._my_map['choices'][region])
+
                 # now re-order the choices per what is sent in
                 # need to also account for mix of new choices and old choices
-                if len(choice_order) == len(region_data['choices']):
+                if len(choice_order) == len(desired_choices):
                     try:
                         form.set_choice_order(choice_order, region)
                     except AttributeError:
