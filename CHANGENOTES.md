@@ -1,3 +1,7 @@
+1.6.0:
+  - Allow you to set the choice order for fill-in-the-blank,
+      reflection, multiple-choice, moveable words, and image-sequence.
+
 1.5.0:
   - Allow you to delete an item's existing choice.
 
