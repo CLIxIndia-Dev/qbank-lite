@@ -1,3 +1,7 @@
+1.7.1:
+  - Fix bug with newly created asset contents via JSON -- set them to be
+      multi-language by default.
+
 1.7.0:
   - Set the data store path for streaming asset contents to a configuration
       setting.
