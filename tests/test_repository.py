@@ -656,6 +656,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(data['displayName']['languageTypeId'],
                          self._hindi_language_type)
         self.assertNotIn('/api/v1', data['url'])
+        self.assertIn('displayNames', data)
 
     def test_can_add_new_asset_content_with_json_only(self):
         payload = {

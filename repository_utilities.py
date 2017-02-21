@@ -30,14 +30,7 @@ MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi
 
 
 def append_asset_contents(repo, asset, file_name, file_data, basics=None):
-    asset_content_type_list = [MULTI_LANGUAGE_ASSET_CONTENT]
-    try:
-        config = repo._osid_object._runtime.get_configuration()
-        parameter_id = Id('parameter:assetContentRecordTypeForFiles@filesystem')
-        asset_content_type_list.append(
-            config.get_value_by_parameter(parameter_id).get_type_value())
-    except (AttributeError, KeyError, NotFound):
-        pass
+    asset_content_type_list = get_asset_content_records(repo)
 
     acfc = repo.get_asset_content_form_for_create(asset.ident,
                                                   asset_content_type_list)
@@ -86,6 +79,18 @@ def get_asset_content_by_id(asset, asset_content_id):
         if str(asset_content_id) == str(asset_content.ident):
             return asset_content
     return None
+
+
+def get_asset_content_records(repo):
+    asset_content_type_list = [MULTI_LANGUAGE_ASSET_CONTENT]
+    try:
+        config = repo._osid_object._runtime.get_configuration()
+        parameter_id = Id('parameter:assetContentRecordTypeForFiles@filesystem')
+        asset_content_type_list.append(
+            config.get_value_by_parameter(parameter_id).get_type_value())
+    except (AttributeError, KeyError, NotFound):
+        pass
+    return asset_content_type_list
 
 
 def get_asset_content_genus_type(file_name):
