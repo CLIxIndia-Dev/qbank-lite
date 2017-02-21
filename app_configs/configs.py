@@ -10,6 +10,7 @@ if getattr(sys, 'frozen', False):
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}/../..'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
+    TEST_ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
@@ -324,7 +325,7 @@ TEST_FILESYSTEM_1 = {
             'displayName': 'Full path to local filesystem datastore',
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
-                {'value': ABS_PATH, 'priority': 1}
+                {'value': TEST_ABS_PATH, 'priority': 1}
             ]
         },
         'magicItemLookupSessions': {
