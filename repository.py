@@ -1,6 +1,5 @@
 import mimetypes
 import os
-import sys
 import web
 import json
 
@@ -11,13 +10,6 @@ from dlkit_runtime.primitives import DataInputStream, Type
 
 import repository_utilities as rutils
 import utilities
-
-
-if getattr(sys, 'frozen', False):
-    ABS_PATH = os.path.dirname(sys.executable)
-else:
-    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-    ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
 
 urls = (
@@ -183,9 +175,19 @@ class AssetContentStream(utilities.BaseClass):
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
             asset_url = asset_content.get_url()
 
+            filespace_path = ''
+            try:
+                config = asset._runtime.get_configuration()
+                parameter_id = utilities.clean_id('parameter:dataStoreFullPath@mongo')
+                filespace_path = config.get_value_by_parameter(parameter_id).get_string_value()
+            except (AttributeError, KeyError):
+                pass
+
             # the asset_url is relative, so add in the path
             #asset_url = '{0}/{1}'.format(ABS_PATH,
             #                             asset_url)
+            asset_url = '{0}/{1}'.format(filespace_path,
+                                         asset_url)
 
             web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
             web.header('Content-Length', os.path.getsize(asset_url))

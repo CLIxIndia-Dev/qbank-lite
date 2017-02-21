@@ -1,3 +1,7 @@
+1.7.0:
+  - Set the data store path for streaming asset contents to a configuration
+      setting.
+
 1.6.0:
   - Allow you to set the choice order for fill-in-the-blank,
       reflection, multiple-choice, moveable words, and image-sequence.

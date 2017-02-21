@@ -1,6 +1,16 @@
+import os
+import sys
+
 from dlkit.primordium.type.primitives import Type
 
 from dlkit_runtime.utilities import impl_key_dict
+
+if getattr(sys, 'frozen', False):
+    ABS_PATH = os.path.dirname(sys.executable)
+else:
+    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+    ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
+
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
 STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
@@ -88,6 +98,14 @@ FILESYSTEM_1 = {
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': DATA_STORE_PATH, 'priority': 1}
+            ]
+        },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the MongoClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
             ]
         },
         'magicItemLookupSessions': {
@@ -299,6 +317,14 @@ TEST_FILESYSTEM_1 = {
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': TEST_DATA_STORE_PATH, 'priority': 1}
+            ]
+        },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the MongoClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
             ]
         },
         'magicItemLookupSessions': {
