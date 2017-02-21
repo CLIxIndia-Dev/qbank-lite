@@ -235,7 +235,9 @@ class AssetContentsList(utilities.BaseClass):
                 # right genus type and file data. Also set the form basics, if passed in
                 updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
             except AttributeError:
-                form = repository.get_asset_content_form_for_create(asset.ident, [])
+                asset_content_type_list = rutils.get_asset_content_records(repository)
+                form = repository.get_asset_content_form_for_create(asset.ident,
+                                                                    asset_content_type_list)
                 form = utilities.set_form_basics(form, params)
                 asset_content = repository.create_asset_content(form)
 
