@@ -1,3 +1,6 @@
+1.8.3:
+  - Better unicode handling when wrapping text
+
 1.8.2:
   - Allow questions to not have choices (fitb, mw, mc, reflection).
 
