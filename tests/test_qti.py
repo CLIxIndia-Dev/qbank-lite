@@ -3482,6 +3482,37 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
+    def test_getting_qti_for_multi_choice_single_answer_with_no_question_returns_empty_string(self):
+        media_files = [self._green_dot_image,
+                       self._h1i_image,
+                       self._audio_test_file,
+                       self._diamond_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_multi_choice_single_answer_choices_clears_existing_choices(self):
         media_files = [self._green_dot_image,
                        self._h1i_image,
@@ -4276,7 +4307,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </strong>
 </p>
 </itemBody>"""}
-
         }
 
         req = self.app.post(url,
@@ -4291,6 +4321,70 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
+
+    def test_can_get_multi_choice_multi_answer_item_qti_with_no_answer(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_multi_choice_multi_answer_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_multi_choice_multi_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -4763,6 +4857,48 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_can_get_reflection_single_answer_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+</itemBody>"""}
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_reflection_single_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_reflection_single_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -5178,6 +5314,50 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_can_get_reflection_multi_answer_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_reflection_multi_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_reflection_multi_answer_answers_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -5527,6 +5707,58 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_get_audio_record_tool_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio></p>
+<p>
+  <strong>Introducting a new student</strong>
+</p>
+<p>It's the first day of school after the summer vacations. A new student has joined the class</p>
+<p>Student 1 talks to the new student to make him/her feel comfortable.</p>
+<p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_audio_record_tool_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_item_body_provided_audio_upload(self):
         media_files = [self._audio_test_file]
 
@@ -5815,6 +6047,56 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_can_get_generic_file_upload_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+     Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+    </span>
+<br/>
+</strong>
+</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_generic_file_upload_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_can_create_mw_sentence_question_via_rest(self):
         media_files = [self._intersection_image,
@@ -6145,8 +6427,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </itemBody>""",
                 "choices": [{
                     "id": "id51b2feca-d407-46d5-b548-d6645a021008",
-                    "text": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
-<p class=\"noun\">Raju</p>
+                    "text": u"""<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class=\"noun\">हिंदी</p>
 </simpleChoice>"""
                 }, {
                     "id": "id881a8e9c-844b-4394-be62-d28a5fda5296",
@@ -6351,9 +6633,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         expected_choices = {
-            "id51b2feca-d407-46d5-b548-d6645a021008": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
-<p class="noun">
-     Raju
+            "id51b2feca-d407-46d5-b548-d6645a021008": u"""<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class=\"noun\">
+     हिंदी
     </p>
 </simpleChoice>""",
             "id881a8e9c-844b-4394-be62-d28a5fda5296": """<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
@@ -6390,10 +6672,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         for choice in order_interaction.find_all('simpleChoice'):
             choice_id = choice['identifier']
-            self.assertEqual(
-                str(choice),
-                expected_choices[choice_id]
-            )
+            expected = expected_choices[choice_id]
+            if isinstance(expected, unicode):
+                self.assertEqual(
+                    unicode(choice),
+                    expected
+                )
+            else:
+                self.assertEqual(
+                    str(choice),
+                    expected
+                )
 
     def test_can_get_mw_sentence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
@@ -6434,6 +6723,66 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
+
+    def test_can_get_mw_sentence_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r05__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
+</p>
+
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_mw_sentence_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_details_url = '{0}/items/{1}/qti'.format(self.url, unquote(item['id']))
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_mw_sentence_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -7133,21 +7482,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         item = [i for i in data if i['id'] == item['id']][0]
         self.assertIn('qti', item)
         item_qti = BeautifulSoup(item['qti'], 'lxml-xml').assessmentItem
-        expected_values = ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
-                           'id969e920d-6d22-4d06-b4ac-40a821e350c6',
-                           'id820fae90-3794-40d1-bee0-daa36da223b3',
-                           'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
-                           'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
-                           'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
-                           'iddd689e9d-0cd0-478d-9d37-2856f866a757',
-                           'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
-                           'id41288bb9-e76e-4313-bf57-2101edfe3a76',
-                           'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
-                           'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
-                           'id472afb75-4aa9-4daa-a163-075798ee57ab',
-                           'id8c68713f-8e39-446b-a6c8-df25dfb8118e']
-        for index, value in enumerate(item_qti.responseDeclaration.correctResponse.find_all('value')):
-            self.assertEqual(value.string.strip(), expected_values[index])
+        self.assertEqual(len(item_qti.responseDeclaration.correctResponse.find_all('value')),
+                         0)
+        # expected_values = ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
+        #                    'id969e920d-6d22-4d06-b4ac-40a821e350c6',
+        #                    'id820fae90-3794-40d1-bee0-daa36da223b3',
+        #                    'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
+        #                    'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
+        #                    'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
+        #                    'iddd689e9d-0cd0-478d-9d37-2856f866a757',
+        #                    'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
+        #                    'id41288bb9-e76e-4313-bf57-2101edfe3a76',
+        #                    'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
+        #                    'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
+        #                    'id472afb75-4aa9-4daa-a163-075798ee57ab',
+        #                    'id8c68713f-8e39-446b-a6c8-df25dfb8118e']
+        # for index, value in enumerate():
+        #     self.assertEqual(value.string.strip(), expected_values[index])
 
         item_body = item_qti.itemBody
 
@@ -7297,6 +7648,60 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
+
+    def test_can_get_mw_sandbox_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r04__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNotNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_mw_sandbox_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_details_url = '{0}/items/{1}/qti'.format(self.url, unquote(item['id']))
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_can_create_fill_in_the_blank_question_via_rest(self):
         url = '{0}/items'.format(self.url)
@@ -7865,6 +8270,92 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], {})
+
+    def test_can_get_fill_in_the_blank_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+<p>
+<p class="other">
+      Putting things away
+     </p>
+<p class="preposition">
+      in
+     </p>
+<p class="other">
+      the
+     </p>
+<p class="adjective">
+      proper
+     </p>
+<p class="noun">
+      place
+     </p>
+<p class="verb">
+      makes
+     </p>
+<p class="noun">
+      it
+     </p>
+</p>
+
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="false" />
+
+<p>
+<p class="other">
+      to
+     </p>
+<p class="verb">
+      find
+     </p>
+<p class="noun">
+      them
+     </p>
+<p class="adverb">
+      later
+     </p>
+     .
+    </p>
+</span>
+</p>
+</itemBody>"""}
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_fill_in_the_blank_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_fill_in_the_blank_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -8492,6 +8983,63 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_get_short_answer_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04bd-94f0-a53d-94c5c97ab6e6">
+     Which of the following figure(s) is/are parallelogram(s)? Give a reason for your choice.
+    </span>
+<br/>
+</strong>
+</p>
+<p>
+<strong>
+<img alt="A set of four shapes." height="204" src="AssetContent:shapes_png" width="703"/>
+</strong>
+</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNotNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_short_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_can_create_image_sequence_question_via_rest(self):
         media_files = [self._audio_test_file,
                        self._picture1,
@@ -8957,17 +9505,69 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
 </itemBody>"""}
         }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
+    def test_can_get_image_sequence_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>"""}
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_image_sequence_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
 
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
         self.ok(req)
         item = self.json(req)
-        url = '{0}/{1}'.format(url, unquote(item['id']))
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
         req = self.app.get(url)
         self.ok(req)
-        data = self.json(req)
-        self.assertEqual(data['question']['choices'], [])
+        self.assertEqual(req.body, '')
 
     def test_updating_image_sequence_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -9614,6 +10214,61 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_get_numeric_response_item_qti_with_no_answers(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Please solve:
+</p>
+<p>
+   <printedVariable identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}/qti'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        qti = BeautifulSoup(req.body, 'xml')
+        self.assertIsNotNone(qti.responseDeclaration)
+
+    def test_getting_qti_for_numeric_response_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_item_body_provided_numeric_response(self):
         url = '{0}/items'.format(self.url)
