@@ -1,3 +1,6 @@
+1.8.4:
+  - Handle item QTI when no answers yet.
+
 1.8.3:
   - Better unicode handling when wrapping text
 
