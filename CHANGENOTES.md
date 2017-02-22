@@ -1,3 +1,6 @@
+1.8.0:
+  - Add ability to get wrong answers for item list and assessment items list.
+
 1.7.1:
   - Fix bug with newly created asset contents via JSON -- set them to be
       multi-language by default.
