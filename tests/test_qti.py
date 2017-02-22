@@ -3482,6 +3482,37 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
+    def test_getting_qti_for_multi_choice_single_answer_with_no_question_returns_empty_string(self):
+        media_files = [self._green_dot_image,
+                       self._h1i_image,
+                       self._audio_test_file,
+                       self._diamond_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_multi_choice_single_answer_choices_clears_existing_choices(self):
         media_files = [self._green_dot_image,
                        self._h1i_image,
@@ -4276,7 +4307,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </strong>
 </p>
 </itemBody>"""}
-
         }
 
         req = self.app.post(url,
@@ -4291,6 +4321,27 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
+
+    def test_getting_qti_for_multi_choice_multi_answer_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_multi_choice_multi_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -4763,6 +4814,24 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_getting_qti_for_reflection_single_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_reflection_single_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -5178,6 +5247,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_getting_qti_for_reflection_multi_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_reflection_multi_answer_answers_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -5527,6 +5615,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_getting_qti_for_audio_record_tool_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_item_body_provided_audio_upload(self):
         media_files = [self._audio_test_file]
 
@@ -5815,6 +5922,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_getting_qti_for_generic_file_upload_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
+        req = self.app.get(item_qti_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_can_create_mw_sentence_question_via_rest(self):
         media_files = [self._intersection_image,
@@ -6434,6 +6560,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
+
+    def test_getting_qti_for_mw_sentence_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_details_url = '{0}/items/{1}/qti'.format(self.url, unquote(item['id']))
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_mw_sentence_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -7298,6 +7444,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_getting_qti_for_mw_sandbox_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        item_details_url = '{0}/items/{1}/qti'.format(self.url, unquote(item['id']))
+        req = self.app.get(item_details_url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_can_create_fill_in_the_blank_question_via_rest(self):
         url = '{0}/items'.format(self.url)
 
@@ -7865,6 +8031,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(data['question']['choices'], {})
+
+    def test_getting_qti_for_fill_in_the_blank_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        # now verify the QTI XML is empty string
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_updating_fill_in_the_blank_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -8492,6 +8677,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_getting_qti_for_short_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_can_create_image_sequence_question_via_rest(self):
         media_files = [self._audio_test_file,
                        self._picture1,
@@ -8957,17 +9161,37 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
 </itemBody>"""}
         }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
+    def test_getting_qti_for_image_sequence_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
 
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
         self.ok(req)
         item = self.json(req)
-        url = '{0}/{1}'.format(url, unquote(item['id']))
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
         req = self.app.get(url)
         self.ok(req)
-        data = self.json(req)
-        self.assertEqual(data['question']['choices'], [])
+        self.assertEqual(req.body, '')
 
     def test_updating_image_sequence_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -9614,6 +9838,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_getting_qti_for_numeric_response_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_item_body_provided_numeric_response(self):
         url = '{0}/items'.format(self.url)
