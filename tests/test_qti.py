@@ -8945,17 +8945,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             "name": "Question 1",
             "description": "For testing",
             "question": {
-                            "questionString": """<itemBody>
-            <p>
-               Listen to each audio clip and put the pictures of the story in order.
-              </p>
-            <p>
-            <audio autoplay="autoplay" controls="controls" style="width: 125px">
-            <source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
-            </audio>
-            </p>
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
 
-            </itemBody>"""}
+</itemBody>"""}
         }
 
         req = self.app.post(url,
