@@ -127,7 +127,7 @@ urls = (
 class AssessmentBanksList(utilities.BaseClass):
     """
     List all available assessment banks.
-    api/v1/assessment/banks/
+    api/v1/assessment/banks
 
     POST allows you to create a new assessment bank, requires two parameters:
       * name
@@ -226,7 +226,7 @@ class AssessmentAssignedBankIds(utilities.BaseClass):
 class AssessmentBankDetails(utilities.BaseClass):
     """
     Shows details for a specific assessment bank.
-    api/v1/assessment/banks/<bank_id>/
+    api/v1/assessment/banks/<bank_id>
 
     GET, PUT, DELETE
     PUT will update the assessment bank. Only changed attributes need to be sent.
@@ -280,7 +280,7 @@ class AssessmentBankDetails(utilities.BaseClass):
 class AssessmentsList(utilities.BaseClass):
     """
     Get a list of all assessments in the specified bank
-    api/v1/assessment/banks/<bank_id>/assessments/
+    api/v1/assessment/banks/<bank_id>/assessments
 
     GET, POST
     POST creates a new assessment
@@ -408,7 +408,7 @@ class ItemsList(utilities.BaseClass):
     """
     Return list of items in the given assessment bank. Make sure to embed
     the question and answers in the JSON.
-    api/v1/assessment/banks/<bank_id>/items/
+    api/v1/assessment/banks/<bank_id>/items
 
     GET, POST
     POST creates a new item
@@ -888,7 +888,7 @@ class ItemsList(utilities.BaseClass):
 class AssessmentDetails(utilities.BaseClass):
     """
     Get assessment details for the given bank
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>
 
     GET, PUT, DELETE
     PUT to modify an existing assessment. Include only the changed parameters.
@@ -965,7 +965,7 @@ class AssessmentDetails(utilities.BaseClass):
 class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
     """
     List the children for a root bank.
-    api/v1/assessment/hierarchies/nodes/<bank_id>/children/
+    api/v1/assessment/hierarchies/nodes/<bank_id>/children
 
     POST allows you to update the children list (bulk update)
 
@@ -1035,7 +1035,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
 class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
     """
     List the bank details for a node bank.
-    api/v1/assessment/hierarchies/nodes/<bank_id>/
+    api/v1/assessment/hierarchies/nodes/<bank_id>
 
     GET only. Can provide ?ancestors and ?descendants values to
               get nodes up and down the hierarchy.
@@ -1074,7 +1074,7 @@ class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
 class AssessmentHierarchiesRootsList(utilities.BaseClass):
     """
     List all available assessment hierarchy root nodes.
-    api/v1/assessment/hierarchies/roots/
+    api/v1/assessment/hierarchies/roots
 
     POST allows you to add an existing bank as a root bank in
     the hierarchy.
@@ -1121,7 +1121,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
 class AssessmentHierarchiesRootDetails(utilities.BaseClass):
     """
     List the bank details for a root bank. Allow you to remove it as a root
-    api/v1/assessment/hierarchies/roots/<bank_id>/
+    api/v1/assessment/hierarchies/roots/<bank_id>
 
     DELETE allows you to remove a root bank.
 
@@ -1166,7 +1166,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
 class ItemDetails(utilities.BaseClass):
     """
     Get item details for the given bank
-    api/v1/assessment/banks/<bank_id>/items/<item_id>/
+    api/v1/assessment/banks/<bank_id>/items/<item_id>
 
     GET, PUT, DELETE
     PUT to modify an existing item. Include only the changed parameters.
@@ -1375,7 +1375,7 @@ class ItemQTIDetails(utilities.BaseClass):
 class AssessmentItemsList(utilities.BaseClass):
     """
     Get or link items in an assessment
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items
 
     GET, POST
     GET to view currently linked items
@@ -1488,7 +1488,7 @@ class AssessmentItemsList(utilities.BaseClass):
 class AssessmentItemDetails(utilities.BaseClass):
     """
     Get item details for the given assessment
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items/<item_id>/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/items/<item_id>
 
     GET, DELETE
     GET to view the item
@@ -1508,7 +1508,7 @@ class AssessmentItemDetails(utilities.BaseClass):
 class AssessmentsOffered(utilities.BaseClass):
     """
     Get or create offerings of an assessment
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentsoffered/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentsoffered
 
     GET, POST
     GET to view current offerings
@@ -1562,8 +1562,8 @@ class AssessmentsOffered(utilities.BaseClass):
 class AssessmentOfferedDetails(utilities.BaseClass):
     """
     Get, edit, or delete offerings of an assessment
-    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessments_offered/<offered_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessments_offered/<offered_id>
 
     GET, PUT, DELETE
     GET to view a specific offering
@@ -1634,7 +1634,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
 class AssessmentOfferedResults(utilities.BaseClass):
     """
     Get the class results for an assessment offered (all the takens)
-    api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/results/
+    api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/results
 
 
     GET
@@ -1698,8 +1698,8 @@ class AssessmentsTaken(utilities.BaseClass):
     """
     Get or link takens of an assessment. Input can be from an offering or from an assessment --
     so will have to take that into account in the views.
-    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentstaken/
-    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/assessmentstaken/
+    api/v1/assessment/banks/<bank_id>/assessments/<assessment_id>/assessmentstaken
+    api/v1/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/assessmentstaken
 
     POST can only happen from an offering (need the offering ID to create a taken)
     GET, POST
@@ -1785,7 +1785,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
     """
     Get a single taken instance of an assessment. Not used for much
     except to point you towards the /take endpoint...
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>
 
     GET, DELETE
     GET to view a specific taken
@@ -1820,7 +1820,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
 class FinishAssessmentTaken(utilities.BaseClass):
     """
     "finish" the assessment to indicate that student has ended his/her attempt
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/finish/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/finish
 
     POST empty data
     """
@@ -1844,7 +1844,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
     """
     Returns all of the questions for a given assessment taken.
     Assumes that only one section per assessment.
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions
 
     Can add ?qti to get the QTI version of all questions (if available)
 
@@ -1880,7 +1880,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
 class AssessmentTakenQuestionDetails(utilities.BaseClass):
     """
     Returns the specified question
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>
 
     GET only
     """
@@ -1936,7 +1936,7 @@ class AssessmentTakenQuestionStatus(utilities.BaseClass):
     """
     Gets the current status of a question in a taken -- responded to or not, correct or incorrect
     response (if applicable)
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/status/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/status
 
     GET only
 
@@ -1967,7 +1967,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
     Submits a student response for the specified question
     Returns correct or not
     Does NOTHING to flag if the section is done or not...
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/submit/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/submit
 
     POST only
 
@@ -2175,7 +2175,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 class AssessmentTakenQuestionSurrender(utilities.BaseClass):
     """
     Returns the answer if a student gives up and wants to just see the answer
-    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/surrender/
+    api/v1/assessment/banks/<bank_id>/assessmentstaken/<taken_id>/questions/<question_id>/surrender
 
     POST only, no data
 
