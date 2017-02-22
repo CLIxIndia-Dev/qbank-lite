@@ -4814,6 +4814,24 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(data['question']['choices'], [])
 
+    def test_getting_qti_for_reflection_single_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
+
     def test_updating_reflection_single_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -7947,7 +7965,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
-<<<<<<< HEAD
     def test_can_get_fill_in_the_blank_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -8659,6 +8676,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+    def test_getting_qti_for_short_answer_item_with_no_question_returns_empty_string(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        url = '{0}/{1}/qti'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        self.assertEqual(req.body, '')
 
     def test_can_create_image_sequence_question_via_rest(self):
         media_files = [self._audio_test_file,
