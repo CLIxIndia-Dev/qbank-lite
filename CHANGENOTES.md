@@ -1,3 +1,6 @@
+1.8.1:
+  - Fix issue with updating choiceIds on answers, to replace instead of append.
+
 1.8.0:
   - Add ability to get wrong answers for item list and assessment items list.
 

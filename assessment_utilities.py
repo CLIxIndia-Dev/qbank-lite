@@ -902,15 +902,18 @@ def update_answer_form(answer, form, question=None):
         if 'tolerance' in answer:
             form.set_tolerance_value(float(answer['tolerance']))
     elif any(t in answer_types for t in ['answer-record-type%3Ainline-choice-answer%40ODL.MIT.EDU']):
-        if 'choiceIds' in answer:
+        if 'choiceIds' in answer and 'region' in answer:
+            region = answer['region']
+            try:
+                form.add_inline_region(region)
+            except IllegalState:
+                pass
+            form.clear_choice_ids(region)
             for choice_id in answer['choiceIds']:
-                try:
-                    form.add_inline_region(answer['region'])
-                except IllegalState:
-                    pass
-                form.add_choice_id(choice_id, answer['region'])
+                form.add_choice_id(choice_id, region)
     elif any(t in answer_types for t in ['answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU']):
         if 'choiceIds' in answer:
+            form.clear_choice_ids()
             for choice_id in answer['choiceIds']:
                 form.add_choice_id(choice_id)
     elif any('qti' in t for t in answer_types):
