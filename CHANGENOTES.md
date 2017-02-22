@@ -1,3 +1,6 @@
+1.8.2:
+  - Allow questions to not have choices (fitb, mw, mc, reflection).
+
 1.8.1:
   - Fix issue with updating choiceIds on answers, to replace instead of append.
 
