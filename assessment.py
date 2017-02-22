@@ -460,7 +460,10 @@ class ItemsList(utilities.BaseClass):
                 item_qti = None
                 if 'qti' in params:
                     # do this first to not mess up unrandomized MC choices
-                    item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
+                    try:
+                        item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
+                    except AttributeError:
+                        pass  # not a qti question
 
                 item_map = item.object_map
 
