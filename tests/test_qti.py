@@ -4248,6 +4248,50 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_get_multi_choice_multi_answer_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>"""}
+
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
     def test_updating_multi_choice_multi_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -4695,6 +4739,30 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
+    def test_can_get_reflection_single_answer_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+</itemBody>"""}
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
     def test_updating_reflection_single_answer_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -5084,6 +5152,31 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(choice),
                 expected_choices[choice_id]
             )
+
+    def test_can_get_reflection_multi_answer_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
 
     def test_updating_reflection_multi_answer_answers_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -6302,6 +6395,46 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
+    def test_can_get_mw_sentence_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r05__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
+</p>
+
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
     def test_updating_mw_sentence_answer_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
 
@@ -7131,6 +7264,40 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 expected_choices[choice_id]
             )
 
+    def test_can_get_mw_sandbox_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r04__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
+
     def test_can_create_fill_in_the_blank_question_via_rest(self):
         url = '{0}/items'.format(self.url)
 
@@ -7631,6 +7798,73 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(choice),
                 expected_choices[choice_id]
             )
+
+    def test_can_get_fill_in_the_blank_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<span data-sheets-userformat=\"{\" data-sheets-value=\"{\">
+<p>
+<p class="other">
+      Putting things away
+     </p>
+<p class="preposition">
+      in
+     </p>
+<p class="other">
+      the
+     </p>
+<p class="adjective">
+      proper
+     </p>
+<p class="noun">
+      place
+     </p>
+<p class="verb">
+      makes
+     </p>
+<p class="noun">
+      it
+     </p>
+</p>
+
+<inlineChoiceInteraction responseIdentifier="RESPONSE_1" shuffle="false" />
+
+<p>
+<p class="other">
+      to
+     </p>
+<p class="verb">
+      find
+     </p>
+<p class="noun">
+      them
+     </p>
+<p class="adverb">
+      later
+     </p>
+     .
+    </p>
+</span>
+</p>
+</itemBody>"""}
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        url = '{0}/items/{1}'.format(self.url, item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], {})
 
     def test_updating_fill_in_the_blank_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
@@ -8702,6 +8936,38 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(choice),
                 expected_choices[choice_id]
             )
+
+    def test_can_get_image_sequence_item_with_no_choices(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>"""}
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(data['question']['choices'], [])
 
     def test_updating_image_sequence_answer_choices_clears_existing_choices(self):
         url = '{0}/items'.format(self.url)
