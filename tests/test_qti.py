@@ -2906,6 +2906,110 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             expected_string
         )
 
+    def test_can_get_wrong_answers_in_items_list(self):
+        media_files = [self._green_dot_image,
+                       self._h1i_image,
+                       self._audio_test_file,
+                       self._diamond_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <img src="AssetContent:green_dot_png" alt="image 1" width="20" height="20" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id32b596f4-d970-4d1e-a667-3ca762c002c5",
+                    "text": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+  <img src="AssetContent:h1i_png" alt="image 2" width="26" height="24" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["idc561552b-ed48-46c3-b20d-873150dfd4a2"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>""",
+                "fileIds": {}
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p>
+    <strong>
+      <span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">Please try again!</span>
+      <br />
+    </strong>
+  </p>
+</modalFeedback>""",
+                'fileIds': {}
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            target = payload['question']
+            if "audio" in label:
+                target = payload['answers'][0]
+            if "diamond" in label:
+                target = payload['answers'][1]
+            target['fileIds'][label] = {}
+            target['fileIds'][label]['assetId'] = asset['id']
+            target['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            target['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        items_list_url = '{0}?wronganswers'.format(url)
+        req = self.app.get(items_list_url)
+        data = self.json(req)
+        item_with_wrong_answers = [i for i in data if i['id'] == item['id']][0]
+
+        self.assertEqual(len(item_with_wrong_answers['answers']),
+                         len(item['answers']))
+
+        self.assertTrue(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
+                            answer in item_with_wrong_answers['answers']))
+
+        req = self.app.get(url)
+        data = self.json(req)
+        item_with_no_wrong_answers = [i for i in data if i['id'] == item['id']][0]
+
+        self.assertEqual(len(item_with_no_wrong_answers['answers']),
+                         1)
+
+        self.assertFalse(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
+                             answer in item_with_no_wrong_answers['answers']))
+
     def test_can_create_multi_choice_single_answer_question_via_rest(self):
         media_files = [self._green_dot_image,
                        self._h1i_image,

@@ -435,6 +435,7 @@ Get or link items in an assessment
 
 url parameters (optional):
   - qti. Get the `item`s with a `qti` key that includes the QTI 1 XML representation of the `item`.
+  - wronganswers. Get the "wrong" answers for each `item`.
 
 returns:
   - list of `Item` objects.
@@ -756,6 +757,7 @@ url parameters (optional):
   - genusTypeId. Query / filter by the genusTypeId of an `item`.
   - qti. Include the QTI 1 XML in the response objects.
   - isolated. Only check the current `bankId` for `item`s. Do **not** check child `bank`s.
+  - wronganswers. Get the "wrong" answers for each `item`.
 
 returns:
   - list of `Item` objects. Note that wrong answers are **not** included.

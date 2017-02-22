@@ -1990,6 +1990,49 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.assertEqual(data[0]['id'], item1_id)
         self.assertEqual(data[1]['id'], item2_id)
 
+    def test_can_get_assessment_item_wrong_answers(self):
+        mc_sentence = self.create_mw_sentence_item()
+
+        assessments_endpoint = self.url + '/assessments'
+
+        # Use POST to create an assessment
+        assessment_name = 'a really hard assessment'
+        assessment_desc = 'meant to differentiate students'
+        payload = {
+            "name": assessment_name,
+            "description": assessment_desc,
+            "itemIds": [mc_sentence['id']]
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        assessment_id = unquote(json.loads(req.body)['id'])
+        assessment_detail_endpoint = assessments_endpoint + '/' + assessment_id
+        assessment_items_endpoint = assessment_detail_endpoint + '/items?wronganswers'
+
+        # should now appear in the Assessment Items List
+        req = self.app.get(assessment_items_endpoint)
+        self.ok(req)
+        data = self.json(req)
+
+        item = [i for i in data if i['id'] == mc_sentence['id']][0]
+        self.assertEqual(len(item['answers']),
+                         len(mc_sentence['answers']))
+        self.assertTrue(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS)
+                            for answer in item['answers']))
+
+        url = assessment_detail_endpoint + '/items'
+        req = self.app.get(url)
+        data = self.json(req)
+        item = [i for i in data if i['id'] == mc_sentence['id']][0]
+
+        self.assertEqual(len(item['answers']),
+                         1)
+
+        self.assertFalse(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
+                             answer in item['answers']))
+
     def test_can_get_assessment_item_qti(self):
         mc_sentence = self.create_mw_sentence_item()
 
