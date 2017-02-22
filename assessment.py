@@ -427,49 +427,57 @@ class ItemsList(utilities.BaseClass):
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
 
-            inputs = web.input()
+            params = self.data()
 
-            if 'isolated' in inputs:
+            if 'isolated' in params:
                 assessment_bank.use_isolated_bank_view()
 
-            if any(term in inputs for term in ['displayName', 'displayNames',
+            if any(term in params for term in ['displayName', 'displayNames',
                                                'genusTypeId']):
                 querier = assessment_bank.get_item_query()
-                if 'displayName' in inputs:
-                    if autils._unescaped(inputs['displayName']):
-                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                if 'displayName' in params:
+                    if autils._unescaped(params['displayName']):
+                        querier.match_display_name(quote(params['displayName'], safe='/ '), match=True)
                     else:
-                        querier.match_display_name(inputs['displayName'], match=True)
-                if 'displayNames' in inputs:
-                    if autils._unescaped(inputs['displayNames']):
-                        querier.match_display_names(quote(inputs['displayNames'], safe='/ '), match=True)
+                        querier.match_display_name(params['displayName'], match=True)
+                if 'displayNames' in params:
+                    if autils._unescaped(params['displayNames']):
+                        querier.match_display_names(quote(params['displayNames'], safe='/ '), match=True)
                     else:
-                        querier.match_display_names(inputs['displayNames'], match=True)
-                if 'genusTypeId' in inputs:
-                    if (autils._unescaped(inputs['genusTypeId'])):
-                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                        querier.match_display_names(params['displayNames'], match=True)
+                if 'genusTypeId' in params:
+                    if (autils._unescaped(params['genusTypeId'])):
+                        querier.match_genus_type(quote(params['genusTypeId'], safe='/ '), match=True)
                     else:
-                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                        querier.match_genus_type(params['genusTypeId'], match=True)
                 items = assessment_bank.get_items_by_query(querier)
             else:
                 items = assessment_bank.get_items()
 
-            if 'qti' in web.input():
-                data = []
+            results = []
 
-                for item in items:
+            for item in items:
+                item_qti = None
+                if 'qti' in params:
                     # do this first to not mess up unrandomized MC choices
                     item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
-                    item_map = item.object_map
-                    item_map.update({
-                        'qti': item_qti
-                    })
-                    data.append(item_map)
-                data = json.dumps(data)
-            else:
-                data = utilities.extract_items(items)
 
-            return data
+                item_map = item.object_map
+
+                if item_qti is not None:
+                    item_map['qti'] = item_qti
+
+                if 'wronganswers' in params:
+                    try:
+                        wrong_answers = item.get_wrong_answers()
+                        for wa in wrong_answers:
+                            item_map['answers'].append(wa.object_map)
+                    except AttributeError:
+                        pass
+
+                results.append(item_map)
+
+            return json.dumps(results)
         except (PermissionDenied, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1394,23 +1402,31 @@ class AssessmentItemsList(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
 
-            if 'qti' in web.input():
-                data = []
+            data = []
+            params = self.data()
+            for item in items:
+                item_qti = None
+                if 'qti' in params:
+                    # do this first to not mess up unrandomized MC choices
+                    item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
 
-                for item in items:
-                    # do this first, to not mess up unrandomized choices
-                    item_qti_xml = item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
-                    item_map = item.object_map
-                    item_map.update({
-                        'qti': item_qti_xml
-                    })
-                    data.append(item_map)
-                data = json.dumps(data)
-            else:
-                data = utilities.extract_items(items)
+                item_map = item.object_map
+
+                if item_qti is not None:
+                    item_map['qti'] = item_qti
+
+                if 'wronganswers' in params:
+                    try:
+                        wrong_answers = item.get_wrong_answers()
+                        for wa in wrong_answers:
+                            item_map['answers'].append(wa.object_map)
+                    except AttributeError:
+                        pass
+
+                data.append(item_map)
 
             if 'files' in web.input():
-                for item in data['data']['results']:
+                for item in data:
                     dlkit_item = bank.get_item(utilities.clean_id(item['id']))
 
                     if 'fileIds' in item:
