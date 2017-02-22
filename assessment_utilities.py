@@ -910,6 +910,7 @@ def update_answer_form(answer, form, question=None):
                     pass
                 form.add_choice_id(choice_id, answer['region'])
     elif any(t in answer_types for t in ['answer-record-type%3Amulti-choice-answer%40ODL.MIT.EDU']):
+        # TODO: clear choices in the form, first
         if 'choiceIds' in answer:
             for choice_id in answer['choiceIds']:
                 form.add_choice_id(choice_id)
