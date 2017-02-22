@@ -1,3 +1,6 @@
+1.8.5:
+  - Better handle non-qti items when using qti flag.
+
 1.8.4:
   - Handle item QTI when no answers yet.
 
