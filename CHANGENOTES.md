@@ -1,3 +1,6 @@
+1.8.4:
+  - Allow items to not have answers, but return rest of QTI XML.
+
 1.8.3:
   - Better unicode handling when wrapping text
 
