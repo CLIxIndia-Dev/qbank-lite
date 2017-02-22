@@ -1378,7 +1378,10 @@ class ItemQTIDetails(utilities.BaseClass):
             # original choice order, if shuffle = False...
             item_bank = am.get_bank(utilities.clean_id(item._my_map['assignedBankIds'][0]))
 
-            return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
+            try:
+                return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
+            except AttributeError:
+                return ''
         except (PermissionDenied, NotFound) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1410,8 +1413,11 @@ class AssessmentItemsList(utilities.BaseClass):
             for item in items:
                 item_qti = None
                 if 'qti' in params:
-                    # do this first to not mess up unrandomized MC choices
-                    item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    try:
+                        # do this first to not mess up unrandomized MC choices
+                        item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    except AttributeError:
+                        pass  # not a QTI item
 
                 item_map = item.object_map
 
