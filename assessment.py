@@ -463,7 +463,7 @@ class ItemsList(utilities.BaseClass):
                     try:
                         item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
                     except AttributeError:
-                        pass # not a qti question
+                        pass  # not a qti question
 
                 item_map = item.object_map
 
