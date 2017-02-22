@@ -6271,8 +6271,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </itemBody>""",
                 "choices": [{
                     "id": "id51b2feca-d407-46d5-b548-d6645a021008",
-                    "text": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
-<p class=\"noun\">Raju</p>
+                    "text": u"""<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class=\"noun\">हिंदी</p>
 </simpleChoice>"""
                 }, {
                     "id": "id881a8e9c-844b-4394-be62-d28a5fda5296",
@@ -6477,9 +6477,9 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
 
         expected_choices = {
-            "id51b2feca-d407-46d5-b548-d6645a021008": """<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
-<p class="noun">
-     Raju
+            "id51b2feca-d407-46d5-b548-d6645a021008": u"""<simpleChoice identifier="id51b2feca-d407-46d5-b548-d6645a021008">
+<p class=\"noun\">
+     हिंदी
     </p>
 </simpleChoice>""",
             "id881a8e9c-844b-4394-be62-d28a5fda5296": """<simpleChoice identifier="id881a8e9c-844b-4394-be62-d28a5fda5296">
@@ -6516,10 +6516,17 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         for choice in order_interaction.find_all('simpleChoice'):
             choice_id = choice['identifier']
-            self.assertEqual(
-                str(choice),
-                expected_choices[choice_id]
-            )
+            expected = expected_choices[choice_id]
+            if isinstance(expected, unicode):
+                self.assertEqual(
+                    unicode(choice),
+                    expected
+                )
+            else:
+                self.assertEqual(
+                    str(choice),
+                    expected
+                )
 
     def test_can_get_mw_sentence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
