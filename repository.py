@@ -106,6 +106,11 @@ class AssetsList(utilities.BaseClass):
             params = self.data()
             try:
                 input_file = x['inputFile'].file
+            except AttributeError:
+                form = repository.get_asset_form_for_create([])
+                form = utilities.set_form_basics(form, params)
+                asset = repository.create_asset(form)
+            else:
                 # first, let's search the database to see if an asset exists with
                 # the file name -- file name will be everything minus the
                 # extension and language indicator.
@@ -133,10 +138,6 @@ class AssetsList(utilities.BaseClass):
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
                 rutils.append_asset_contents(repository, asset, file_name, input_file)
-            except AttributeError:
-                form = repository.get_asset_form_for_create([])
-                form = utilities.set_form_basics(form, params)
-                asset = repository.create_asset(form)
 
             if 'license' in params.keys() or 'copyright' in params.keys():
                 form = repository.get_asset_form_for_update(asset.ident)
