@@ -1,3 +1,7 @@
+1.8.7:
+  - Update records for better error handling in getting asset file type
+    config.
+
 1.8.6:
   - Refactor asset creation to not hide underlying exceptions.
 
