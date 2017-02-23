@@ -1,3 +1,6 @@
+1.8.6:
+  - Refactor asset creation to not hide underlying exceptions.
+
 1.8.5:
   - Better handle non-qti items when using qti flag.
 
