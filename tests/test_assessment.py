@@ -22,7 +22,7 @@ from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
 from sympy import sympify
 
 from testing_utilities import BaseTestCase, get_managers, get_fixture_bank,\
-    create_new_bank, get_valid_contents
+    create_new_bank, get_valid_contents, get_fixture_repository, update_soup_with_url
 from urllib import unquote, quote
 
 import utilities
@@ -174,6 +174,7 @@ class BaseAssessmentTestCase(BaseTestCase):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
         self._bank = get_fixture_bank()
+        self._repo = get_fixture_repository()
 
     def tearDown(self):
         super(BaseAssessmentTestCase, self).tearDown()
@@ -611,9 +612,11 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             item['answers'][0]['fileIds'],
             asset_payload['answers'][0]['fileIds']
         )
+
+        asset_content = self._repo.get_asset_content(Id(asset['assetContents'][0]['id']))
         self.assertEqual(
             item['answers'][0]['feedback']['text'],
-            asset_payload['answers'][0]['feedback']
+            update_soup_with_url(asset_payload['answers'][0]['feedback'], asset_content)
         )
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
@@ -683,9 +686,11 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             item['answers'][0]['fileIds'],
             asset_payload['answers'][0]['fileIds']
         )
+
+        asset_content = self._repo.get_asset_content(Id(asset['assetContents'][0]['id']))
         self.assertEqual(
             item['answers'][0]['feedback']['text'],
-            asset_payload['answers'][0]['feedback']
+            update_soup_with_url(asset_payload['answers'][0]['feedback'], asset_content)
         )
         self.assertEqual(
             item['answers'][0]['genusTypeId'],
@@ -2093,11 +2098,11 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
 </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
-<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
@@ -5157,8 +5162,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                         del img['width']
                     payload['question']['choices'].append({
                         'id': choice['id'],
-                        'oldText': text['text'],
-                        'newText': str(choice_xml.simpleChoice)
+                        'updatedText': str(choice_xml.simpleChoice)
                     })
 
         req = self.app.put(url,
@@ -5197,8 +5201,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         payload = {
             'type': mw_item['genusTypeId'],
             'question': {
-                'oldQuestionString': '',
-                'newQuestionString': ''
+                'updatedQuestionString': ''
             }
         }
 
@@ -5209,8 +5212,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for img in question_xml.find_all('img'):
             del img['height']
             del img['width']
-        payload['question']['newQuestionString'] = str(question_xml.itemBody)
-        payload['question']['oldQuestionString'] = data['question']['texts'][0]
+        payload['question']['updatedQuestionString'] = str(question_xml.itemBody)
 
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -5249,8 +5251,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 del img['width']
             payload['answers'].append({
                 'id': answer['id'],
-                'newFeedback': str(answer_xml.modalFeedback),
-                'oldFeedback': answer['feedbacks'][0],
+                'updatedFeedback': str(answer_xml.modalFeedback),
                 'type': mc_item['genusTypeId'].replace('assessment-item', 'answer')
             })
 
@@ -5340,8 +5341,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
             answer_xml.modalFeedback.append(audio_tag)
             payload['answers'].append({
                 'id': answer['id'],
-                'newFeedback': str(answer_xml.modalFeedback),
-                'oldFeedback': answer['feedbacks'][0],
+                'updatedFeedback': str(answer_xml.modalFeedback),
                 'type': mc_item['genusTypeId'].replace('item-genus-type', 'answer')
             })
 
@@ -5851,7 +5851,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertIn('You did it!', data['feedback'])
-        self.assertIn('http://localhost', data['feedback'])
+        self.assertIn('', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
         self.assertNotIn('Sorry, bad choice', data['feedback'])
 
@@ -5886,7 +5886,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertFalse(data['correct'])
         self.assertNotIn('You did it!', data['feedback'])
-        self.assertIn('http://localhost', data['feedback'])
+        self.assertIn('', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
         self.assertIn('Sorry, bad choice', data['feedback'])
 
@@ -7955,7 +7955,10 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
         data = self.json(req)
         soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         source = soup.find('source')
-        self.assertEqual('AssetContent:video-js-test_mp4', source['src'])
+        asset = self._repo.get_asset(Id(asset['id']))
+        contents = asset.get_asset_contents()
+        content = contents.next()
+        self.assertEqual(content.get_url(), source['src'])
         self.assertIn(
             'fileIds',
             data['question']
@@ -7982,7 +7985,11 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
         data = self.json(req)
         soup = BeautifulSoup(data['question']['texts'][0]['text'], 'lxml-xml')
         track = soup.find('track', label="English")
-        self.assertEqual('AssetContent:video-js-test-en_vtt', track['src'])
+        asset = self._repo.get_asset(Id(asset['id']))
+        contents = asset.get_asset_contents()
+        contents.next()
+        content = contents.next()
+        self.assertEqual(content.get_url(), track['src'])
         self.assertIn(
             'fileIds',
             data['question']
@@ -8019,20 +8026,15 @@ class VideoTagReplacementTests(BaseAssessmentTestCase):
         caption_asset_content = None
         for asset_content in asset_contents:
             if 'mp4' in asset_content['genusTypeId']:
-                video_asset_content = asset_content
+                video_asset_content = self._repo.get_asset_content(Id(asset_content['id']))
             elif 'vtt' in asset_content['genusTypeId']:
-                caption_asset_content = asset_content
+                caption_asset_content = self._repo.get_asset_content(Id(asset_content['id']))
 
-        repo_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
-        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(repo_id,
-                                                                                                 asset['id'],
-                                                                                                 video_asset_content['id']),
-                      source['src'])
+        self.assertEqual(video_asset_content.get_url(),
+                         source['src'])
         track = soup.find('track', label='English')
-        self.assertIn('api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(repo_id,
-                                                                                                 asset['id'],
-                                                                                                 caption_asset_content['id']),
-                      track['src'])
+        self.assertEqual(caption_asset_content.get_url(),
+                         track['src'])
 
     def test_can_get_item_without_bank_id(self):
         item = self.create_video_question()
@@ -8646,7 +8648,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'removeQuestionString': data['question']['texts'][0],
+                'removeLanguageType': data['question']['texts'][0]['languageTypeId'],
                 'type': 'qti'
             }
         }
@@ -8682,8 +8684,20 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'newQuestionString': self._telugu_text,
-                'oldQuestionString': data['question']['texts'][0],
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 3)
+
+        payload = {
+            'question': {
+                'removeLanguageType': '639-2%3AENG%40ISO',
                 'type': 'qti'
             }
         }
@@ -8693,12 +8707,13 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['question']['texts']), 2)
-        self.assertEqual(data['question']['texts'][0]['text'], self._telugu_text)
-        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._telugu_script_type)
-        self.assertEqual(data['question']['texts'][1]['text'], self._hindi_text)
-        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._hindi_script_type)
+
+        self.assertEqual(data['question']['texts'][1]['text'], self._telugu_text)
+        self.assertEqual(data['question']['texts'][1]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['texts'][1]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['texts'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_query_items_by_display_name(self):
         item = self.create_mc_feedback_item()
@@ -8783,7 +8798,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         payload = {
             'answers': [{
                 'id': item['answers'][0]['id'],
-                'removeFeedback': item['answers'][0]['feedbacks'][0],
+                'removeLanguageType': item['answers'][0]['feedbacks'][0]['languageTypeId'],
                 'type': 'qti'
             }]
         }
@@ -8816,8 +8831,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         payload = {
             'answers': [{
                 'id': item['answers'][0]['id'],
-                'newFeedback': self._telugu_text,
-                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'updatedFeedback': self._telugu_text,
                 'type': 'qti'
             }]
         }
@@ -8906,7 +8920,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
             'question': {
                 'choices': [{
                     'id': item['question']['multiLanguageChoices'][0]['id'],
-                    'removeText': item['question']['multiLanguageChoices'][0]['texts'][0]
+                    'removeLanguageType': item['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId']
                 }],
                 'type': 'qti'
             }
@@ -8943,8 +8957,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
             'question': {
                 'choices': [{
                     'id': item['question']['multiLanguageChoices'][0]['id'],
-                    'newText': self._telugu_text,
-                    'oldText': item['question']['multiLanguageChoices'][0]['texts'][0]
+                    'updatedText': self._telugu_text
                 }],
                 'type': 'qti'
             }
@@ -9060,7 +9073,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
                     region: {
                         'choices': [{
                             'id': desired_choice_id,
-                            'removeText': item['question']['multiLanguageChoices'][region][0]['texts'][0]
+                            'removeLanguageType': item['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId']
                         }],
                     }
                 },
@@ -9114,8 +9127,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
                     region: {
                         'choices': [{
                             'id': desired_choice_id,
-                            'newText': self._telugu_text,
-                            'oldText': item['question']['multiLanguageChoices'][region][0]['texts'][0]
+                            'updatedText': self._telugu_text
                         }],
                     }
                 },
@@ -9219,8 +9231,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         payload = {
             'answers': [{
                 'id': item['answers'][0]['id'],
-                'newFeedback': self._english_text,
-                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'updatedFeedback': self._english_text,
                 'type': 'qti'
             }]
         }
@@ -9274,8 +9285,12 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         payload = {
             'answers': [{
                 'id': item['answers'][0]['id'],
-                'newFeedback': self._telugu_text,
-                'oldFeedback': item['answers'][0]['feedbacks'][0],
+                'feedback': self._telugu_text,
+                'type': 'qti'
+            },
+            {
+                'id': item['answers'][0]['id'],
+                'removeLanguageType': '639-2%3AENG%40ISO',
                 'type': 'qti'
             }]
         }
@@ -9350,8 +9365,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'newQuestionString': self._english_text,
-                'oldQuestionString': item['question']['texts'][0],
+                'updatedQuestionString': self._english_text,
                 'type': 'qti'
             }
         }
@@ -9408,8 +9422,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'newQuestionString': self._english_text,
-                'oldQuestionString': item['question']['texts'][0],
+                'updatedQuestionString': self._english_text,
                 'type': 'qti'
             }
         }
@@ -9460,8 +9473,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'newQuestionString': self._telugu_text,
-                'oldQuestionString': item['question']['texts'][0],
+                'updatedQuestionString': self._telugu_text,
                 'type': 'qti'
             }
         }
@@ -9534,8 +9546,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'newQuestionString': self._english_text,
-                'oldQuestionString': item['question']['texts'][0],
+                'updatedQuestionString': self._english_text,
                 'type': 'qti'
             }
         }

@@ -167,15 +167,16 @@ def match_asset_content_by_name(asset_content_list, name):
     return None
 
 
-def update_asset_map_with_content_url(asset_map):
+def update_asset_map_with_content_url(rm, asset_map):
+    # because we've appended the asset content lookup methods to asset lookup session
+    acls = rm.get_asset_lookup_session()
+    acls.use_federated_repository_view()
     if 'assetContents' in asset_map:
         for index, asset_content in enumerate(asset_map['assetContents']):
-            asset_map['assetContents'][index]['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset_map['assignedRepositoryIds'][0],
-                                                                                                                                   asset_map['id'],
-                                                                                                                                   asset_content['id'])
+            ac = acls.get_asset_content(utilities.clean_id(asset_content['id']))
+            asset_map['assetContents'][index]['url'] = ac.get_url()
     else:
         # for an assetContent
-        asset_map['url'] = '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset_map['assignedRepositoryIds'][0],
-                                                                                                       asset_map['assetId'],
-                                                                                                       asset_map['id'])
+        ac = acls.get_asset_content(utilities.clean_id(asset_map['id']))
+        asset_map['url'] = ac.get_url()
     return asset_map
