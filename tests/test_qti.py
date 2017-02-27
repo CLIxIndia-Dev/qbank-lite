@@ -764,9 +764,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         image_asset_label = 'medium849946232588888784replacement_image_png'
 
+        asset_id = item['answers'][0]['fileIds'][image_asset_label]['assetId']
+        asset_content_id = item['answers'][0]['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="614"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                                                                                                                                                                                                                                                                                                    asset_id,
+                                                                                                                                                                                                                                                                                                    asset_content_id)
+
         self.assertEqual(
             item['answers'][0]['feedbacks'][0]['text'],
-            """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="AssetContent:{0}" width="614"/></p></modalFeedback>""".format(image_asset_label)
+            expected_string
         )
 
         for index in [1, 2]:
@@ -785,9 +792,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
             image_asset_label = 'medium534315617922181373draggable_red_dot_png'
 
+            asset_id = item['answers'][index]['fileIds'][image_asset_label]['assetId']
+            asset_content_id = item['answers'][index]['fileIds'][image_asset_label]['assetContentId']
+
+            expected_string = """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                                                                                                                                                                                                                                                                                                             asset_id,
+                                                                                                                                                                                                                                                                                                             asset_content_id)
+
             self.assertEqual(
                 item['answers'][index]['feedbacks'][0]['text'],
-                """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="AssetContent:{0}" width="20"/></p></modalFeedback>""".format(image_asset_label)
+                expected_string
             )
 
     def test_audio_file_in_question_gets_saved(self):
@@ -4278,9 +4292,30 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        expected_json_string = """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'))
         self.assertEqual(
             item['question']['text']['text'],
-            expected_string
+            expected_json_string
         )
 
     def test_can_get_multi_choice_multi_answer_item_with_no_choices(self):
@@ -5710,9 +5745,25 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        expected_json_string = """<itemBody>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio></p>
+<p>
+<strong>Introducting a new student</strong>
+</p>
+<p>It's the first day of school after the summer vacations. A new student has joined the class</p>
+<p>Student 1 talks to the new student to make him/her feel comfortable.</p>
+<p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id)
+
         self.assertEqual(
             item['question']['text']['text'],
-            expected_string
+            expected_json_string
         )
 
     def test_can_get_audio_record_tool_item_qti_with_no_answers(self):
@@ -6626,9 +6677,30 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        expected_json_string = """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+
         self.assertEqual(
             item['question']['text']['text'],
-            expected_string
+            expected_json_string
         )
 
         self.assertEqual(
@@ -6699,6 +6771,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sentence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._intersection_image,
+                       self._mw_sentence_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
             "name": "Question 1",
@@ -6720,8 +6800,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -6739,6 +6826,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sentence_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._intersection_image,
+                       self._mw_sentence_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
             "name": "Question 1",
@@ -6760,8 +6855,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -7538,9 +7640,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        expected_json_string = """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+
         self.assertEqual(
             item['question']['text']['text'],
-            expected_string
+            expected_json_string
         )
 
         self.assertEqual(
@@ -7634,6 +7750,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sandbox_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
             "name": "Question 1",
@@ -7649,8 +7772,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -7668,6 +7798,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sandbox_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
             "name": "Question 1",
@@ -7683,8 +7820,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -9449,9 +9593,22 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             str(item_body),
             expected_string
         )
+
+        expected_json_string = """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+</itemBody>""".format(repository_id,
+                      audio_asset_id,
+                      audio_asset_content_id)
         self.assertEqual(
             item['question']['text']['text'],
-            expected_string
+            expected_json_string
         )
 
         self.assertEqual(
@@ -9513,6 +9670,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_image_sequence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._audio_test_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
             "name": "Question 1",
@@ -9528,8 +9692,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
@@ -9545,6 +9717,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_image_sequence_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._audio_test_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
             "name": "Question 1",
@@ -9560,8 +9739,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})

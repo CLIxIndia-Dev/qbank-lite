@@ -8831,7 +8831,11 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         payload = {
             'answers': [{
                 'id': item['answers'][0]['id'],
-                'updatedFeedback': self._telugu_text,
+                'feedback': self._telugu_text,
+                'type': 'qti'
+            }, {
+                'id': item['answers'][0]['id'],
+                'removeLanguageType': '639-2%3AENG%40ISO',
                 'type': 'qti'
             }]
         }
@@ -8841,12 +8845,12 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['answers'][0]['feedbacks']), 2)
-        self.assertEqual(data['answers'][0]['feedbacks'][1]['text'], self._hindi_text)
-        self.assertEqual(data['answers'][0]['feedbacks'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(data['answers'][0]['feedbacks'][1]['scriptTypeId'], self._hindi_script_type)
-        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._telugu_text)
-        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['text'], self._hindi_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][0]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['text'], self._telugu_text)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['answers'][0]['feedbacks'][1]['scriptTypeId'], self._telugu_script_type)
 
     def test_can_set_choice_texts(self):
         item = self.create_mc_multi_select_item()
@@ -8957,7 +8961,10 @@ class MultiLanguageTests(BaseAssessmentTestCase):
             'question': {
                 'choices': [{
                     'id': item['question']['multiLanguageChoices'][0]['id'],
-                    'updatedText': self._telugu_text
+                    'text': self._telugu_text,
+                }, {
+                    'id': item['question']['multiLanguageChoices'][0]['id'],
+                    'removeLanguageType': '639-2%3AENG%40ISO'
                 }],
                 'type': 'qti'
             }
@@ -8968,13 +8975,13 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['question']['multiLanguageChoices'][0]['texts']), 2)
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._telugu_text)
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['text'], self._telugu_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['scriptTypeId'], self._telugu_script_type)
 
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['text'], self._hindi_text)
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][0]['texts'][0]['scriptTypeId'], self._hindi_script_type)
 
     def test_can_set_inline_choice_texts(self):
         item = self.create_fitb_item()
@@ -9127,7 +9134,10 @@ class MultiLanguageTests(BaseAssessmentTestCase):
                     region: {
                         'choices': [{
                             'id': desired_choice_id,
-                            'updatedText': self._telugu_text
+                            'text': self._telugu_text
+                        }, {
+                            'id': desired_choice_id,
+                            'removeLanguageType': '639-2%3AENG%40ISO'
                         }],
                     }
                 },
@@ -9141,12 +9151,12 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         data = self.json(req)
 
         self.assertEqual(len(data['question']['multiLanguageChoices'][region][0]['texts']), 2)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._telugu_text)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._telugu_script_type)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._hindi_text)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._hindi_language_type)
-        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._hindi_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['text'], self._telugu_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['languageTypeId'], self._telugu_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][1]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['text'], self._hindi_text)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['languageTypeId'], self._hindi_language_type)
+        self.assertEqual(data['question']['multiLanguageChoices'][region][0]['texts'][0]['scriptTypeId'], self._hindi_script_type)
 
         # because the choices are randomized
         matching_choice = [c for c in data['question']['choices'][region] if c['id'] == desired_choice_id][0]
@@ -9287,8 +9297,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
                 'id': item['answers'][0]['id'],
                 'feedback': self._telugu_text,
                 'type': 'qti'
-            },
-            {
+            }, {
                 'id': item['answers'][0]['id'],
                 'removeLanguageType': '639-2%3AENG%40ISO',
                 'type': 'qti'
@@ -9473,7 +9482,21 @@ class MultiLanguageTests(BaseAssessmentTestCase):
 
         payload = {
             'question': {
-                'updatedQuestionString': self._telugu_text,
+                'questionString': self._telugu_text,
+                'type': 'qti'
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers=self._telugu_headers())
+        self.ok(req)
+
+        data = self.json(req)
+        self.assertEqual(len(data['question']['texts']), 2)
+
+        payload = {
+            'question': {
+                'removeLanguageType': '639-2%3AENG%40ISO',
                 'type': 'qti'
             }
         }
