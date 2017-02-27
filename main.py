@@ -9,7 +9,7 @@ import logging_
 import repository
 import utilities
 
-#from web.wsgiserver import CherryPyWSGIServer
+# from web.wsgiserver import CherryPyWSGIServer
 
 # http://pythonhosted.org/PyInstaller/runtime-information.html#run-time-information
 if getattr(sys, 'frozen', False):
@@ -18,8 +18,8 @@ else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
-#CherryPyWSGIServer.ssl_certificate = "{0}/unplatform/unplatform.cert.dummy.pem".format(ABS_PATH)
-#CherryPyWSGIServer.ssl_private_key = "{0}/unplatform/unplatform.key.dummy.pem".format(ABS_PATH)
+# CherryPyWSGIServer.ssl_certificate = "{0}/unplatform/unplatform.cert.dummy.pem".format(ABS_PATH)
+# CherryPyWSGIServer.ssl_private_key = "{0}/unplatform/unplatform.key.dummy.pem".format(ABS_PATH)
 
 web.config.debug = False
 
@@ -59,4 +59,3 @@ class video_test:
 # INITIALIZER
 ################################################
 application = app.wsgifunc()
-

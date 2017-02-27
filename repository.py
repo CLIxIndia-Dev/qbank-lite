@@ -185,8 +185,8 @@ class AssetContentStream(utilities.BaseClass):
                 pass
 
             # the asset_url is relative, so add in the path
-            #asset_url = '{0}/{1}'.format(ABS_PATH,
-            #                             asset_url)
+            # asset_url = '{0}/{1}'.format(ABS_PATH,
+            #                              asset_url)
             asset_content_path = '{0}/{1}'.format(filespace_path,
                                                   asset_content_data.name)
             web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
