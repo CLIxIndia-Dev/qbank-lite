@@ -1336,7 +1336,6 @@ class ItemDetails(utilities.BaseClass):
                             afc = autils.update_answer_form(answer, afc)
                         afc = autils.update_answer_form_with_files(afc, answer)
                         bank.create_answer(afc)
-
             full_item = bank.get_item(utilities.clean_id(sub_id))
 
             return_data = utilities.convert_dl_object(full_item)
@@ -2319,7 +2318,6 @@ class ItemVideoTagReplacement(utilities.BaseClass):
                     video['crossorigin'] = 'anonymous'
 
                 # save it back
-                original_text = DisplayText(display_text_map=question_text)
                 updated_text = DisplayText(display_text_map={
                     'text': str(soup.itemBody),
                     'languageTypeId': question_text['languageTypeId'],
@@ -2327,7 +2325,7 @@ class ItemVideoTagReplacement(utilities.BaseClass):
                     'scriptTypeId': question_text['scriptTypeId']
                 })
                 try:
-                    form.edit_text(original_text, updated_text)
+                    form.edit_text(updated_text)
                 except AttributeError:
                     form.set_text(str(soup.itemBody))
 

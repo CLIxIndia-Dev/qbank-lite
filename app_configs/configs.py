@@ -60,6 +60,14 @@ FILESYSTEM_ADAPTER_1 = {
                 {'value': STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
             ]
         },
+        'urlHostname': {
+            'syntax': 'STRING',
+            'displayName': 'Hostname config for serving files over the network',
+            'description': 'Hostname config for serving files.',
+            'values': [
+                {'value': 'https://qbank-clix-dev.mit.edu/api/v1', 'priority': 1}  # Mac
+            ]
+        },
     }
 }
 
@@ -277,6 +285,14 @@ TEST_FILESYSTEM_ADAPTER_1 = {
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': TEST_STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
+            ]
+        },
+        'urlHostname': {
+            'syntax': 'STRING',
+            'displayName': 'Hostname config for serving files over the network',
+            'description': 'Hostname config for serving files.',
+            'values': [
+                {'value': '/api/v1', 'priority': 1}  # Mac
             ]
         },
     }

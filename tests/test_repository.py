@@ -216,7 +216,9 @@ class AssetContentTests(BaseRepositoryTestCase):
 
         self._logo_upload_test_file.seek(0)
         req = self.app.post(url,
-                            upload_files=[('submission', 'Epidemic2.sltng', self._logo_upload_test_file.read())])
+                            upload_files=[('submission',
+                                           'Epidemic2.sltng',
+                                           self._logo_upload_test_file.read())])
         self.ok(req)
 
         url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._repo.ident)))
@@ -226,7 +228,13 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(len(data), 2)
         for asset in data:
             if asset['id'] != str(self.asset.ident):
-                self.assertTrue('.sltng' in asset['assetContents'][0]['url'])
+                asset_obj = self._repo.get_asset(Id(asset['id']))
+
+                contents = asset_obj.get_asset_contents()
+                content = contents.next()
+                self.assertEqual(content.get_url(),
+                                 asset['assetContents'][0]['url'])
+                self.assertNotEqual('', asset['assetContents'][0]['url'])
                 self.assertEqual('asset-content-genus-type%3Asltng%40ODL.MIT.EDU',
                                  asset['assetContents'][0]['genusTypeId'])
 
@@ -446,7 +454,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         asset_content = self.asset.get_asset_contents().next()
         original_genus_type = str(asset_content.genus_type)
         original_file_name = asset_content.display_name.text
-        original_on_disk_name = asset_content.get_url()
+        expected_url = asset_content.get_url()
         original_id = str(asset_content.ident)
 
         description_genus = "asset-content-genus%3Adescription%40ODL.MIT.EDU"
@@ -471,8 +479,8 @@ class AssetContentTests(BaseRepositoryTestCase):
             asset_content['displayName']['text']
         )
         self.assertEqual(
-            original_on_disk_name.split('.')[0],
-            asset_content['url'].split('.')[0]
+            expected_url,
+            asset_content['url']
         )
         self.assertEqual(
             original_id,
@@ -594,7 +602,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         data = self.json(req)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['id'], str(asset_content.ident))
-        self.assertNotIn('/api/v1', data[0]['url'])
+        self.assertEqual(asset_content.get_url(), data[0]['url'])
+        self.assertNotEqual('', data[0]['url'])
 
     def test_can_get_asset_contents_list_with_full_urls(self):
         asset_content = self.asset.get_asset_contents().next()
@@ -603,7 +612,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         data = self.json(req)
         self.assertEqual(len(data), 1)
         self.assertEqual(data[0]['id'], str(asset_content.ident))
-        self.assertIn('/api/v1', data[0]['url'])
+        self.assertEqual(asset_content.get_url(), data[0]['url'])
+        self.assertNotEqual('', data[0]['url'])
 
     def test_can_add_new_asset_content_with_file(self):
         self._replacement_image_file.seek(0)
@@ -626,13 +636,15 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(asset.get_asset_contents().available(), 2)
         contents = asset.get_asset_contents()
         contents.next()
-        self.assertEqual(str(contents.next().ident),
+        content = contents.next()
+        self.assertEqual(str(content.ident),
                          data['id'])
         self.assertEqual(data['displayName']['text'],
                          'foo')
         self.assertEqual(data['displayName']['languageTypeId'],
                          self._hindi_language_type)
-        self.assertNotIn('/api/v1', data['url'])
+        self.assertNotEqual('', data['url'])
+        self.assertEqual(content.get_url(), data['url'])
 
     def test_can_add_new_asset_content_in_non_english_language(self):
         payload = {
@@ -649,13 +661,14 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(asset.get_asset_contents().available(), 2)
         contents = asset.get_asset_contents()
         contents.next()
-        self.assertEqual(str(contents.next().ident),
+        content = contents.next()
+        self.assertEqual(str(content.ident),
                          data['id'])
         self.assertEqual(data['displayName']['text'],
                          self._hindi_text)
         self.assertEqual(data['displayName']['languageTypeId'],
                          self._hindi_language_type)
-        self.assertNotIn('/api/v1', data['url'])
+        self.assertEqual('', data['url'])
         self.assertIn('displayNames', data)
 
     def test_can_add_new_asset_content_with_json_only(self):
@@ -673,11 +686,12 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(asset.get_asset_contents().available(), 2)
         contents = asset.get_asset_contents()
         contents.next()
-        self.assertEqual(str(contents.next().ident),
+        second_content = contents.next()
+        self.assertEqual(str(second_content.ident),
                          data['id'])
         self.assertEqual(data['displayName']['text'],
                          'foo')
-        self.assertNotIn('/api/v1', data['url'])
+        self.assertEqual('', data['url'])
 
     def test_can_add_new_asset_with_file_with_full_url(self):
         self._replacement_image_file.seek(0)
@@ -701,13 +715,18 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.assertEqual(asset.get_asset_contents().available(), 2)
         contents = asset.get_asset_contents()
         contents.next()
-        self.assertEqual(str(contents.next().ident),
+        content = contents.next()
+        self.assertEqual(str(content.ident),
                          data['id'])
         self.assertEqual(data['displayName']['text'],
                          'foo')
         self.assertEqual(data['displayName']['languageTypeId'],
                          self._hindi_language_type)
-        self.assertIn('/api/v1', data['url'])
+
+        # this assumes usage of the filesystem adapter...
+        # self.assertIn('/repository/repositories', data['url'])
+        self.assertEqual(content.get_url(), data['url'])
+        self.assertNotEqual('', data['url'])
 
 
 class AssetQueryTests(BaseRepositoryTestCase):
@@ -765,14 +784,9 @@ class AssetQueryTests(BaseRepositoryTestCase):
                     asset_content['genusTypeId'],
                     'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
                 )
-            self.assertNotIn(
-                'datastore/repository/AssetContent/',
-                asset_content['url']
-            )
+            asset_content_obj = self._repo.get_asset_content(Id(asset_content['id']))
             self.assertEqual(
-                '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(asset['assignedRepositoryIds'][0],
-                                                                                            asset['id'],
-                                                                                            asset_content['id']),
+                asset_content_obj.get_url(),
                 asset_content['url']
             )
 
@@ -817,8 +831,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             'asset_content_record_type%3Afilesystem%40odl.mit.edu',
             data['recordTypeIds']
         )
-        self.assertIn(
-            'datastore/repository/AssetContent/',
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][0]['id']))
+        self.assertEqual(
+            asset_content.get_url(),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -847,14 +862,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             'asset_content_record_type%3Afilesystem%40odl.mit.edu',
             data['recordTypeIds']
         )
-        self.assertNotIn(
-            'datastore/repository/AssetContent/',
-            data['assetContents'][0]['url']
-        )
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][0]['id']))
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
-                                                                                        data['id'],
-                                                                                        data['assetContents'][0]['id']),
+            asset_content.get_url(),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -882,8 +892,10 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             'asset_content_record_type%3Afilesystem%40odl.mit.edu',
             data['recordTypeIds']
         )
-        self.assertIn(
-            'datastore/repository/AssetContent/',
+
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][0]['id']))
+        self.assertEqual(
+            asset_content.get_url(),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -929,8 +941,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             data['assetContents'][0]['genusTypeId'],
             'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
         )
-        self.assertIn(
-            'datastore/repository/AssetContent/',
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][0]['id']))
+        self.assertEqual(
+            asset_content.get_url(),
             data['assetContents'][0]['url']
         )
         self.assertEqual(
@@ -942,8 +955,9 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             data['assetContents'][1]['genusTypeId'],
             'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
         )
-        self.assertIn(
-            'datastore/repository/AssetContent/',
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][1]['id']))
+        self.assertEqual(
+            asset_content.get_url(),
             data['assetContents'][1]['url']
         )
         self.assertEqual(
@@ -1097,9 +1111,8 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
+        asset_content = self._repo.get_asset_content(Id(data['assetContents'][0]['id']))
         self.assertEqual(
-            '/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream'.format(data['assignedRepositoryIds'][0],
-                                                                                        data['id'],
-                                                                                        data['assetContents'][0]['id']),
+            asset_content.get_url(),
             data['assetContents'][0]['url']
         )
