@@ -1,3 +1,6 @@
+1.9.0:
+  - Refactor image URL handling so that item JSON returns right media paths.
+
 1.8.7:
   - Update records for better error handling in getting asset file type
     config.
