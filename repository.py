@@ -84,7 +84,7 @@ class AssetsList(utilities.BaseClass):
                 data = json.loads(data)
                 updated_data = []
                 for asset in data:
-                    updated_data.append(rutils.update_asset_map_with_content_url(asset))
+                    updated_data.append(rutils.update_asset_map_with_content_url(rm, asset))
 
                 data = json.dumps(updated_data)
 
@@ -151,7 +151,7 @@ class AssetsList(utilities.BaseClass):
             asset = repository.get_asset(asset.ident)
             asset_map = json.loads(utilities.convert_dl_object(asset))
             if 'returnUrl' in web.input().keys():
-                asset_map = rutils.update_asset_map_with_content_url(asset_map)
+                asset_map = rutils.update_asset_map_with_content_url(rm, asset_map)
 
             return json.dumps(asset_map)
         except (PermissionDenied, InvalidId) as ex:
@@ -174,7 +174,7 @@ class AssetContentStream(utilities.BaseClass):
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-            asset_url = asset_content.get_url()
+            asset_content_data = asset_content.get_data()
 
             filespace_path = ''
             try:
@@ -185,16 +185,13 @@ class AssetContentStream(utilities.BaseClass):
                 pass
 
             # the asset_url is relative, so add in the path
-            asset_url = '{0}/{1}'.format(filespace_path,
-                                         asset_url)
+            asset_content_path = '{0}/{1}'.format(filespace_path,
+                                                  asset_content_data.name)
+            web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
+            web.header('Content-Length', os.path.getsize(asset_content_data.name))
+            web.header('Content-Disposition', 'inline; filename={0}'.format(os.path.basename(asset_content_data.name)))
 
-            web.header('Content-Type', mimetypes.guess_type(asset_url)[0])
-            web.header('Content-Length', os.path.getsize(asset_url))
-            filename = asset_url.split('/')[-1]
-            web.header('Content-Disposition', 'inline; filename={0}'.format(filename))
-
-            with open(asset_url, 'rb') as ac_file:
-                yield ac_file.read()
+            yield asset_content_data.read()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -209,7 +206,7 @@ class AssetContentsList(utilities.BaseClass):
             data = utilities.extract_items(asset.get_asset_contents())
 
             if 'fullUrls' in self.data():
-                data = json.dumps(rutils.update_asset_map_with_content_url(asset.object_map)['assetContents'])
+                data = json.dumps(rutils.update_asset_map_with_content_url(rm, asset.object_map)['assetContents'])
 
             return data
         except (PermissionDenied, InvalidId) as ex:
@@ -230,23 +227,23 @@ class AssetContentsList(utilities.BaseClass):
             params = self.data()
             try:
                 input_file = x['inputFile'].file
-                file_name = x['inputFile'].filename
-
-                # now let's create an asset content for this asset, with the
-                # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
             except AttributeError:
                 asset_content_type_list = rutils.get_asset_content_records(repository)
                 form = repository.get_asset_content_form_for_create(asset.ident,
                                                                     asset_content_type_list)
                 form = utilities.set_form_basics(form, params)
                 asset_content = repository.create_asset_content(form)
+            else:
+                file_name = x['inputFile'].filename
+
+                # now let's create an asset content for this asset, with the
+                # right genus type and file data. Also set the form basics, if passed in
+                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
 
             # need to get the updated asset with Contents
-
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
             if 'fullUrl' in params:
-                asset_content_map = rutils.update_asset_map_with_content_url(asset_content_map)
+                asset_content_map = rutils.update_asset_map_with_content_url(rm, asset_content_map)
 
             return json.dumps(asset_content_map)
         except (PermissionDenied, InvalidId) as ex:
@@ -276,7 +273,7 @@ class AssetContentDetails(utilities.BaseClass):
                     break
 
             if 'fullUrl' in self.data():
-                contents = rutils.update_asset_map_with_content_url(asset.object_map)['assetContents']
+                contents = rutils.update_asset_map_with_content_url(rm, asset.object_map)['assetContents']
                 for content in contents:
                     if content['id'] == str(utilities.clean_id(content_id)):
                         data = content
@@ -309,6 +306,9 @@ class AssetContentDetails(utilities.BaseClass):
 
             try:
                 input_file = x['inputFile'].file
+            except AttributeError:
+                pass  # no file included
+            else:
                 file_name = x['inputFile'].filename
 
                 data = DataInputStream(input_file)
@@ -323,8 +323,6 @@ class AssetContentDetails(utilities.BaseClass):
                     form.display_name = file_name
 
                 form.set_data(data)
-            except AttributeError:
-                pass  # no file included
 
             params = self.data()
             form = utilities.set_form_basics(form, params)
@@ -354,7 +352,7 @@ class AssetDetails(utilities.BaseClass):
             if 'fullUrls' in self.data().keys():
                 data = json.loads(data)
 
-                data = rutils.update_asset_map_with_content_url(data)
+                data = rutils.update_asset_map_with_content_url(rm, data)
 
                 data = json.dumps(data)
             return data

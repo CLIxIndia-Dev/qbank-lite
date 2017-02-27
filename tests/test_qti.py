@@ -324,7 +324,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
 <p>
-<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
+<img alt="image 1" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
@@ -336,7 +336,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </simpleChoice>""",
             "id32b596f4-d970-4d1e-a667-3ca762c002c5": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
 <p>
-<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
+<img alt="image 2" height="24" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
@@ -455,7 +455,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
@@ -649,11 +649,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
-<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
@@ -764,9 +764,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         image_asset_label = 'medium849946232588888784replacement_image_png'
 
+        asset_id = item['answers'][0]['fileIds'][image_asset_label]['assetId']
+        asset_content_id = item['answers'][0]['fileIds'][image_asset_label]['assetContentId']
+
+        expected_string = """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="614"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                                                                                                                                                                                                                                                                                                    asset_id,
+                                                                                                                                                                                                                                                                                                    asset_content_id)
+
         self.assertEqual(
             item['answers'][0]['feedbacks'][0]['text'],
-            """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="AssetContent:{0}" width="614"/></p></modalFeedback>""".format(image_asset_label)
+            expected_string
         )
 
         for index in [1, 2]:
@@ -785,9 +792,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
             image_asset_label = 'medium534315617922181373draggable_red_dot_png'
 
+            asset_id = item['answers'][index]['fileIds'][image_asset_label]['assetId']
+            asset_content_id = item['answers'][index]['fileIds'][image_asset_label]['assetContentId']
+
+            expected_string = """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                                                                                                                                                                                                                                                                                                             asset_id,
+                                                                                                                                                                                                                                                                                                             asset_content_id)
+
             self.assertEqual(
                 item['answers'][index]['feedbacks'][0]['text'],
-                """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="AssetContent:{0}" width="20"/></p></modalFeedback>""".format(image_asset_label)
+                expected_string
             )
 
     def test_audio_file_in_question_gets_saved(self):
@@ -1390,7 +1404,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -1580,22 +1594,22 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="false">
 <simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
 <p>
-<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
+<img alt="parallelagram" height="147" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id47e56db8-ee16-4111-9bcc-b8ac9716bcd4">
 <p>
-<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
+<img alt="square" height="141" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
 <p>
-<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
+<img alt="rectangle" height="118" src="/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
 <p>
-<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
+<img alt="diamond shape" height="146" src="/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
@@ -1684,7 +1698,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <strong>
-<img alt="A set of four shapes." height="204" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
+<img alt="A set of four shapes." height="204" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
@@ -1803,11 +1817,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
-<img alt="This is a picture of a bus." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+<img alt="This is a picture of a bus." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
                       audio_asset_id,
@@ -2305,7 +2319,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -2334,28 +2348,28 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
 <p>
-<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 1" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
                           image_1_asset_content_id),
             "id127df214-2a19-44da-894a-853948313dae": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
 <p>
-<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 2" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
                           image_2_asset_content_id),
             "iddcbf40ab-782e-4d4f-9020-6b8414699a72": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
 <p>
-<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 3" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_3_asset_id,
                           image_3_asset_content_id),
             "ide576c9cc-d20e-4ba3-8881-716100b796a0": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
 <p>
-<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 4" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_4_asset_id,
@@ -3215,7 +3229,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
 <p>
-<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
+<img alt="image 1" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
@@ -3227,7 +3241,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </simpleChoice>""",
             "id32b596f4-d970-4d1e-a667-3ca762c002c5": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
 <p>
-<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
+<img alt="image 2" height="24" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
@@ -3456,7 +3470,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
 <p>
-<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
+<img alt="image 1" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
@@ -3468,7 +3482,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </simpleChoice>""",
             "id32b596f4-d970-4d1e-a667-3ca762c002c5": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
 <p>
-<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
+<img alt="image 2" height="24" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
@@ -3764,7 +3778,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
 <p>
-<img alt="image 1" height="20" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
+<img alt="image 1" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
@@ -3776,7 +3790,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </simpleChoice>""",
             "id32b596f4-d970-4d1e-a667-3ca762c002c5": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
 <p>
-<img alt="image 2" height="24" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
+<img alt="image 2" height="24" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="26"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
@@ -3985,22 +3999,22 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="false">
 <simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
 <p>
-<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
+<img alt="parallelagram" height="147" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
 <p>
-<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
+<img alt="square" height="141" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
 <p>
-<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
+<img alt="rectangle" height="118" src="/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
 <p>
-<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
+<img alt="diamond shape" height="146" src="/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
@@ -4235,22 +4249,22 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <choiceInteraction maxChoices="0" responseIdentifier="RESPONSE_1" shuffle="false">
 <simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
 <p>
-<img alt="parallelagram" height="147" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
+<img alt="parallelagram" height="147" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="186"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
 <p>
-<img alt="square" height="141" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
+<img alt="square" height="141" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="144"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
 <p>
-<img alt="rectangle" height="118" src="http://localhost/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
+<img alt="rectangle" height="118" src="/api/v1/repository/repositories/{0}/assets/{5}/contents/{6}/stream" width="201"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
 <p>
-<img alt="diamond shape" height="146" src="http://localhost/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
+<img alt="diamond shape" height="146" src="/api/v1/repository/repositories/{0}/assets/{7}/contents/{8}/stream" width="148"/>
 </p>
 </simpleChoice>
 <simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
@@ -4277,6 +4291,31 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             str(item_body),
             expected_string
+        )
+
+        expected_json_string = """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'))
+        self.assertEqual(
+            item['question']['text']['text'],
+            expected_json_string
         )
 
     def test_can_get_multi_choice_multi_answer_item_with_no_choices(self):
@@ -5541,7 +5580,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
@@ -5680,7 +5719,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
@@ -5705,6 +5744,26 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             str(item_body),
             expected_string
+        )
+
+        expected_json_string = """<itemBody>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio></p>
+<p>
+<strong>Introducting a new student</strong>
+</p>
+<p>It's the first day of school after the summer vacations. A new student has joined the class</p>
+<p>Student 1 talks to the new student to make him/her feel comfortable.</p>
+<p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id)
+
+        self.assertEqual(
+            item['question']['text']['text'],
+            expected_json_string
         )
 
     def test_can_get_audio_record_tool_item_qti_with_no_answers(self):
@@ -5844,7 +5903,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_string = """<itemBody>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
@@ -6306,11 +6365,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
-<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
@@ -6601,11 +6660,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 <p>
-<img alt="This is a drawing of a busy intersection." height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
 </itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
@@ -6617,6 +6676,31 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             str(item_body),
             expected_string
+        )
+
+        expected_json_string = """<itemBody>
+<p>
+   Where are Raju's bags?
+  </p>
+<p>
+</p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+<p>
+<img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      audio_asset_id,
+                      audio_asset_content_id,
+                      image_asset_id,
+                      image_asset_content_id)
+
+        self.assertEqual(
+            item['question']['text']['text'],
+            expected_json_string
         )
 
         self.assertEqual(
@@ -6687,6 +6771,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sentence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._intersection_image,
+                       self._mw_sentence_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
             "name": "Question 1",
@@ -6708,8 +6800,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -6727,6 +6826,14 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sentence_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._intersection_image,
+                       self._mw_sentence_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS),
             "name": "Question 1",
@@ -6748,8 +6855,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="AssetContent:intersection_png" width="100"/>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -7160,7 +7274,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -7514,7 +7628,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -7525,6 +7639,24 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             str(item_body),
             expected_string
+        )
+
+        expected_json_string = """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+                      asset_id,
+                      asset_content_id)
+
+        self.assertEqual(
+            item['question']['text']['text'],
+            expected_json_string
         )
 
         self.assertEqual(
@@ -7618,6 +7750,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sandbox_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
             "name": "Question 1",
@@ -7633,8 +7772,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -7652,6 +7798,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_mw_sandbox_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
             "name": "Question 1",
@@ -7667,8 +7820,15 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
 
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -8839,7 +8999,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <strong>
-<img alt="A set of four shapes." height="204" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
+<img alt="A set of four shapes." height="204" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
@@ -8971,7 +9131,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 <p>
 <strong>
-<img alt="A set of four shapes." height="204" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
+<img alt="A set of four shapes." height="204" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="703"/>
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
@@ -9193,7 +9353,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -9222,28 +9382,28 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
 <p>
-<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 1" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
                           image_1_asset_content_id),
             "id127df214-2a19-44da-894a-853948313dae": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
 <p>
-<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 2" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
                           image_2_asset_content_id),
             "iddcbf40ab-782e-4d4f-9020-6b8414699a72": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
 <p>
-<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 3" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_3_asset_id,
                           image_3_asset_content_id),
             "ide576c9cc-d20e-4ba3-8881-716100b796a0": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
 <p>
-<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 4" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_4_asset_id,
@@ -9421,7 +9581,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -9432,6 +9592,23 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self.assertEqual(
             str(item_body),
             expected_string
+        )
+
+        expected_json_string = """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+</audio>
+</p>
+</itemBody>""".format(repository_id,
+                      audio_asset_id,
+                      audio_asset_content_id)
+        self.assertEqual(
+            item['question']['text']['text'],
+            expected_json_string
         )
 
         self.assertEqual(
@@ -9450,28 +9627,28 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
 <p>
-<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 1" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
                           image_1_asset_content_id),
             "id127df214-2a19-44da-894a-853948313dae": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
 <p>
-<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 2" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
                           image_2_asset_content_id),
             "iddcbf40ab-782e-4d4f-9020-6b8414699a72": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
 <p>
-<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 3" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_3_asset_id,
                           image_3_asset_content_id),
             "ide576c9cc-d20e-4ba3-8881-716100b796a0": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
 <p>
-<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 4" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_4_asset_id,
@@ -9484,9 +9661,21 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                 str(choice),
                 expected_choices[choice_id]
             )
+        for choice in item['question']['choices']:
+            self.assertEqual(
+                choice['text'],
+                expected_choices[choice['id']]
+            )
 
     def test_can_get_image_sequence_item_with_no_choices(self):
         url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
 
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
@@ -9503,8 +9692,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
@@ -9520,6 +9717,13 @@ class QTIEndpointTests(BaseAssessmentTestCase):
     def test_can_get_image_sequence_item_qti_with_no_answers(self):
         url = '{0}/items'.format(self.url)
 
+        media_files = [self._audio_test_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
         payload = {
             "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
             "name": "Question 1",
@@ -9535,8 +9739,16 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>"""}
+</itemBody>""",
+                "fileIds": {}}
         }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
         req = self.app.post(url,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
@@ -9826,7 +10038,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
   </p>
 <p>
 <audio autoplay="autoplay" controls="controls" style="width: 125px">
-<source src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
+<source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
 
@@ -9855,28 +10067,28 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         expected_choices = {
             "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
 <p>
-<img alt="Picture 1" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 1" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_1_asset_id,
                           image_1_asset_content_id),
             "id127df214-2a19-44da-894a-853948313dae": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
 <p>
-<img alt="Picture 2" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 2" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_2_asset_id,
                           image_2_asset_content_id),
             "iddcbf40ab-782e-4d4f-9020-6b8414699a72": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
 <p>
-<img alt="Picture 3" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 3" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_3_asset_id,
                           image_3_asset_content_id),
             "ide576c9cc-d20e-4ba3-8881-716100b796a0": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
 <p>
-<img alt="Picture 4" height="100" src="http://localhost/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
+<img alt="Picture 4" height="100" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="100"/>
 </p>
 </simpleChoice>""".format(repository_id,
                           image_4_asset_id,

@@ -1,9 +1,10 @@
 import json
 import os
+import re
 import shutil
 from unittest import TestCase
 
-from bs4 import Tag
+from bs4 import Tag, BeautifulSoup
 from paste.fixture import TestApp
 
 import dlkit_runtime.configs
@@ -409,6 +410,23 @@ def get_managers(username='student@tiss.edu'):
 
 def get_valid_contents(tag):
     return [c for c in tag.contents if isinstance(c, Tag) or c.string.strip() != ""]
+
+
+def update_soup_with_url(text, asset_content):
+    soup = BeautifulSoup(u'<wrapper>{0}</wrapper>'.format(text), 'xml')
+    media_regex = re.compile('(AssetContent:)')
+
+    media_file_elements = soup.find_all(src=media_regex)
+    media_file_elements += soup.find_all(data=media_regex)
+    for media_file_element in media_file_elements:
+        if 'src' in media_file_element.attrs:
+            media_key = 'src'
+        else:
+            media_key = 'data'
+
+        media_file_element[media_key] = asset_content.get_url()
+
+    return soup.wrapper.renderContents()
 
 
 class BaseTestCase(TestCase):
