@@ -284,7 +284,8 @@ def handle_exceptions(ex):
     if 'WEBENV' in os.environ and os.environ['WEBENV'] == 'test':
         pass
     else:
-        print traceback.format_exc(10)
+        pass
+        # print traceback.format_exc(10)
     if isinstance(ex, PermissionDenied):
         web.message = 'Permission Denied'
         raise web.Forbidden()
