@@ -32,7 +32,7 @@ urls = (
     '/version', 'version',
     '/(.*)', 'index'
 )
-app = web.application(urls, locals())
+app = web.application(urls, globals())
 
 
 class bootloader_storage_path:
