@@ -3784,7 +3784,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         url = self.url + '/hierarchies/nodes/' + unquote(str(self._bank.ident)) + '/children'
 
         payload = {
-            'ids'   : ['fake.MoreFake%3A1234567890abcdefabcdef12%40MIT']
+            'ids'   : ['assessment.Bank%3A1234567890abcdefabcdef12%40ODL.MIT.EDU']
         }
 
         self.assertRaises(AppError,
