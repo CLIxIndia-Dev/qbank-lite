@@ -1,3 +1,6 @@
+1.10.0:
+  - Update dlkit; remove some extraneous print statements.
+
 1.9.0:
   - Refactor image URL handling so that item JSON returns right media paths.
 

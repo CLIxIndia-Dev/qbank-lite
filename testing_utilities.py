@@ -313,7 +313,7 @@ def create_user_authorizations(vault, username="student@tiss.edu", new_catalogs=
                 function_id = create_function_id(function, namespace)
                 qualifier_id = create_qualifier_id(identifier, catalog)
                 agent_id = create_agent_id(username)
-                print "adding authz: {0}, {1}, {2}".format(str(agent_id), str(function_id), str(qualifier_id))
+                # print "adding authz: {0}, {1}, {2}".format(str(agent_id), str(function_id), str(qualifier_id))
                 create_authz(vault, agent_id, function_id, qualifier_id)
 
 # def create_authz_superuser():
