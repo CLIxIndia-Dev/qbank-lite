@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/CLIxIndia-Dev/qbank-lite.svg?branch=master)](https://travis-ci.org/CLIxIndia-Dev/qbank-lite)
+
 Running
 =========================
 QBank runs by default with `https` on port `8080`, with
