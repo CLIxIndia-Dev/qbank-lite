@@ -98,6 +98,7 @@ class AssetsList(utilities.BaseClass):
             x = web.input(inputFile={})
             rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
+            repository.use_isolated_repository_view()
             # get each set of files individually, because
             # we are doing this in memory, so the file pointer changes
             # once we read in a file
@@ -127,10 +128,15 @@ class AssetsList(utilities.BaseClass):
                 if 'createNew' in params.keys() and params['createNew']:
                     asset = rutils.create_asset(repository, file_name)
                 else:
-                    querier = repository.get_asset_query()
-                    querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
-                    assets = repository.get_assets_by_query(querier)
-                    if assets.available() > 0:
+                    try:
+                        querier = repository.get_asset_query()
+                    except (AttributeError, Unimplemented):
+                        assets = None
+                    else:
+                        querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
+                        assets = repository.get_assets_by_query(querier)
+
+                    if assets is not None and assets.available() > 0:
                         asset = assets.next()
                     else:
                         asset = rutils.create_asset(repository, file_name)
@@ -218,6 +224,7 @@ class AssetContentsList(utilities.BaseClass):
             x = web.input(inputFile={})
             rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
+            repository.use_isolated_repository_view()
             asset = repository.get_asset(utilities.clean_id(asset_id))
             # get each set of files individually, because
             # we are doing this in memory, so the file pointer changes
@@ -302,6 +309,7 @@ class AssetContentDetails(utilities.BaseClass):
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
 
             repository = rm.get_repository(utilities.clean_id(repository_id))
+            repository.use_isolated_repository_view()
             form = repository.get_asset_content_form_for_update(asset_content.ident)
 
             try:

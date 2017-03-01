@@ -14,6 +14,7 @@ pyasn1==0.1.9
 pycparser==2.14
 PyInstaller==3.2
 pymongo==3.2.1
+python-memcached==1.58
 pyOpenSSL==16.0.0
 signit==0.3.0
 six==1.10.0
