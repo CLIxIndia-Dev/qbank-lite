@@ -1192,7 +1192,7 @@ class ItemDetails(utilities.BaseClass):
                                                        'attempts', 'markdown', 'showanswer',
                                                        'weight', 'difficulty', 'discrimination',
                                                        'removeName', 'editName', 'removeDescription',
-                                                       'editDescription', 'aliasId']):
+                                                       'editDescription', 'aliasId', 'genusTypeId']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
                 form = utilities.set_form_basics(form, local_data_map)
 
@@ -1234,9 +1234,9 @@ class ItemDetails(utilities.BaseClass):
                     qf = bank.get_question_form_for_create(updated_item.ident, question_records)
                     # to enable the various update methods later on.
                     question['recordTypeIds'] = qf._my_map['recordTypeIds']
-                    qf = utilities.set_form_basics(qf, question)
                     method = bank.create_question
 
+                qf = utilities.set_form_basics(qf, question)
                 qf = autils.update_question_form(question, qf)
                 qf = autils.update_question_form_with_files(qf, question)
                 method(qf)
