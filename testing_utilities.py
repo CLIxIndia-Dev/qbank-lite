@@ -469,6 +469,7 @@ class BaseTestCase(TestCase):
         envoy.run('mongo test_qbank_lite_hierarchy --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_authorization --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_id --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')
 
@@ -476,9 +477,9 @@ class BaseTestCase(TestCase):
         envoy.run('mongorestore --db test_qbank_lite_repository --drop tests/fixtures/test_qbank_lite_repository')
         if os.path.isdir(TEST_DATA_STORE_PATH):
             shutil.rmtree(TEST_DATA_STORE_PATH)
-        #
-        # if not os.path.isdir(TEST_DATA_STORE_PATH):
-        #     os.makedirs(TEST_DATA_STORE_PATH)
+
+        if not os.path.isdir(TEST_DATA_STORE_PATH):
+            os.makedirs(TEST_DATA_STORE_PATH)
         #
         # # copy over the test fixture data from tests/fixtures
         # shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
@@ -507,5 +508,6 @@ class BaseTestCase(TestCase):
         envoy.run('mongo test_qbank_lite_hierarchy --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_authorization --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_id --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')

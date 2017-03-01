@@ -1,4 +1,4 @@
-from dlkit_runtime.errors import PermissionDenied
+from dlkit_runtime.errors import PermissionDenied, IllegalState
 from dlkit_runtime.primitives import Id
 
 from utilities import clean_id

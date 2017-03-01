@@ -48,6 +48,12 @@ class BaseClass:
         return url_data
 
 
+def create_agent_id(username, authority='MIT-ODL'):
+    return Id(identifier=username,
+              namespace='osid.agent.Agent',
+              authority=authority)
+
+
 def create_display_text(text_string, language_code=None):
     if isinstance(text_string, dict):
         return DisplayText(display_text_map=text_string)

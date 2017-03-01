@@ -171,15 +171,7 @@ MONGO_1 = {
             'displayName': 'Which magic item lookup sessions to try',
             'description': 'To handle magic IDs.',
             'values': [
-                {'value': 'records.fbw_dlkit_adapters.multi_choice_questions.randomized_questions.RandomizedMCItemLookupSession', 'priority': 1}
-            ]
-        },
-        'magicAssessmentPartLookupSessions': {
-            'syntax': 'STRING',
-            'displayName': 'Which magic assessment part lookup sessions to try',
-            'description': 'To handle magic IDs.',
-            'values': [
-                {'value': 'records.fbw_dlkit_adapters.magic_parts.assessment_part_records.MagicAssessmentPartLookupSession', 'priority': 1}
+                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
         'localImpl': {
@@ -479,15 +471,7 @@ TEST_MONGO_1 = {
             'displayName': 'Which magic item lookup sessions to try',
             'description': 'To handle magic IDs.',
             'values': [
-                {'value': 'records.fbw_dlkit_adapters.multi_choice_questions.randomized_questions.RandomizedMCItemLookupSession', 'priority': 1}
-            ]
-        },
-        'magicAssessmentPartLookupSessions': {
-            'syntax': 'STRING',
-            'displayName': 'Which magic assessment part lookup sessions to try',
-            'description': 'To handle magic IDs.',
-            'values': [
-                {'value': 'records.fbw_dlkit_adapters.magic_parts.assessment_part_records.MagicAssessmentPartLookupSession', 'priority': 1}
+                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
         'localImpl': {
