@@ -1,3 +1,6 @@
+1.11.1:
+  - Fix bug with editing only item or question genusTypeId.
+
 1.11.0:
   - Update dlkit; refactor internal calls for performance; enable memcache
     for qualifier ids.
