@@ -1,3 +1,7 @@
+1.11.0:
+  - Update dlkit; refactor internal calls for performance; enable memcache
+    for qualifier ids.
+
 1.10.0:
   - Update dlkit; remove some extraneous print statements.
 
