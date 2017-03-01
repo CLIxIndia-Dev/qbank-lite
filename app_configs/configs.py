@@ -124,6 +124,14 @@ FILESYSTEM_1 = {
                 {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
+        'useCachingForQualifierIds': {
+            'syntax': 'BOOLEAN',
+            'displayName': 'Flag to use memcached for authz qualifier_ids or not',
+            'description': 'Flag to use memcached for authz qualifier_ids or not',
+            'values': [
+                {'value': True, 'priority': 1}
+            ]
+        },
     },
 
 }

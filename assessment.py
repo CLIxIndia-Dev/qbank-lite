@@ -318,77 +318,35 @@ class AssessmentsList(utilities.BaseClass):
     def POST(self, bank_id):
         try:
             am = autils.get_assessment_manager()
-            # TODO: create a QTI record and version of this...
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
 
-            try:
-                x = web.input(qtiFile={})
-                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
-                    qti_file = None
+            form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
-                    for zip_file_name in qti_zip.namelist():
-                        if zip_file_name == 'imsmanifest.xml':
-                            pass
-                        elif '.xml' in zip_file_name:
-                            # should be the actual item XML at this point
-                            qti_file = qti_zip.open(zip_file_name)
+            form = utilities.set_form_basics(form, self.data())
 
-                    qti_xml = qti_file.read()
-                    soup = BeautifulSoup(qti_xml, 'xml')
+            new_assessment = bank.create_assessment(form)
+            # if item IDs are included in the assessment, append them.
+            if 'itemIds' in self.data():
+                if isinstance(self.data()['itemIds'], basestring):
+                    items = json.loads(self.data()['itemIds'])
+                else:
+                    items = self.data()['itemIds']
 
-                    # TODO: add in alias checking to see if this assessment exists already
-                    # if so, create a new assessment and provenance it...remove the alias
-                    # on the previous assessment.
+                if not isinstance(items, list):
+                    try:
+                        utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
+                        items = [items]
+                    except:
+                        raise InvalidArgument
 
-                    form = bank.get_assessment_form_for_create([QTI_ITEM])
-                    form.display_name = soup.assessmentItem['title']
-                    form.description = 'QTI AssessmentItem'
-                    form.load_from_qti_item(qti_xml)
+                for item_id in items:
+                    try:
+                        bank.add_item(new_assessment.ident, utilities.clean_id(item_id))
+                    except:
+                        raise NotFound()
 
-                    new_item = bank.create_item(form)
-
-                    # ID Alias with the QTI ID from Onyx
-                    bank.alias_item(new_item.ident,
-                                    utilities.construct_qti_id(soup.assessmentItem['identifier']))
-
-                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION])
-
-                    if len(media_files) > 0:
-                        q_form.load_from_qti_item(qti_xml, media_files=media_files)
-                    else:
-                        q_form.load_from_qti_item(qti_xml)
-                    bank.create_question(q_form)
-
-                    a_form = bank.get_answer_form_for_create(new_item.ident, [QTI_ANSWER])
-                    a_form.load_from_qti_item(qti_xml)
-                    bank.create_answer(a_form)
-            except AttributeError:  # 'dict' object has no attribute 'file'
-                form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
-
-                form = utilities.set_form_basics(form, self.data())
-
-                new_assessment = bank.create_assessment(form)
-                # if item IDs are included in the assessment, append them.
-                if 'itemIds' in self.data():
-                    if isinstance(self.data()['itemIds'], basestring):
-                        items = json.loads(self.data()['itemIds'])
-                    else:
-                        items = self.data()['itemIds']
-
-                    if not isinstance(items, list):
-                        try:
-                            utilities.clean_id(items)  # use this as proxy to test if a valid OSID ID
-                            items = [items]
-                        except:
-                            raise InvalidArgument
-
-                    for item_id in items:
-                        try:
-                            bank.add_item(new_assessment.ident, utilities.clean_id(item_id))
-                        except:
-                            raise NotFound()
-
-                full_assessment = bank.get_assessment(new_assessment.ident)
+            full_assessment = bank.get_assessment(new_assessment.ident)
 
             if 'assignedBankIds' in self.data():
                 # on POST, don't need to delete previous because there are no previous ones!
@@ -492,219 +450,11 @@ class ItemsList(utilities.BaseClass):
                 utilities.verify_keys_present(self.data(), ['bankId'])
                 bank_id = self.data()['bankId']
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
 
             try:
                 x = web.input(qtiFile={})
-                # get each set of files individually, because
-                # we are doing this in memory, so the file pointer changes
-                # once we read in a file
-                # https://docs.python.org/2/library/zipfile.html
-                keywords = []
-                description = ''
-                learning_objective = None
-                media_files = {}
-                qti_file = None
-
-                # get manifest keywords first
-                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
-                    for zip_file_name in qti_zip.namelist():
-                        if zip_file_name == 'imsmanifest.xml':
-                            manifest = qti_zip.open(zip_file_name)
-                            manifest_xml = manifest.read()
-                            manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
-                            if manifest_soup.resources.resource.metadata.general.description:
-                                for keyword in manifest_soup.resources.resource.metadata.general.description:
-                                    if keyword is not None and keyword.string is not None:
-                                        if '[type]' in keyword.string:
-                                            split_keywords = keyword.string.split('}')
-                                            type_tag = split_keywords[0]
-                                            keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
-                                            if len(split_keywords) > 1:
-                                                description += '\n'.join(split_keywords[1::]).strip()
-                                        else:
-                                            description += keyword.string
-                            if manifest_soup.resources.lom:
-                                for classification in manifest_soup.resources.lom.find_all('classification'):
-                                    if classification.purpose.value.string == 'target audience':
-                                        learning_objective = classification.taxonPath.taxon.entry.string.string
-
-                # now get media files
-                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
-                    for zip_file_name in qti_zip.namelist():
-                        if 'media/' in zip_file_name and zip_file_name != 'media/':
-                            # this method must match what is in the QTI QuestionFormRecord
-                            file_name = zip_file_name.replace('media/', '').replace('.', '_')
-                            file_obj = DataInputStream(StringIO(qti_zip.open(zip_file_name).read()))
-                            file_obj.name = zip_file_name
-                            media_files[file_name] = file_obj
-                # now deal with the question xml
-                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
-                    for zip_file_name in qti_zip.namelist():
-                        if ('.xml' in zip_file_name and
-                                'media/' not in zip_file_name and
-                                zip_file_name != 'imsmanifest.xml'):
-                            qti_file = qti_zip.open(zip_file_name, 'rU')
-
-                    qti_xml = qti_file.read()
-
-                    # clean out &nbsp; non-breaking spaces (unicode char \xa0)
-                    # deprecate this -- seems to cause issues with Hindi questions,
-                    #   per issue from Tanvi Feb 13, 2017
-                    # qti_xml = qti_xml.replace('\xa0', ' ').replace('\xc2', ' ')
-
-                    # to handle video tags, we need to do a blanket replace
-                    # of  &lt; => <
-                    # and &gt; => >
-                    # with the assumption that will not break anything else ...
-                    # clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
-                    # deprecated
-                    clean_qti_xml = qti_xml
-
-                    soup = BeautifulSoup(clean_qti_xml, 'xml')
-
-                    # QTI ID alias check to see if this item exists already
-                    # if so, create a new item and provenance it...
-                    original_qti_id = utilities.construct_qti_id(soup.assessmentItem['identifier'])
-                    try:
-                        parent_item = bank.get_item(original_qti_id)
-                        add_provenance_parent = True
-                    except (NotFound, InvalidId):
-                        parent_item = None
-                        add_provenance_parent = False
-
-                    # if this is a numeric response, do not add the wrong answer item
-                    # record, because need that to go through the magical items
-                    if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
-                        items_records_list = [QTI_ITEM,
-                                              PROVENANCE_ITEM_RECORD,
-                                              MULTI_LANGUAGE_ITEM_RECORD]
-                    else:
-                        items_records_list = [QTI_ITEM,
-                                              PROVENANCE_ITEM_RECORD,
-                                              WRONG_ANSWER_ITEM,
-                                              MULTI_LANGUAGE_ITEM_RECORD]
-                    form = bank.get_item_form_for_create(items_records_list)
-
-                    # in order to support multi-languages, let's keep the title
-                    # but minus the last language code
-                    # i.e. ee_u1l01a01q01_en
-                    # keep ee_u1l01a01q01 as the item name
-                    item_name = soup.assessmentItem['title']
-                    language_code = None
-                    if any(lang_code in item_name for lang_code in ['en', 'hi', 'te']):
-                        language_code = item_name.split('_')[-1]
-                        item_name = '_'.join(item_name.split('_')[0:-1])
-
-                    form.add_display_name(utilities.create_display_text(item_name,
-                                                                        language_code))
-
-                    form.add_description(utilities.create_display_text(description or 'QTI AssessmentItem',
-                                                                       language_code))
-                    form.load_from_qti_item(clean_qti_xml,
-                                            keywords=keywords)
-                    if learning_objective is not None:
-                        # let's use unicode by default ...
-                        # try:
-                        #     form.set_learning_objectives([utilities.clean_id('learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective))])
-                        # except UnicodeEncodeError:
-                        form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
-                    if add_provenance_parent:
-                        form.set_provenance(str(parent_item.ident))
-                        # and also archive the parent
-                        autils.archive_item(bank, parent_item)
-                    new_item = bank.create_item(form)
-
-                    # ID Alias with the QTI ID from Onyx
-                    bank.alias_item(new_item.ident,
-                                    original_qti_id)
-
-                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION,
-                                                                                MULTI_LANGUAGE_QUESTION_RECORD])
-                    if len(media_files) == 0:
-                        media_files = None
-
-                    q_form.load_from_qti_item(clean_qti_xml,
-                                              media_files=media_files,
-                                              keywords=keywords)
-                    question = bank.create_question(q_form)
-
-                    local_map = {
-                        'type': str(new_item.genus_type)
-                    }
-                    if (autils.is_multiple_choice(local_map) or
-                            autils.is_ordered_choice(local_map)):
-                        choices = question.get_choices()
-                    else:
-                        choices = None
-                    answer_record_types = [QTI_ANSWER,
-                                           MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
-                                           FILES_ANSWER_RECORD]
-                    # correct answer
-                    # need a default one, even for extended text interaction
-                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
-                    a_form.load_from_qti_item(clean_qti_xml,
-                                              keywords=keywords,
-                                              correct=True,
-                                              feedback_choice_id='correct',
-                                              media_files=media_files)
-                    answer = bank.create_answer(a_form)
-
-                    # now let's do the incorrect answers with feedback, if available
-                    if choices is not None:
-                        # what if there are multiple right answer choices,
-                        #  i.e. movable words?
-                        right_answers = answer.object_map['choiceIds']
-                        wrong_answers = [c for c in choices if c['id'] not in right_answers]
-
-                        # survey questions should mark all choices as correct,
-                        # because Onyx only lets you pick one ... so let's fix that ...
-                        if autils.is_survey(local_map):
-                            for wrong_answer in wrong_answers:
-                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
-                                # force to True in load_from_qti_item, once the choiceId is set
-                                a_form.load_from_qti_item(clean_qti_xml,
-                                                          keywords=keywords,
-                                                          correct=False,
-                                                          feedback_choice_id=wrong_answer['id'],
-                                                          media_files=media_files)
-
-                                bank.create_answer(a_form)
-                        else:
-                            # for now only support a generic wrong answer feedback for
-                            # mc multi-select ... otherwise have to do scoring somehow
-                            if (len(wrong_answers) > 0 and
-                                    str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
-                                for wrong_answer in wrong_answers:
-                                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
-                                    a_form.load_from_qti_item(clean_qti_xml,
-                                                              keywords=keywords,
-                                                              correct=False,
-                                                              feedback_choice_id=wrong_answer['id'],
-                                                              media_files=media_files)
-
-                                    bank.create_answer(a_form)
-                            else:
-                                # create a generic one
-                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
-                                a_form.load_from_qti_item(clean_qti_xml,
-                                                          keywords=keywords,
-                                                          correct=False,
-                                                          feedback_choice_id='incorrect',
-                                                          media_files=media_files)
-
-                                bank.create_answer(a_form)
-                    elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
-                                                      str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
-                        # create a generic one
-                        a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
-                        a_form.load_from_qti_item(clean_qti_xml,
-                                                  keywords=keywords,
-                                                  correct=False,
-                                                  feedback_choice_id='incorrect',
-                                                  media_files=media_files)
-
-                        bank.create_answer(a_form)
-
+                uploaded_file = x['qtiFile'].file
             except AttributeError:  # 'dict' object has no attribute 'file'
                 # let's do QTI questions differently
                 if 'genusTypeId' in self.data() and 'qti' in self.data()['genusTypeId']:
@@ -877,6 +627,208 @@ class ItemsList(utilities.BaseClass):
 
                             afc = autils.set_answer_form_genus_and_feedback(answer, afc)
                             new_answer = bank.create_answer(afc)
+            else:
+                # get each set of files individually, because
+                # we are doing this in memory, so the file pointer changes
+                # once we read in a file
+                # https://docs.python.org/2/library/zipfile.html
+                keywords = []
+                description = ''
+                learning_objective = None
+                media_files = {}
+                qti_file = None
+
+                # get manifest keywords first
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    for zip_file_name in qti_zip.namelist():
+                        if zip_file_name == 'imsmanifest.xml':
+                            manifest = qti_zip.open(zip_file_name)
+                            manifest_xml = manifest.read()
+                            manifest_soup = BeautifulSoup(manifest_xml, 'lxml-xml')
+                            if manifest_soup.resources.resource.metadata.general.description:
+                                for keyword in manifest_soup.resources.resource.metadata.general.description:
+                                    if keyword is not None and keyword.string is not None:
+                                        if '[type]' in keyword.string:
+                                            split_keywords = keyword.string.split('}')
+                                            type_tag = split_keywords[0]
+                                            keywords.append(type_tag.replace('[type]', '').replace('<', '').replace('>', '').replace('{', '').replace('}', ''))
+                                            if len(split_keywords) > 1:
+                                                description += '\n'.join(split_keywords[1::]).strip()
+                                        else:
+                                            description += keyword.string
+                            if manifest_soup.resources.lom:
+                                for classification in manifest_soup.resources.lom.find_all('classification'):
+                                    if classification.purpose.value.string == 'target audience':
+                                        learning_objective = classification.taxonPath.taxon.entry.string.string
+
+                # now get media files
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    for zip_file_name in qti_zip.namelist():
+                        if 'media/' in zip_file_name and zip_file_name != 'media/':
+                            # this method must match what is in the QTI QuestionFormRecord
+                            file_name = zip_file_name.replace('media/', '').replace('.', '_')
+                            file_obj = DataInputStream(StringIO(qti_zip.open(zip_file_name).read()))
+                            file_obj.name = zip_file_name
+                            media_files[file_name] = file_obj
+                # now deal with the question xml
+                with zipfile.ZipFile(x['qtiFile'].file) as qti_zip:
+                    for zip_file_name in qti_zip.namelist():
+                        if ('.xml' in zip_file_name and
+                                'media/' not in zip_file_name and
+                                zip_file_name != 'imsmanifest.xml'):
+                            qti_file = qti_zip.open(zip_file_name, 'rU')
+
+                    qti_xml = qti_file.read()
+
+                    # to handle video tags, we need to do a blanket replace
+                    # of  &lt; => <
+                    # and &gt; => >
+                    # with the assumption that will not break anything else ...
+                    # clean_qti_xml = qti_xml.replace('&lt;', '<').replace('&gt;', '>')
+                    # deprecated
+                    clean_qti_xml = qti_xml
+
+                    soup = BeautifulSoup(clean_qti_xml, 'xml')
+
+                    # QTI ID alias check to see if this item exists already
+                    # if so, create a new item and provenance it...
+                    original_qti_id = utilities.construct_qti_id(soup.assessmentItem['identifier'])
+                    try:
+                        parent_item = bank.get_item(original_qti_id)
+                        add_provenance_parent = True
+                    except (NotFound, InvalidId):
+                        parent_item = None
+                        add_provenance_parent = False
+
+                    # if this is a numeric response, do not add the wrong answer item
+                    # record, because need that to go through the magical items
+                    if soup.itemBody.textEntryInteraction and soup.templateDeclaration:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
+                    else:
+                        items_records_list = [QTI_ITEM,
+                                              PROVENANCE_ITEM_RECORD,
+                                              WRONG_ANSWER_ITEM,
+                                              MULTI_LANGUAGE_ITEM_RECORD]
+                    form = bank.get_item_form_for_create(items_records_list)
+
+                    # in order to support multi-languages, let's keep the title
+                    # but minus the last language code
+                    # i.e. ee_u1l01a01q01_en
+                    # keep ee_u1l01a01q01 as the item name
+                    item_name = soup.assessmentItem['title']
+                    language_code = None
+                    if any(lang_code in item_name for lang_code in ['en', 'hi', 'te']):
+                        language_code = item_name.split('_')[-1]
+                        item_name = '_'.join(item_name.split('_')[0:-1])
+
+                    form.add_display_name(utilities.create_display_text(item_name,
+                                                                        language_code))
+
+                    form.add_description(utilities.create_display_text(description or 'QTI AssessmentItem',
+                                                                       language_code))
+                    form.load_from_qti_item(clean_qti_xml,
+                                            keywords=keywords)
+                    if learning_objective is not None:
+                        # let's use unicode by default ...
+                        form.set_learning_objectives([utilities.clean_id(u'learning.Objective%3A{0}%40CLIX.TISS.EDU'.format(learning_objective).encode('utf8'))])
+                    if add_provenance_parent:
+                        form.set_provenance(str(parent_item.ident))
+                        # and also archive the parent
+                        autils.archive_item(bank, parent_item)
+                    new_item = bank.create_item(form)
+
+                    # ID Alias with the QTI ID from Onyx
+                    bank.alias_item(new_item.ident,
+                                    original_qti_id)
+
+                    q_form = bank.get_question_form_for_create(new_item.ident, [QTI_QUESTION,
+                                                                                MULTI_LANGUAGE_QUESTION_RECORD])
+                    if len(media_files) == 0:
+                        media_files = None
+
+                    q_form.load_from_qti_item(clean_qti_xml,
+                                              media_files=media_files,
+                                              keywords=keywords)
+                    question = bank.create_question(q_form)
+
+                    local_map = {
+                        'type': str(new_item.genus_type)
+                    }
+                    if (autils.is_multiple_choice(local_map) or
+                            autils.is_ordered_choice(local_map)):
+                        choices = question.get_choices()
+                    else:
+                        choices = None
+                    answer_record_types = [QTI_ANSWER,
+                                           MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
+                                           FILES_ANSWER_RECORD]
+                    # correct answer
+                    # need a default one, even for extended text interaction
+                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
+                    a_form.load_from_qti_item(clean_qti_xml,
+                                              keywords=keywords,
+                                              correct=True,
+                                              feedback_choice_id='correct',
+                                              media_files=media_files)
+                    answer = bank.create_answer(a_form)
+
+                    # now let's do the incorrect answers with feedback, if available
+                    if choices is not None:
+                        # what if there are multiple right answer choices,
+                        #  i.e. movable words?
+                        right_answers = answer.object_map['choiceIds']
+                        wrong_answers = [c for c in choices if c['id'] not in right_answers]
+
+                        # survey questions should mark all choices as correct,
+                        # because Onyx only lets you pick one ... so let's fix that ...
+                        if autils.is_survey(local_map):
+                            for wrong_answer in wrong_answers:
+                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
+                                # force to True in load_from_qti_item, once the choiceId is set
+                                a_form.load_from_qti_item(clean_qti_xml,
+                                                          keywords=keywords,
+                                                          correct=False,
+                                                          feedback_choice_id=wrong_answer['id'],
+                                                          media_files=media_files)
+
+                                bank.create_answer(a_form)
+                        else:
+                            # for now only support a generic wrong answer feedback for
+                            # mc multi-select ... otherwise have to do scoring somehow
+                            if (len(wrong_answers) > 0 and
+                                    str(new_item.genus_type) != str(CHOICE_INTERACTION_MULTI_GENUS)):
+                                for wrong_answer in wrong_answers:
+                                    a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
+                                    a_form.load_from_qti_item(clean_qti_xml,
+                                                              keywords=keywords,
+                                                              correct=False,
+                                                              feedback_choice_id=wrong_answer['id'],
+                                                              media_files=media_files)
+
+                                    bank.create_answer(a_form)
+                            else:
+                                # create a generic one
+                                a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
+                                a_form.load_from_qti_item(clean_qti_xml,
+                                                          keywords=keywords,
+                                                          correct=False,
+                                                          feedback_choice_id='incorrect',
+                                                          media_files=media_files)
+
+                                bank.create_answer(a_form)
+                    elif str(new_item.genus_type) in [str(INLINE_CHOICE_INTERACTION_GENUS),
+                                                      str(NUMERIC_RESPONSE_INTERACTION_GENUS)]:
+                        # create a generic one
+                        a_form = bank.get_answer_form_for_create(new_item.ident, answer_record_types)
+                        a_form.load_from_qti_item(clean_qti_xml,
+                                                  keywords=keywords,
+                                                  correct=False,
+                                                  feedback_choice_id='incorrect',
+                                                  media_files=media_files)
+
+                        bank.create_answer(a_form)
 
             full_item = bank.get_item(new_item.ident)
             return_data = utilities.convert_dl_object(full_item)
@@ -938,6 +890,7 @@ class AssessmentDetails(utilities.BaseClass):
             local_data_map = self.data()
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
             form = bank.get_assessment_form_for_update(utilities.clean_id(sub_id))
 
             form = utilities.set_form_basics(form, local_data_map)
@@ -1213,11 +1166,6 @@ class ItemDetails(utilities.BaseClass):
             item = ils.get_item(utilities.clean_id(sub_id))
             data = utilities.convert_dl_object(item)
 
-            # if 'fileIds' in data:
-            #     data['files'] = item.get_files()
-            # if data['question'] and 'fileIds' in data['question']:
-            #     data['question']['files'] = item.get_question().get_files()
-
             # for convenience, also return the wrong answers
             try:
                 data = json.loads(data)
@@ -1237,6 +1185,7 @@ class ItemDetails(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
             local_data_map = self.data()
 
             if any(attr in local_data_map for attr in ['name', 'description', 'learningObjectiveIds',
@@ -1245,7 +1194,6 @@ class ItemDetails(utilities.BaseClass):
                                                        'removeName', 'editName', 'removeDescription',
                                                        'editDescription', 'aliasId']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
-
                 form = utilities.set_form_basics(form, local_data_map)
 
                 # update the item before the questions / answers,
@@ -1257,17 +1205,14 @@ class ItemDetails(utilities.BaseClass):
                         local_data_map['type'] = form._my_map['recordTypeIds'][0]
                     else:
                         local_data_map['type'] = ''
-
                 form = autils.update_item_metadata(local_data_map, form)
 
                 updated_item = bank.update_item(form)
-
                 if 'aliasId' in local_data_map:
                     bank.alias_item(updated_item.ident,
                                     utilities.clean_id(local_data_map['aliasId']))
             else:
                 updated_item = bank.get_item(utilities.clean_id(sub_id))
-
             if 'question' in local_data_map:
                 question = local_data_map['question']
                 if updated_item.object_map['question'] is not None:
@@ -1282,7 +1227,6 @@ class ItemDetails(utilities.BaseClass):
 
                     if 'rerandomize' in local_data_map and 'rerandomize' not in question:
                         question['rerandomize'] = local_data_map['rerandomize']
-
                     qf = bank.get_question_form_for_update(updated_item.ident)
                     method = bank.update_question
                 else:
@@ -1294,11 +1238,9 @@ class ItemDetails(utilities.BaseClass):
                     method = bank.create_question
 
                 qf = autils.update_question_form(question, qf)
-
                 qf = autils.update_question_form_with_files(qf, question)
-
                 method(qf)
-            updated_item = bank.get_item(updated_item.ident)
+
             if 'answers' in local_data_map:
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
@@ -1330,6 +1272,10 @@ class ItemDetails(utilities.BaseClass):
                             # because multiple choice answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed
                             # in by the consumer.
+                            # update this here because we need the new question,
+                            # if one was created.
+                            updated_item = bank.get_item(updated_item.ident)
+
                             question = updated_item.get_question()
                             afc = autils.update_answer_form(answer, afc, question)
                         else:
@@ -1337,7 +1283,6 @@ class ItemDetails(utilities.BaseClass):
                         afc = autils.update_answer_form_with_files(afc, answer)
                         bank.create_answer(afc)
             full_item = bank.get_item(utilities.clean_id(sub_id))
-
             return_data = utilities.convert_dl_object(full_item)
 
             # for convenience, also return the wrong answers
@@ -1349,7 +1294,6 @@ class ItemDetails(utilities.BaseClass):
                 return_data = json.dumps(return_data)
             except AttributeError:
                 pass
-
             return return_data
         except (PermissionDenied, Unsupported, InvalidArgument, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
