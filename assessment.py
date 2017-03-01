@@ -1638,8 +1638,13 @@ class AssessmentOfferedResults(utilities.BaseClass):
 
                 responses = bank.get_assessment_taken_responses(taken.ident)
                 for index, response in enumerate(responses):
+                    import pdb
+                    pdb.set_trace()
                     try:
                         response_map = response.object_map
+                    except IllegalState:
+                        question_maps[index]['responses'].append(None)
+                    else:
                         response_map['type'] = response_map['recordTypeIds']
                         try:
                             response_map.update({
@@ -1650,8 +1655,6 @@ class AssessmentOfferedResults(utilities.BaseClass):
                                 'isCorrect': autils.validate_response(response_map, answers[index])
                             })
                         question_maps[index]['responses'].append(response_map)
-                    except IllegalState:
-                        question_maps[index]['responses'].append(None)
                 taken_map.update({
                     'questions': question_maps
                 })
