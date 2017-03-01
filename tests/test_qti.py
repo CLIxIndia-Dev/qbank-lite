@@ -10636,3 +10636,64 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_change_item_genus_type_id(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing"
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(item['genusTypeId'], str(QTI_ITEM_CHOICE_INTERACTION_GENUS))
+
+        url = '{0}/{1}'.format(url, item['id'])
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS)
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(item['genusTypeId'], str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS))
+
+    def test_can_change_question_genus_type_id(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
+            }
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(item['question']['genusTypeId'], str(QTI_QUESTION_CHOICE_INTERACTION_GENUS))
+
+        url = '{0}/{1}'.format(url, item['id'])
+        payload = {
+            "question": {
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS)
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+        self.assertEqual(item['question']['genusTypeId'], str(QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS))
