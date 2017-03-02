@@ -3436,16 +3436,16 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data), 1)
-        for index, question in enumerate(data[0]['questions']):
+        for index, question in enumerate(data[0]['sections'][0]['questions']):
             self.assertIn('learningObjectiveIds', question)
             self.assertEqual(
-                question['responses'][0]['choiceIds'],
+                question['response']['choiceIds'],
                 [wrong_answer['id']]
             )
-            self.assertFalse(question['responses'][0]['isCorrect'])
+            self.assertFalse(question['response']['isCorrect'])
 
         self.assertEqual(
-            data[0]['questions'][0]['learningObjectiveIds'],
+            data[0]['sections'][0]['questions'][0]['learningObjectiveIds'],
             []
         )
 

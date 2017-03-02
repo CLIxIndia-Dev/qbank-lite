@@ -304,6 +304,7 @@ class AssessmentsList(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
+
             if "isolated" in self.data():
                 assessment_bank.use_isolated_bank_view()
 
@@ -991,6 +992,14 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
                 child_bank = am.get_bank(utilities.clean_id(child_id))
                 am.add_child_bank(utilities.clean_id(bank_id),
                                   child_bank.ident)
+            # clear memcached here, if using caching?
+            try:
+                import memcache
+                mc = memcache.Client(['127.0.0.1:11211'], debug=0)
+                mc.flush_all()
+            except ImportError:
+                pass
+
             return utilities.success()
         except (PermissionDenied, NotFound, KeyError, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1610,52 +1619,37 @@ class AssessmentOfferedResults(utilities.BaseClass):
     """
     @utilities.format_response
     def GET(self, bank_id, offering_id):
+        def taken_map(_taken):
+            t_map = _taken.object_map
+            t_map.update({
+                'sections': autils.get_taken_section_map(_taken, update=False)
+            })
+            return t_map
+
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            params = self.data()
+            if 'agentId' in params:
+                querier = bank.get_assessment_taken_query()
+                agent_id = utilities.create_agent_id(params['agentId'])
 
-            takens = bank.get_assessments_taken_for_assessment_offered(utilities.clean_id(offering_id))
-            data = []
-            for taken in takens:
-                taken_map = taken.object_map
+                querier.match_taking_agent_id(agent_id, True)
+                querier.match_assessment_offered_id(utilities.clean_id(offering_id), True)
 
-                # let's get the questions first ... we need to inject that information into
-                # the response, so that UI side we can match on the original, canonical itemId
-                # also need to include the questions's learningObjectiveIds
-                sections = taken._get_assessment_sections()
-                question_maps = []
-                answers = []
-                for section in sections:
-                    questions = section.get_questions(update=False)
-                    for index, question in enumerate(questions):
-                        question_map = question.object_map
-                        question_map.update({
-                            'itemId': section._my_map['questions'][index]['itemId'],
-                            'responses': []
-                        })
-                        question_maps.append(question_map)
-                        answers.append(bank.get_answers(section.ident, question.ident))
+                takens = bank.get_assessments_taken_by_query(querier)
+                if takens.available() == 0:
+                    raise NotFound('agentId not found')
+                else:
+                    taken = takens.next()
+                # we need to replicate the sections data, so we can populate the
+                # directives and target carousels
+                data = autils.get_taken_section_map(taken, update=False)
+            else:
+                takens = bank.get_assessments_taken_for_assessment_offered(utilities.clean_id(offering_id))
 
-                responses = bank.get_assessment_taken_responses(taken.ident)
-                for index, response in enumerate(responses):
-                    try:
-                        response_map = response.object_map
-                        response_map['type'] = response_map['recordTypeIds']
-                        try:
-                            response_map.update({
-                                'isCorrect': response.is_correct()
-                            })
-                        except (AttributeError, IllegalState):
-                            response_map.update({
-                                'isCorrect': autils.validate_response(response_map, answers[index])
-                            })
-                        question_maps[index]['responses'].append(response_map)
-                    except IllegalState:
-                        question_maps[index]['responses'].append(None)
-                taken_map.update({
-                    'questions': question_maps
-                })
-                data.append(taken_map)
+                data = [taken_map(t) for t in takens]
+
             data = utilities.extract_items(data)
             return data
         except (PermissionDenied, NotFound) as ex:
