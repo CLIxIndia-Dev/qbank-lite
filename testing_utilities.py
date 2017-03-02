@@ -1,3 +1,4 @@
+import envoy
 import json
 import os
 import re
@@ -463,19 +464,30 @@ class BaseTestCase(TestCase):
         middleware = []
         self.app = TestApp(app.wsgifunc(*middleware))
 
+        envoy.run('mongo test_qbank_lite_assessment --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_assessment_authoring --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_hierarchy --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_authorization --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_id --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')
+
+        envoy.run('mongorestore --db test_qbank_lite_authorization --drop tests/fixtures/test_qbank_lite_authorization')
+        envoy.run('mongorestore --db test_qbank_lite_repository --drop tests/fixtures/test_qbank_lite_repository')
         if os.path.isdir(TEST_DATA_STORE_PATH):
             shutil.rmtree(TEST_DATA_STORE_PATH)
 
         if not os.path.isdir(TEST_DATA_STORE_PATH):
             os.makedirs(TEST_DATA_STORE_PATH)
-
-        # copy over the test fixture data from tests/fixtures
-        shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
-                        '{0}/authorization'.format(TEST_DATA_STORE_PATH))
-        # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
-        #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
-        shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
-                        '{0}/repository'.format(TEST_DATA_STORE_PATH))
+        #
+        # # copy over the test fixture data from tests/fixtures
+        # shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
+        #                 '{0}/authorization'.format(TEST_DATA_STORE_PATH))
+        # # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
+        # #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
+        # shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
+        #                 '{0}/repository'.format(TEST_DATA_STORE_PATH))
 
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']
@@ -491,3 +503,11 @@ class BaseTestCase(TestCase):
 
     def tearDown(self):
         shutil.rmtree(TEST_DATA_STORE_PATH)
+        envoy.run('mongo test_qbank_lite_assessment --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_assessment_authoring --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_hierarchy --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_authorization --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_id --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
+        envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')

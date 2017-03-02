@@ -584,6 +584,87 @@ def get_question_status(bank, section, question_id):
     return data
 
 
+def get_response_map(bank, section, question_id):
+    # append the student's last response and status if available
+    if section.is_question_answered(question_id):
+        # response = bank.get_response(section.ident, question_id)
+        response = section.get_response(question_id)
+        response_map = response.object_map
+        if response_map['isCorrect'] is None:
+            # to make this work with validate_response()
+            response_map['type'] = response_map['recordTypeIds']
+            correct = validate_response(response_map,
+                                        bank.get_answers(section.ident,
+                                                         question_id))
+            response_map.update({
+                'isCorrect': correct
+            })
+
+        try:
+            response_map['confusedLearningObjectiveIds'] = section.get_confused_learning_objective_ids(question_id)
+        except IllegalState:
+            pass
+        try:
+            response_map['feedback'] = update_json_response_with_feedback(bank,
+                                                                          section,
+                                                                          question_id,
+                                                                          response_map['isCorrect'])
+        except IllegalState:
+            pass
+    else:
+        response_map = None  # no response
+    return response_map
+
+
+def get_taken_section_map(taken, update=False, with_files=False, bank=None):
+    # let's get the questions first ... we need to inject that information into
+    # the response, so that UI side we can match on the original, canonical itemId
+    # also need to include the questions's learningObjectiveIds
+    def section_map(_section):
+        s_map = _section.object_map
+        s_map['id'] = str(_section.ident)
+        s_map['type'] = 'AssessmentSection'
+
+        if update:
+            # this should get called only when "taking" assessments, and not for results
+            # This assumes that section object maps now get questions via the mixins.py
+            question_maps = []
+
+            questions = _section.get_questions(update=update)
+            for index, question in enumerate(questions):
+                question_map = question.object_map
+                if with_files:
+                    question_map['files'] = question.get_files()
+                response_map = get_response_map(bank,
+                                                _section,
+                                                question.ident)
+                responded = False
+                if response_map is not None:
+                    responded = True
+                question_map.update({
+                    'itemId': _section._my_map['questions'][index]['itemId'],
+                    'response': response_map,
+                    'responded': responded
+                })
+                if responded:
+                    question_map['isCorrect'] = response_map['isCorrect']
+                question_maps.append(question_map)
+            s_map['questions'] = question_maps
+
+        return s_map
+
+    section_maps = []
+
+    try:
+        sections = taken._get_assessment_sections()
+        section_maps = [section_map(s) for s in sections]
+    except KeyError:
+        # no sections -- never got the question
+        pass
+
+    return section_maps
+
+
 def get_response_submissions(response):
     if response['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
         submission = response['integerValues']
@@ -987,6 +1068,70 @@ def update_item_metadata(data, form):
         pass
 
     return form
+
+
+def update_json_response_with_feedback(bank, section, question_id, correct):
+    """ move this logic out of views, since it's re-used in both Submit endpoints
+    :param bank:
+    :param data_map:
+    :param section:
+    :param question:
+    :return:
+    """
+    def get_best_answer_to_use():
+        response = bank.get_response(section.ident, question_id)
+        response_map = response.object_map
+        response_map['type'] = response_map['recordTypeIds']
+        submissions = get_response_submissions(response_map)
+        answers = bank.get_answers(section.ident, question_id)
+        exact_answer_match = None
+        default_answer_match = None
+        for answer in answers:
+            correct_submissions = 0
+            answer_choice_ids = list(answer.get_choice_ids())
+            number_choices = len(answer_choice_ids)
+            if len(submissions) == number_choices:
+                for index, choice_id in enumerate(answer_choice_ids):
+                    if is_multiple_choice(response_map):
+                        if str(choice_id) in submissions:
+                            correct_submissions += 1
+            if not correct and str(answer.genus_type) == str(WRONG_ANSWER):
+                # take the first wrong answer by default ... just in case
+                # we don't have an exact match
+                default_answer_match = answer
+            elif correct and str(answer.genus_type) == str(RIGHT_ANSWER):
+                default_answer_match = answer
+
+            if (correct_submissions == number_choices and
+                    len(submissions) == number_choices):
+                exact_answer_match = answer
+                break
+
+        # now that we have either an exact match or a default (wrong) answer
+        # let's calculate the feedback and the confused LOs
+        answer_to_use = default_answer_match
+        if exact_answer_match is not None:
+            answer_to_use = exact_answer_match
+        return answer_to_use
+
+    feedback = None
+    try:
+        taken = section.get_assessment_taken()
+        feedback = taken.get_solution_for_question(question_id, section=section)['explanation']
+        if isinstance(feedback, basestring):
+            feedback = {
+                'text': feedback
+            }
+    except (IllegalState, TypeError, AttributeError):
+        # update with answer feedback, if available
+        # for now, just support this for multiple choice questions...
+        try:
+            best_answer_to_use = get_best_answer_to_use()
+            feedback = best_answer_to_use.feedback
+        except (KeyError, AttributeError, IllegalState, Unsupported):
+            pass
+
+    return feedback
 
 
 def update_question_form(question, form, create=False):

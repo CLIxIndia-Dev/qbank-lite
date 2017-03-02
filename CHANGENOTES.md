@@ -1,3 +1,6 @@
+2.0.0:
+  - Switch to MongoDB backend.
+
 1.11.1:
   - Fix bug with editing only item or question genusTypeId.
 
