@@ -1076,6 +1076,9 @@ def update_item_json_answers(item, item_map):
         wrong_answers = item.get_wrong_answers()
     except AttributeError:
         pass
+    except TypeError:
+        # item has no answers
+        pass
     else:
         serialize = False
         if isinstance(item_map, basestring):
@@ -1101,6 +1104,9 @@ def update_item_json_random_choices(bank, item, item_map):
         item_map['question']['choices'] = item.get_question().get_unrandomized_choices()
     except AttributeError:
         # item is not randomized MC
+        pass
+    except TypeError:
+        # item has no question
         pass
     else:
         if serialize:
