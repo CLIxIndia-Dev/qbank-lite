@@ -5991,10 +5991,11 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertTrue(different_order_count == 0)
 
         different_order_count = 0
-        for i in range(0, 10):
-            new_mw_item = self.create_mw_fitb_item()
+        new_mw_item = self.create_mw_fitb_item()
 
-            payload = {
+        for i in range(0, 10):
+            payload = {,
+                'name': 'test {0}'.format(str(i)),
                 'itemIds': [new_mw_item['id']]
             }
             req = self.app.post(url,
@@ -6118,10 +6119,11 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertTrue(different_order_count == 0)
 
         different_order_count = 0
-        for i in range(0, 10):
-            new_mw_item = self.create_mw_fitb_item()
+        new_mw_item = self.create_mw_fitb_item()
 
+        for i in range(0, 10):
             payload = {
+                'name': 'test {0}'.format(str(i)),
                 'itemIds': [new_mw_item['id']]
             }
             req = self.app.post(url,
@@ -6324,10 +6326,10 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertTrue(different_order_count == 0)
 
         different_order_count = 0
+        new_mw_item = self.create_mw_sentence_item()
         for i in range(0, 10):
-            new_mw_item = self.create_mw_sentence_item()
-
             payload = {
+                'name': 'test {0}'.format(str(i)),
                 'itemIds': [new_mw_item['id']]
             }
             req = self.app.post(url,
