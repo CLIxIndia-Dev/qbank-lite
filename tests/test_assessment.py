@@ -2032,11 +2032,12 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         data = self.json(req)
         item = [i for i in data if i['id'] == mc_sentence['id']][0]
 
+        # changed this to always return wrong answers when authoring
         self.assertEqual(len(item['answers']),
-                         1)
+                         2)
 
-        self.assertFalse(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
-                             answer in item['answers']))
+        self.assertTrue(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
+                            answer in item['answers']))
 
     def test_can_get_assessment_item_qti(self):
         mc_sentence = self.create_mw_sentence_item()
