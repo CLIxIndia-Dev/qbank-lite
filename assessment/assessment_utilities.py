@@ -1096,11 +1096,7 @@ def update_item_json_random_choices(bank, item, item_map):
     try:
         # need to re-get the item so that the choice order isn't already shuffled
         # by .object_map
-        try:
-            item = bank.get_item(item.ident)
-        except NotFound:
-            import pdb
-            pdb.set_trace()
+        item = bank.get_item(item.ident)
         serialize = False
         if isinstance(item_map, basestring):
             item_map = json.loads(item_map)
