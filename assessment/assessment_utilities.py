@@ -1070,6 +1070,35 @@ def update_item_metadata(data, form):
     return form
 
 
+def update_item_json_answers(item, item_map):
+    # for convenience, also return the wrong answers
+    try:
+        wrong_answers = item.get_wrong_answers()
+    except AttributeError:
+        pass
+    else:
+        item_map = json.loads(item_map)
+        for wa in wrong_answers:
+            item_map['answers'].append(wa.object_map)
+        item_map = json.dumps(item_map)
+    finally:
+        return item_map
+
+
+def update_item_json_random_choices(item, item_map):
+    # for convenience, return choices in original order
+    try:
+        item_map = json.loads(item_map)
+        item_map['question']['choices'] = item.get_question().get_unrandomized_choices()
+    except AttributeError:
+        # item is not randomized MC
+        pass
+    else:
+        item_map = json.dumps(item_map)
+    finally:
+        return item_map
+
+
 def update_json_response_with_feedback(bank, section, question_id, correct):
     """ move this logic out of views, since it's re-used in both Submit endpoints
     :param bank:

@@ -430,12 +430,9 @@ class ItemsList(utilities.BaseClass):
                     item_map['qti'] = item_qti
 
                 if 'wronganswers' in params:
-                    try:
-                        wrong_answers = item.get_wrong_answers()
-                        for wa in wrong_answers:
-                            item_map['answers'].append(wa.object_map)
-                    except AttributeError:
-                        pass
+                    item_map = autils.update_item_json_answers(item, item_map)
+                if 'unordered' in params:
+                    item_map = autils.update_item_json_random_choices(item, item_map)
 
                 results.append(item_map)
 
@@ -834,15 +831,9 @@ class ItemsList(utilities.BaseClass):
             full_item = bank.get_item(new_item.ident)
             return_data = utilities.convert_dl_object(full_item)
 
-            # for convenience, also return the wrong answers
-            try:
-                wrong_answers = full_item.get_wrong_answers()
-                return_data = json.loads(return_data)
-                for wa in wrong_answers:
-                    return_data['answers'].append(wa.object_map)
-                return_data = json.dumps(return_data)
-            except AttributeError:
-                pass
+            return_data = autils.update_item_json_answers(full_item, return_data)
+            return_data = autils.update_item_json_random_choices(full_item, return_data)
+
             return return_data
         except (KeyError, PermissionDenied, Unsupported,
                 InvalidArgument, NullArgument, TypeError, InvalidId) as ex:
@@ -1175,15 +1166,8 @@ class ItemDetails(utilities.BaseClass):
             item = ils.get_item(utilities.clean_id(sub_id))
             data = utilities.convert_dl_object(item)
 
-            # for convenience, also return the wrong answers
-            try:
-                data = json.loads(data)
-                wrong_answers = item.get_wrong_answers()
-                for wa in wrong_answers:
-                    data['answers'].append(wa.object_map)
-                data = json.dumps(data)
-            except AttributeError:
-                pass
+            data = autils.update_item_json_answers(item, data)
+            data = autils.update_item_json_random_choices(item, data)
 
             return data
         except (PermissionDenied, NotFound, InvalidId) as ex:
@@ -1294,15 +1278,9 @@ class ItemDetails(utilities.BaseClass):
             full_item = bank.get_item(utilities.clean_id(sub_id))
             return_data = utilities.convert_dl_object(full_item)
 
-            # for convenience, also return the wrong answers
-            try:
-                wrong_answers = full_item.get_wrong_answers()
-                return_data = json.loads(return_data)
-                for wa in wrong_answers:
-                    return_data['answers'].append(wa.object_map)
-                return_data = json.dumps(return_data)
-            except AttributeError:
-                pass
+            return_data = autils.update_item_json_answers(full_item, return_data)
+            return_data = autils.update_item_json_random_choices(full_item, return_data)
+
             return return_data
         except (PermissionDenied, Unsupported, InvalidArgument, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1948,6 +1926,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
             question = bank.get_question(first_section.ident,
                                          utilities.clean_id(question_id))
@@ -1968,6 +1947,11 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             try:
                 filename = x['submission'].filename
+            except AttributeError:
+                if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
+                    # TODO: for now, take empty response for MW Sandbox
+                    raise IllegalState('You must supply a file with a file upload question')
+            else:
                 if '.' not in filename:
                     extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype
                     if extension not in ['mp3', 'wav']:
@@ -1975,10 +1959,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if extension not in filename:
                         filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
-            except AttributeError:
-                if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
-                    # TODO: for now, take empty response for MW Sandbox
-                    raise IllegalState('You must supply a file with an audio response question')
 
             update_form = autils.update_response_form(local_data_map, response_form)
             bank.submit_response(first_section.ident, question.ident, update_form)
