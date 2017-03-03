@@ -4,9 +4,9 @@ import os
 import sys
 import web
 
-import assessment
-import logging_
-import repository
+from assessment import assessment
+from logging_ import logging_
+from repository import repository
 import utilities
 
 from web.wsgiserver import CherryPyWSGIServer

@@ -2032,11 +2032,12 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         data = self.json(req)
         item = [i for i in data if i['id'] == mc_sentence['id']][0]
 
+        # changed this to always return wrong answers when authoring
         self.assertEqual(len(item['answers']),
-                         1)
+                         2)
 
-        self.assertFalse(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
-                             answer in item['answers']))
+        self.assertTrue(any(answer['genusTypeId'] == str(WRONG_ANSWER_GENUS) for
+                            answer in item['answers']))
 
     def test_can_get_assessment_item_qti(self):
         mc_sentence = self.create_mw_sentence_item()
@@ -4080,7 +4081,7 @@ class HierarchyTests(BaseAssessmentTestCase):
 
 
 class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
-    def create_assessment_offered_for_item(self, bank_id, item_id):
+    def create_assessment_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
         if isinstance(item_id, basestring):
@@ -4093,6 +4094,18 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         new_assessment = bank.create_assessment(form)
 
         bank.add_item(new_assessment.ident, item_id)
+
+        return new_assessment
+
+    def create_assessment_offered_for_item(self, bank_id, item_id):
+        if isinstance(bank_id, basestring):
+            bank_id = utilities.clean_id(bank_id)
+        if isinstance(item_id, basestring):
+            item_id = utilities.clean_id(item_id)
+
+        bank = get_managers()['am'].get_bank(bank_id)
+
+        new_assessment = self.create_assessment_for_item(bank_id, item_id)
 
         form = bank.get_assessment_offered_form_for_create(new_assessment.ident, [])
         new_offered = bank.create_assessment_offered(form)
@@ -4155,6 +4168,14 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self._mw_fill_in_the_blank_test_file.seek(0)
         req = self.app.post(url,
                             upload_files=[('qtiFile', 'testFile', self._mw_fill_in_the_blank_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
+    def create_mc_item_with_feedback(self):
+        url = '{0}/items'.format(self.url)
+        self._mc_feedback_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('qtiFile', 'testFile', self._mc_feedback_test_file.read())])
         self.ok(req)
         return self.json(req)
 
@@ -4266,6 +4287,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
         self._mw_sentence_test_file = open('{0}/tests/files/mw_sentence_with_audio_file.zip'.format(ABS_PATH), 'r')
         self._mc_multi_select_test_file = open('{0}/tests/files/mc_multi_select_test_file.zip'.format(ABS_PATH), 'r')
+        self._mc_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q03_en.zip'.format(ABS_PATH), 'r')
         self._number_of_feedback_test_file = open('{0}/tests/files/ee_u1l01a04q01_en.zip'.format(ABS_PATH), 'r')
         self._mw_fill_in_the_blank_test_file = open('{0}/tests/files/mw_fill_in_the_blank_test_file.zip'.format(ABS_PATH), 'r')
         self._drag_and_drop_test_file = open('{0}/tests/files/drag_and_drop_test_file.zip'.format(ABS_PATH), 'r')
@@ -4284,6 +4306,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
         self._mw_sentence_test_file.close()
         self._mc_multi_select_test_file.close()
+        self._mc_feedback_test_file.close()
         self._number_of_feedback_test_file.close()
         self._mw_fill_in_the_blank_test_file.close()
         self._drag_and_drop_test_file.close()
@@ -5926,6 +5949,97 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
         self.assertTrue(different_order_count > 0)
 
+    def test_mc_item_not_shuffled_for_authoring_even_if_shuffled_flag_set(self):
+        mc_item = self.create_mc_item_with_feedback()
+        original_order = mc_item['question']['choices']
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items?unordered'.format(self.url)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        assessment = self.create_assessment_for_item(self._bank.ident, mc_item['id'])
+
+        url = '{0}/assessments/{1}/items'.format(self.url,
+                                                 str(assessment.ident))
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        new_mw_item = self.create_mw_fitb_item()
+
+        for i in range(0, 10):
+            payload = {
+                'name': 'test {0}'.format(str(i)),
+                'itemIds': [new_mw_item['id']]
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'itemIds': [mc_item['id']]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mc_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'name': 'item rev {0}'.format(str(i))
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
     def test_mc_choices_are_not_shuffled_if_flag_not_set(self):
         unshuffled_item = self.create_unshuffled_mc_item()
         taken, offered = self.create_taken_for_item(self._bank.ident, Id(unshuffled_item['id']))
@@ -5962,6 +6076,97 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
 
         # they should all be equal
         self.assertTrue(same_order_count == 10)
+
+    def test_order_interaction_not_shuffled_for_authoring_even_if_shuffled_flag_set(self):
+        mw_item = self.create_mw_sentence_item()
+        original_order = mw_item['question']['choices']
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mw_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items?unordered'.format(self.url)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        assessment = self.create_assessment_for_item(self._bank.ident, mw_item['id'])
+
+        url = '{0}/assessments/{1}/items'.format(self.url,
+                                                 str(assessment.ident))
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        new_mw_item = self.create_mw_fitb_item()
+
+        for i in range(0, 10):
+            payload = {
+                'name': 'test {0}'.format(str(i)),
+                'itemIds': [new_mw_item['id']]
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'itemIds': [mw_item['id']]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mw_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'name': 'item rev {0}'.format(str(i))
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            if original_order != data['question']['choices']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
 
     def test_order_interaction_choices_are_not_shuffled_if_flag_not_set(self):
         unshuffled_item = self.create_unshuffled_order_interaction_item()
@@ -6071,6 +6276,109 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
 
         self.assertTrue(different_order_count > 0)
+
+    def test_inline_choice_interaction_not_shuffled_for_authoring_even_if_shuffled_flag_set(self):
+        mw_item = self.create_mw_fitb_item()
+        original_order_1 = mw_item['question']['choices']['RESPONSE_1']
+        original_order_2 = mw_item['question']['choices']['RESPONSE_2']
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mw_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items?unordered'.format(self.url)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        assessment = self.create_assessment_for_item(self._bank.ident, mw_item['id'])
+
+        url = '{0}/assessments/{1}/items'.format(self.url,
+                                                 str(assessment.ident))
+
+        different_order_count = 0
+        for i in range(0, 10):
+            req = self.app.get(url)
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        new_mw_item = self.create_mw_sentence_item()
+        for i in range(0, 10):
+            payload = {
+                'name': 'test {0}'.format(str(i)),
+                'itemIds': [new_mw_item['id']]
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'itemIds': [mw_item['id']]
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)[0]
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+
+        self.assertTrue(different_order_count == 0)
+
+        url = '{0}/items/{1}'.format(self.url,
+                                     mw_item['id'])
+
+        different_order_count = 0
+        for i in range(0, 10):
+            payload = {
+                'name': 'item rev {0}'.format(str(i))
+            }
+            req = self.app.put(url,
+                               params=json.dumps(payload),
+                               headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            if original_order_1 != data['question']['choices']['RESPONSE_1']:
+                different_order_count += 1
+            if original_order_2 != data['question']['choices']['RESPONSE_2']:
+                different_order_count += 1
+        self.assertTrue(different_order_count == 0)
 
     def test_inline_choice_interaction_not_shuffled_if_flag_not_set(self):
         unshuffled_item = self.create_unshuffled_fitb_item()

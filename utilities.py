@@ -110,7 +110,7 @@ def format_response_mit_type(func):
     """
     @functools.wraps(func)
     def wrapper(self, *args):
-        from assessment_utilities import get_assessment_manager
+        from assessment.assessment_utilities import get_assessment_manager
         results = func(self, *args)
 
         response = {
