@@ -16,7 +16,7 @@ if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.executable)
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-    ABS_PATH = '{0}/qbank-lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
+    ABS_PATH = '{0}/qbank_lite'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
 CherryPyWSGIServer.ssl_certificate_chain = ''
 try:

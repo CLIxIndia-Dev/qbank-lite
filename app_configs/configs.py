@@ -65,7 +65,7 @@ FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Hostname config for serving files over the network',
             'description': 'Hostname config for serving files.',
             'values': [
-                {'value': 'https://qbank-clix-dev.mit.edu/api/v1', 'priority': 1}  # Mac
+                {'value': 'https://103.36.84.149:8080/api/v1', 'priority': 1}  # Mac
             ]
         },
     }
