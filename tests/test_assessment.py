@@ -5994,7 +5994,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         new_mw_item = self.create_mw_fitb_item()
 
         for i in range(0, 10):
-            payload = {,
+            payload = {
                 'name': 'test {0}'.format(str(i)),
                 'itemIds': [new_mw_item['id']]
             }
