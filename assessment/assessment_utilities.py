@@ -1077,12 +1077,15 @@ def update_item_json_answers(item, item_map):
     except AttributeError:
         pass
     else:
-        item_map = json.loads(item_map)
+        serialize = False
+        if isinstance(item_map, basestring):
+            item_map = json.loads(item_map)
+            serialize = True
         for wa in wrong_answers:
             item_map['answers'].append(wa.object_map)
-        item_map = json.dumps(item_map)
-    finally:
-        return item_map
+        if serialize:
+            item_map = json.dumps(item_map)
+    return item_map
 
 
 def update_item_json_random_choices(bank, item, item_map):
@@ -1102,8 +1105,7 @@ def update_item_json_random_choices(bank, item, item_map):
     else:
         if serialize:
             item_map = json.dumps(item_map)
-    finally:
-        return item_map
+    return item_map
 
 
 def update_json_response_with_feedback(bank, section, question_id, correct):
