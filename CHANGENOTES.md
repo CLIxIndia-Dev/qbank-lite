@@ -1,3 +1,6 @@
+2.1.1:
+  - Remove redunant remove_choice method in records for inline choice.
+
 2.1.0:
   - Maintain choice order for authoring-type endpoints.
 
