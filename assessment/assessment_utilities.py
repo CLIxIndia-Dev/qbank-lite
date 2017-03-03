@@ -1101,7 +1101,23 @@ def update_item_json_random_choices(bank, item, item_map):
         if isinstance(item_map, basestring):
             item_map = json.loads(item_map)
             serialize = True
-        item_map['question']['choices'] = item.get_question().get_unrandomized_choices()
+
+        unrandomized_choice_order = item.get_question().get_unrandomized_choices()
+        # now need to get the updated texts, because they might have Assets
+        if isinstance(unrandomized_choice_order, dict):
+            new_choices = {}
+            for region, choices in unrandomized_choice_order.iteritems():
+                new_choices[region] = []
+                for choice in choices:
+                    matching_choice = [c for c in item_map['question']['choices'][region] if c['id'] == choice['id']][0]
+                    new_choices[region].append(matching_choice)
+        else:
+            new_choices = []
+            for choice in unrandomized_choice_order:
+                matching_choice = [c for c in item_map['question']['choices'] if c['id'] == choice['id']][0]
+                new_choices.append(matching_choice)
+        item_map['question']['choices'] = new_choices
+
     except AttributeError:
         # item is not randomized MC
         pass
