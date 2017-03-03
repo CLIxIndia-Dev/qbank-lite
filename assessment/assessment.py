@@ -18,7 +18,7 @@ from records.registry import ANSWER_GENUS_TYPES,\
 from urllib import quote
 
 import assessment_utilities as autils
-import repository_utilities as rutils
+import repository.repository_utilities as rutils
 import utilities
 
 ADVANCED_QUERY_ASSESSMENT_TAKEN_RECORD_TYPE = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['advanced-query'])
@@ -432,7 +432,7 @@ class ItemsList(utilities.BaseClass):
                 if 'wronganswers' in params:
                     item_map = autils.update_item_json_answers(item, item_map)
                 if 'unordered' in params:
-                    item_map = autils.update_item_json_random_choices(item, item_map)
+                    item_map = autils.update_item_json_random_choices(assessment_bank, item, item_map)
 
                 results.append(item_map)
 
@@ -832,7 +832,7 @@ class ItemsList(utilities.BaseClass):
             return_data = utilities.convert_dl_object(full_item)
 
             return_data = autils.update_item_json_answers(full_item, return_data)
-            return_data = autils.update_item_json_random_choices(full_item, return_data)
+            return_data = autils.update_item_json_random_choices(bank, full_item, return_data)
 
             return return_data
         except (KeyError, PermissionDenied, Unsupported,
@@ -1167,7 +1167,7 @@ class ItemDetails(utilities.BaseClass):
             data = utilities.convert_dl_object(item)
 
             data = autils.update_item_json_answers(item, data)
-            data = autils.update_item_json_random_choices(item, data)
+            data = autils.update_item_json_random_choices(ils, item, data)
 
             return data
         except (PermissionDenied, NotFound, InvalidId) as ex:
@@ -1279,7 +1279,7 @@ class ItemDetails(utilities.BaseClass):
             return_data = utilities.convert_dl_object(full_item)
 
             return_data = autils.update_item_json_answers(full_item, return_data)
-            return_data = autils.update_item_json_random_choices(full_item, return_data)
+            return_data = autils.update_item_json_random_choices(bank, full_item, return_data)
 
             return return_data
         except (PermissionDenied, Unsupported, InvalidArgument, NotFound, InvalidId) as ex:
@@ -1354,13 +1354,8 @@ class AssessmentItemsList(utilities.BaseClass):
                 if item_qti is not None:
                     item_map['qti'] = item_qti
 
-                if 'wronganswers' in params:
-                    try:
-                        wrong_answers = item.get_wrong_answers()
-                        for wa in wrong_answers:
-                            item_map['answers'].append(wa.object_map)
-                    except AttributeError:
-                        pass
+                item_map = autils.update_item_json_answers(item, item_map)
+                item_map = autils.update_item_json_random_choices(bank, item, item_map)
 
                 data.append(item_map)
 
@@ -1400,8 +1395,14 @@ class AssessmentItemsList(utilities.BaseClass):
                                   utilities.clean_id(item_id))
 
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
-            data = utilities.extract_items(items)
-            return data
+            data = []
+            for item in items:
+                item_map = item.object_map
+                item_map = autils.update_item_json_answers(item, item_map)
+                item_map = autils.update_item_json_random_choices(bank, item, item_map)
+                data.append(item_map)
+
+            return json.dumps(data)
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -1434,8 +1435,15 @@ class AssessmentItemsList(utilities.BaseClass):
                     bank.add_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
 
             items = bank.get_assessment_items(utilities.clean_id(sub_id))
-            data = utilities.extract_items(items)
-            return data
+
+            data = []
+            for item in items:
+                item_map = item.object_map
+                item_map = autils.update_item_json_answers(item, item_map)
+                item_map = autils.update_item_json_random_choices(bank, item, item_map)
+                data.append(item_map)
+
+            return json.dumps(data)
         except (PermissionDenied, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

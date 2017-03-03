@@ -23,7 +23,7 @@ from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
 
 from urllib import quote
 
-import repository_utilities as rutils
+import repository.repository_utilities as rutils
 import utilities
 
 ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])
@@ -1085,16 +1085,23 @@ def update_item_json_answers(item, item_map):
         return item_map
 
 
-def update_item_json_random_choices(item, item_map):
+def update_item_json_random_choices(bank, item, item_map):
     # for convenience, return choices in original order
     try:
-        item_map = json.loads(item_map)
+        # need to re-get the item so that the choice order isn't already shuffled
+        # by .object_map
+        item = bank.get_item(item.ident)
+        serialize = False
+        if isinstance(item_map, basestring):
+            item_map = json.loads(item_map)
+            serialize = True
         item_map['question']['choices'] = item.get_question().get_unrandomized_choices()
     except AttributeError:
         # item is not randomized MC
         pass
     else:
-        item_map = json.dumps(item_map)
+        if serialize:
+            item_map = json.dumps(item_map)
     finally:
         return item_map
 
