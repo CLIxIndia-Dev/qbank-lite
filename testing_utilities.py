@@ -9,7 +9,7 @@ from bs4 import Tag, BeautifulSoup
 from paste.fixture import TestApp
 
 import dlkit_runtime.configs
-from authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
+from authorization.authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.primordium import Type
 from dlkit_runtime.proxy_example import TestRequest

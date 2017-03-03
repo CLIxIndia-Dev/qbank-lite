@@ -23,7 +23,7 @@ from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
 
 from urllib import quote
 
-import repository_utilities as rutils
+import repository.repository_utilities as rutils
 import utilities
 
 ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['answer-with-feedback'])
@@ -1068,6 +1068,66 @@ def update_item_metadata(data, form):
         pass
 
     return form
+
+
+def update_item_json_answers(item, item_map):
+    # for convenience, also return the wrong answers
+    try:
+        wrong_answers = item.get_wrong_answers()
+    except AttributeError:
+        pass
+    except TypeError:
+        # item has no answers
+        pass
+    else:
+        serialize = False
+        if isinstance(item_map, basestring):
+            item_map = json.loads(item_map)
+            serialize = True
+        for wa in wrong_answers:
+            item_map['answers'].append(wa.object_map)
+        if serialize:
+            item_map = json.dumps(item_map)
+    return item_map
+
+
+def update_item_json_random_choices(bank, item, item_map):
+    # for convenience, return choices in original order
+    try:
+        # need to re-get the item so that the choice order isn't already shuffled
+        # by .object_map
+        item = bank.get_item(item.ident)
+        serialize = False
+        if isinstance(item_map, basestring):
+            item_map = json.loads(item_map)
+            serialize = True
+
+        unrandomized_choice_order = item.get_question().get_unrandomized_choices()
+        # now need to get the updated texts, because they might have Assets
+        if isinstance(unrandomized_choice_order, dict):
+            new_choices = {}
+            for region, choices in unrandomized_choice_order.iteritems():
+                new_choices[region] = []
+                for choice in choices:
+                    matching_choice = [c for c in item_map['question']['choices'][region] if c['id'] == choice['id']][0]
+                    new_choices[region].append(matching_choice)
+        else:
+            new_choices = []
+            for choice in unrandomized_choice_order:
+                matching_choice = [c for c in item_map['question']['choices'] if c['id'] == choice['id']][0]
+                new_choices.append(matching_choice)
+        item_map['question']['choices'] = new_choices
+
+    except AttributeError:
+        # item is not randomized MC
+        pass
+    except TypeError:
+        # item has no question
+        pass
+    else:
+        if serialize:
+            item_map = json.dumps(item_map)
+    return item_map
 
 
 def update_json_response_with_feedback(bank, section, question_id, correct):
