@@ -1,3 +1,6 @@
+2.1.0:
+  - Maintain choice order for authoring-type endpoints.
+
 2.0.0:
   - Switch to MongoDB backend.
 
