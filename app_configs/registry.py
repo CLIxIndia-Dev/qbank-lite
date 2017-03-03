@@ -32,18 +32,18 @@ MANAGER_PATHS = {
                     'dlkit.authz_adapter.logging_.managers.LoggingProxyManager')
     },
     'filesystem': {
-        'ASSESSMENT': ('dlkit.mongo.assessment.managers.AssessmentManager',
-                       'dlkit.mongo.assessment.managers.AssessmentProxyManager'),
-        'AUTHORIZATION': ('dlkit.mongo.authorization.managers.AuthorizationManager',
-                          'dlkit.mongo.authorization.managers.AuthorizationProxyManager'),
-        'HIERARCHY': ('dlkit.mongo.hierarchy.managers.HierarchyManager',
-                      'dlkit.mongo.hierarchy.managers.HierarchyProxyManager'),
-        'LEARNING': ('dlkit.mongo.learning.managers.LearningManager',
-                     'dlkit.mongo.learning.managers.LearningProxyManager'),
-        'LOGGING': ('dlkit.mongo.logging_.managers.LoggingManager',
-                    'dlkit.mongo.logging_.managers.LoggingProxyManager'),
-        'REPOSITORY': ('dlkit.mongo.repository.managers.RepositoryManager',
-                       'dlkit.mongo.repository.managers.RepositoryProxyManager')
+        'ASSESSMENT': ('dlkit.filesystem.assessment.managers.AssessmentManager',
+                       'dlkit.filesystem.assessment.managers.AssessmentProxyManager'),
+        'AUTHORIZATION': ('dlkit.filesystem.authorization.managers.AuthorizationManager',
+                          'dlkit.filesystem.authorization.managers.AuthorizationProxyManager'),
+        'HIERARCHY': ('dlkit.filesystem.hierarchy.managers.HierarchyManager',
+                      'dlkit.filesystem.hierarchy.managers.HierarchyProxyManager'),
+        'LEARNING': ('dlkit.filesystem.learning.managers.LearningManager',
+                     'dlkit.filesystem.learning.managers.LearningProxyManager'),
+        'LOGGING': ('dlkit.filesystem.logging_.managers.LoggingManager',
+                    'dlkit.filesystem.logging_.managers.LoggingProxyManager'),
+        'REPOSITORY': ('dlkit.filesystem.repository.managers.RepositoryManager',
+                       'dlkit.filesystem.repository.managers.RepositoryProxyManager')
     },
     'mongo': {
         'ASSESSMENT': ('dlkit.mongo.assessment.managers.AssessmentManager',
@@ -60,7 +60,7 @@ MANAGER_PATHS = {
                        'dlkit.mongo.repository.managers.RepositoryProxyManager')
     },
     'filesystem_adapter': {
-        'REPOSITORY': ('dlkit.filesystem.repository.managers.RepositoryManager',
-                       'dlkit.filesystem.repository.managers.RepositoryProxyManager')
+        'REPOSITORY': ('dlkit.filesystem_adapter.repository.managers.RepositoryManager',
+                       'dlkit.filesystem_adapter.repository.managers.RepositoryProxyManager')
     }
 }
