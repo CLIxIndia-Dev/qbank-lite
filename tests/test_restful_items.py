@@ -5235,7 +5235,7 @@ class RESTfulTests(BaseAssessmentTestCase):
             "name": "Question 1",
             "description": "For testing",
             "question": {
-                "questionString": "Fake question <img src=\"AssetContent:foo\" />",
+                "questionString": "Fake question <img src=\"AssetContent:foo\"/>",
                 "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
             }
         }
@@ -5267,7 +5267,7 @@ class RESTfulTests(BaseAssessmentTestCase):
             "answers": [{
                 "genusTypeId": str(RIGHT_ANSWER_GENUS),
                 "choiceIds": ["idc561552b-ed48-46c3-b20d-873150dfd4a2"],
-                "feedback": """<img src="AssetContent:foo" />""",
+                "feedback": """<img src="AssetContent:foo"/>""",
             }]
         }
         req = self.app.post(url,
@@ -5294,7 +5294,7 @@ class RESTfulTests(BaseAssessmentTestCase):
             "description": "For testing",
             "question": {
                 "choices": [{
-                    "text": """<img src="AssetContent:foo" />"""
+                    "text": """<img src="AssetContent:foo"/>"""
                 }],
                 "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)
             }
@@ -5304,12 +5304,12 @@ class RESTfulTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         item = self.json(req)
-        self.assertEqual(item['question']['choices'][0]['text']['text'],
+        self.assertEqual(item['question']['choices'][0]['text'],
                          payload['question']['choices'][0]['text'])
 
         url = '{0}/{1}'.format(url, item['id'])
         req = self.app.get(url)
         self.ok(req)
         item = self.json(req)
-        self.assertEqual(item['question']['choices'][0]['text']['text'],
+        self.assertEqual(item['question']['choices'][0]['text'],
                          payload['question']['choices'][0]['text'])
