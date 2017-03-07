@@ -1,3 +1,7 @@
+2.1.2:
+  - Handle the case when no fileId label exists in question text,
+    answer feedback, or choice.
+
 2.1.1:
   - Remove redunant remove_choice method in records for inline choice.
 
