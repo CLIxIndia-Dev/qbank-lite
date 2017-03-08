@@ -1,3 +1,6 @@
+2.1.3:
+  - Chunk file transfers to allow for seeking / streaming.
+
 2.1.2:
   - Handle the case when no fileId label exists in question text,
     answer feedback, or choice.
