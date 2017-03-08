@@ -195,9 +195,17 @@ class AssetContentStream(utilities.BaseClass):
                                                   asset_content_data.name)
             web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
             web.header('Content-Length', os.path.getsize(asset_content_data.name))
-            web.header('Content-Disposition', 'inline; filename={0}'.format(os.path.basename(asset_content_data.name)))
+            web.header('Accept-Ranges', 'bytes')
+            # with open(full_path, 'rb') as content_file:
+            num_bytes_to_read = 1024 * 8
+            while 1:
+                buf = asset_content_data.read(num_bytes_to_read)
+                if not buf:
+                    break
+                yield buf
+            # web.header('Content-Disposition', 'inline; filename={0}'.format(os.path.basename(asset_content_data.name)))
 
-            yield asset_content_data.read()
+            # yield asset_content_data.read()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

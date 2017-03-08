@@ -382,7 +382,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         headers = req.header_dict
         self.assertIn('image/png', headers['content-type'])
-        self.assertIn('.png', headers['content-disposition'])
+        self.assertEqual(headers['accept-ranges'], 'bytes')
+        # self.assertIn('.png', headers['content-disposition'])
         original_content_length = headers['content-length']
 
         # need to get rid of the /stream part of the path to just get the content details URL
@@ -404,7 +405,9 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         headers = req.header_dict
         self.assertNotIn('image/png', headers['content-type'])
-        self.assertIn('.sltng', headers['content-disposition'])
+        self.assertEqual(headers['accept-ranges'], 'bytes')
+        self.assertEqual('None', headers['content-type'])  # what would sltng be??
+        # self.assertIn('.sltng', headers['content-disposition'])
         self.assertNotEqual(original_content_length, headers['content-length'])
 
     def test_updated_asset_content_in_choices_shows_up_properly_in_item_qti(self):
@@ -423,7 +426,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         headers = req.header_dict
         self.assertIn('image/png', headers['content-type'])
-        self.assertIn('.png', headers['content-disposition'].lower())
+        self.assertEqual(headers['accept-ranges'], 'bytes')
+        # self.assertIn('.png', headers['content-disposition'].lower())
         original_content_length = headers['content-length']
 
         # need to get rid of the /stream part of the path to just get the content details URL
@@ -445,7 +449,9 @@ class AssetContentTests(BaseRepositoryTestCase):
         self.ok(req)
         headers = req.header_dict
         self.assertNotIn('image/png', headers['content-type'])
-        self.assertIn('.sltng', headers['content-disposition'])
+        self.assertEqual('None', headers['content-type'])  # what would sltng be??
+        self.assertEqual(headers['accept-ranges'], 'bytes')
+        # self.assertIn('.sltng', headers['content-disposition'])
         self.assertNotEqual(original_content_length, headers['content-length'])
 
     def test_can_set_asset_content_display_name_and_description_to_foreign_language(self):
