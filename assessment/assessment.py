@@ -2012,7 +2012,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         autils.is_ordered_choice(local_data_map)):
                     submissions = autils.get_response_submissions(local_data_map)
                     answers = bank.get_answers(first_section.ident, question.ident)
-
                     exact_answer_match = None
                     default_answer_match = None
                     for answer in answers:

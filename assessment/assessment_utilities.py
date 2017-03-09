@@ -182,8 +182,8 @@ def answer_is_default_incorrect(answer):
     answer_choice_ids = list(answer.get_choice_ids())
     if (str(answer.genus_type) == str(WRONG_ANSWER) and
             (len(answer_choice_ids) == 0 or
-            (len(answer_choice_ids) == 1 and
-             (answer_choice_ids[0] is None or str(answer_choice_ids[0]) == 'incorrect')))):
+             (len(answer_choice_ids) == 1 and
+              (answer_choice_ids[0] is None or str(answer_choice_ids[0]) == 'incorrect')))):
         return True
     return False
 
