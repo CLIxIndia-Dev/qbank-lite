@@ -1968,7 +1968,11 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                         filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
 
-            update_form = autils.update_response_form(local_data_map, response_form)
+            try:
+                update_form = autils.update_response_form(local_data_map, response_form)
+            except AttributeError:
+                # form might not have the right records / methods that match the question
+                update_form = response_form
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
 
@@ -2020,10 +2024,12 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 if autils.is_multiple_choice(local_data_map):
                                     if str(choice_id) in submissions:
                                         correct_submissions += 1
+
                         if not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS):
-                            # take the first wrong answer by default ... just in case
-                            # we don't have an exact match
-                            default_answer_match = answer
+                            # try to find a generic wrong-answer match with choiceIds = []
+                            # for default
+                            if len(answer_choice_ids) == 0:
+                                default_answer_match = answer
                         elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
                             default_answer_match = answer
 
