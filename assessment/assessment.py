@@ -2025,12 +2025,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                     if str(choice_id) in submissions:
                                         correct_submissions += 1
 
-                        if not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS):
-                            # try to find a generic wrong-answer match with choiceIds = []
-                            # for default
-                            if (len(answer_choice_ids) == 0 or
-                                    (len(answer_choice_ids) == 1 and answer_choice_ids[0] is None)):
-                                default_answer_match = answer
+                        if not correct and autils.answer_is_default_incorrect(answer):
+                            default_answer_match = answer
                         elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
                             default_answer_match = answer
 
