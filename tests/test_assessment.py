@@ -5489,7 +5489,18 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         self.assertNotIn('Well done!', data['feedback'])
         self.assertNotIn(';', data['feedback'])
-        self.assertIn('Listen carefully', data['feedback'])
+        self.assertEqual('No feedback available.', data['feedback'])
+
+        payload = {
+            'choiceIds': ['idd2ef799d-b0b6-40a1-bbe6-04fec20465f8'],
+            'type': 'answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
         self.assertEqual(data['feedback'].count('Listen carefully'), 1)
 
     def test_all_answers_correct_for_survey_question(self):
