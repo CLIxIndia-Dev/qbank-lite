@@ -1216,6 +1216,149 @@ class RESTfulTests(BaseAssessmentTestCase):
             expected_json_string
         )
 
+    def test_submitting_to_multi_choice_multi_answer_item_with_no_right_answer_returns_incorrect(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._square_image,
+                       self._diamond_image,
+                       self._parallelogram_image,
+                       self._rectangle_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p id="docs-internal-guid-46f83555-04c7-ceb0-1838-715e13031a60" dir="ltr">In the diagram below,</p>
+<p>
+  <strong>
+  </strong>
+</p>
+<p dir="ltr">A is the set of rectangles, and</p>
+<p dir="ltr">B is the set of rhombuses</p>
+<p dir="ltr">
+</p>
+<p dir="ltr">
+  <img src="https://lh5.googleusercontent.com/a7NFx8J7jcDSr37Nen6ReW2doooJXZDm6GD1HQTfImkrzah94M_jkYoMapeYoRilKSSOz0gxVOUto0n5R4GWI4UWSnmzoTxH0VMQqRgzYMKWjJCG6OQgp8VPB4ghBAAeHlgI4ze7" alt="venn1" width="288" height="202" />
+</p>
+<p dir="ltr">
+</p>
+<p>
+  <strong>Which all shape(s) can be contained in the gray shaded area?<br />
+</strong>
+</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                    "text": """<simpleChoice identifier="idb5345daa-a5c2-4924-a92b-e326886b5d1d">
+<p>
+<img src="AssetContent:parallelogram_png" alt="parallelagram" width="186" height="147" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                    "text": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>
+<img src="AssetContent:square_png" alt="square" width="144" height="141" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id01913fba-e66d-4a01-9625-94102847faac",
+                    "text": """<simpleChoice identifier="id01913fba-e66d-4a01-9625-94102847faac">
+<p>
+<img src="AssetContent:rectangle_png" alt="rectangle" width="201" height="118" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id4f525d00-e24c-4ac3-a104-848a2cd686c0",
+                    "text": """<simpleChoice identifier="id4f525d00-e24c-4ac3-a104-848a2cd686c0">
+<p>
+<img src="AssetContent:diamond_png" alt="diamond shape" width="148" height="146" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id18c8cc80-68d1-4c1f-b9f0-cb345bad2862",
+                    "text": """<simpleChoice identifier="id18c8cc80-68d1-4c1f-b9f0-cb345bad2862">
+<p>
+<strong>
+  <span id="docs-internal-guid-46f83555-04cb-9334-80dc-c56402044c02">None of these </span>
+  <br />
+</strong>
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS),
+                "shuffle": False,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": ["idb5345daa-a5c2-4924-a92b-e326886b5d1d",
+                              "id47e56db8-ee16-4111-9bcc-b8ac9716bcd4",
+                              "id4f525d00-e24c-4ac3-a104-848a2cd686c0"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">
+    Please try again!
+   </span>
+<br/>
+</strong>
+</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': 'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        expected_feedback = BeautifulSoup(payload['answers'][1]['feedback'], 'xml')
+        sent_feedback = BeautifulSoup(data['feedback'], 'xml')
+        self.assertEqual(str(expected_feedback),
+                         str(sent_feedback))
+
     def test_can_create_reflection_single_answer_question_via_rest(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -4840,6 +4983,117 @@ class RESTfulTests(BaseAssessmentTestCase):
                 choice['text'],
                 expected_choices[choice['id']]
             )
+
+    def test_submitting_to_image_sequence_with_no_right_answers_returns_incorrect(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": ['id127df214-2a19-44da-894a-853948313dae',
+                              'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                              'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                              'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': 'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
 
     def test_can_create_numeric_response_question_via_rest(self):
         url = '{0}/items'.format(self.url)
