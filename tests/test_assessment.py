@@ -9,8 +9,6 @@ from copy import deepcopy
 
 from dlkit_runtime.primordium import Id, Type
 
-from nose.tools import *
-
 from paste.fixture import AppError
 
 from records.assessment.qti.basic import _stringify

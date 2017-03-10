@@ -194,18 +194,49 @@ class AssetContentStream(utilities.BaseClass):
             asset_content_path = '{0}/{1}'.format(filespace_path,
                                                   asset_content_data.name)
             web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
-            web.header('Content-Length', os.path.getsize(asset_content_data.name))
             web.header('Accept-Ranges', 'bytes')
-            # with open(full_path, 'rb') as content_file:
+            # The algorithm below for streaming partial content was based off of this
+            # post:
+            # https://benramsey.com/blog/2008/05/206-partial-content-and-range-requests/
+
+            continue_with_stream = True
+            byte_range = rutils.get_byte_ranges()
+            total_bytes_to_read = os.path.getsize(asset_content_data.name)
+            content_length = os.path.getsize(asset_content_data.name)
+            bytes_to_throw_away = 0
+            if byte_range is not None:
+                bytes_to_throw_away = int(byte_range[0])
+                if bytes_to_throw_away > total_bytes_to_read or bytes_to_throw_away < 0:
+                    web.ctx.status = '416 Requested Range Not Satisfiable'
+                    continue_with_stream = False
+                    yield ''
+                asset_content_data.read(bytes_to_throw_away)
+                total_bytes_to_read = os.path.getsize(asset_content_data.name) - bytes_to_throw_away
+                if byte_range[1] != '':
+                    total_bytes_to_read = int(byte_range[1]) - bytes_to_throw_away
+
+            bytes_read = 0
+
             num_bytes_to_read = 1024 * 8
-            while 1:
-                buf = asset_content_data.read(num_bytes_to_read)
+            starting_bytes = bytes_to_throw_away
+            web.ctx.status = '206 Partial Content'
+
+            while continue_with_stream:
+                remaining_bytes = total_bytes_to_read - bytes_read
+                bytes_to_read = min(num_bytes_to_read, remaining_bytes)
+                buf = asset_content_data.read(bytes_to_read)
                 if not buf:
                     break
-                yield buf
-            # web.header('Content-Disposition', 'inline; filename={0}'.format(os.path.basename(asset_content_data.name)))
 
-            # yield asset_content_data.read()
+                # web.header('Content-Length', str(bytes_to_read))
+                web.header('Content-Range', 'bytes {0}-{1}/{2}'.format(str(starting_bytes),
+                                                                       str(starting_bytes + bytes_to_read),
+                                                                       str(content_length)))
+
+                bytes_read += bytes_to_read
+                starting_bytes += bytes_to_read
+                yield buf
+
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

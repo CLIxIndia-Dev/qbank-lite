@@ -115,6 +115,12 @@ def get_asset_content_genus_type(file_name):
     return ac_genus_type
 
 
+def get_byte_ranges():
+    if 'HTTP_RANGE' in web.ctx.env:
+        return web.ctx.env['HTTP_RANGE'].split('=')[-1].split('-')
+    return None
+
+
 def get_file_extension(file_name):
     return os.path.splitext(os.path.basename(file_name))[-1].replace('.', '')
 

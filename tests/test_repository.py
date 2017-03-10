@@ -200,7 +200,8 @@ class AssetContentTests(BaseRepositoryTestCase):
 
     def test_can_get_asset_content_file(self):
         req = self.app.get(self.url + '/stream')
-        self.ok(req)
+        # self.ok(req)
+        self.code(req, 206)
         self.test_file.seek(0)
         self.assertEqual(
             req.body,
@@ -379,12 +380,16 @@ class AssetContentTests(BaseRepositoryTestCase):
         image = soup.find('img')
 
         req = self.app.get(image['src'])
-        self.ok(req)
+        # self.ok(req)
+        self.code(req, 206)
         headers = req.header_dict
         self.assertIn('image/png', headers['content-type'])
         self.assertEqual(headers['accept-ranges'], 'bytes')
         # self.assertIn('.png', headers['content-disposition'])
-        original_content_length = headers['content-length']
+        # original_content_length = headers['content-length']
+        self.assertIn('content-range', headers)
+        self.assertEqual('bytes 0-8192/152318', headers['content-range'][0])
+        self.assertEqual('bytes 147456-152318/152318', headers['content-range'][-1])
 
         # need to get rid of the /stream part of the path to just get the content details URL
         content_url = image['src'].replace('/stream', '')
@@ -402,13 +407,18 @@ class AssetContentTests(BaseRepositoryTestCase):
         image = soup.find('img')
 
         req = self.app.get(image['src'])
-        self.ok(req)
+        # self.ok(req)
+        self.code(req, 206)
         headers = req.header_dict
         self.assertNotIn('image/png', headers['content-type'])
         self.assertEqual(headers['accept-ranges'], 'bytes')
         self.assertEqual('None', headers['content-type'])  # what would sltng be??
         # self.assertIn('.sltng', headers['content-disposition'])
-        self.assertNotEqual(original_content_length, headers['content-length'])
+        # self.assertNotEqual(original_content_length, headers['content-length'])
+        self.assertIn('content-range', headers)
+        expected_range = 'bytes 0-8192/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
+        self.assertIn(expected_range,
+                      headers['content-range'])
 
     def test_updated_asset_content_in_choices_shows_up_properly_in_item_qti(self):
         item = self.create_item_with_image_in_choices()
@@ -423,12 +433,16 @@ class AssetContentTests(BaseRepositoryTestCase):
         image = soup.find('img')
 
         req = self.app.get(image['src'])
-        self.ok(req)
+        # self.ok(req)
+        self.code(req, 206)
         headers = req.header_dict
         self.assertIn('image/png', headers['content-type'])
         self.assertEqual(headers['accept-ranges'], 'bytes')
         # self.assertIn('.png', headers['content-disposition'].lower())
-        original_content_length = headers['content-length']
+        # original_content_length = headers['content-length']
+        self.assertIn('content-range', headers)
+        self.assertIn('bytes 0-', headers['content-range'])
+        # small file that depends on the choice image, either 512 or 641 bytes...
 
         # need to get rid of the /stream part of the path to just get the content details URL
         content_url = image['src'].replace('/stream', '')
@@ -446,13 +460,18 @@ class AssetContentTests(BaseRepositoryTestCase):
         image = soup.find('img')
 
         req = self.app.get(image['src'])
-        self.ok(req)
+        # self.ok(req)
+        self.code(req, 206)
         headers = req.header_dict
         self.assertNotIn('image/png', headers['content-type'])
         self.assertEqual('None', headers['content-type'])  # what would sltng be??
         self.assertEqual(headers['accept-ranges'], 'bytes')
         # self.assertIn('.sltng', headers['content-disposition'])
-        self.assertNotEqual(original_content_length, headers['content-length'])
+        # self.assertNotEqual(original_content_length, headers['content-length'])
+        self.assertIn('content-range', headers)
+        expected_range = 'bytes 0-8192/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
+        self.assertIn(expected_range,
+                      headers['content-range'])
 
     def test_can_set_asset_content_display_name_and_description_to_foreign_language(self):
         req = self.app.get(self.url)
