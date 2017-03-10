@@ -388,7 +388,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         # self.assertIn('.png', headers['content-disposition'])
         # original_content_length = headers['content-length']
         self.assertIn('content-range', headers)
-        self.assertIn('bytes 0-8192/', headers['content-range'][0])
+        self.assertEqual('bytes 0-8192/152318', headers['content-range'][0])
+        self.assertEqual('bytes 147456-152318/152318', headers['content-range'][-1])
 
         # need to get rid of the /stream part of the path to just get the content details URL
         content_url = image['src'].replace('/stream', '')

@@ -234,7 +234,7 @@ class AssetContentStream(utilities.BaseClass):
                                                                        str(content_length)))
 
                 bytes_read += bytes_to_read
-                starting_bytes += bytes_read
+                starting_bytes += bytes_to_read
                 yield buf
 
         except (PermissionDenied, NotFound, InvalidId) as ex:
