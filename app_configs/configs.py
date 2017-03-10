@@ -7,6 +7,7 @@ from dlkit_runtime.utilities import impl_key_dict
 
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.executable)
+    TEST_ABS_PATH = ABS_PATH
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
