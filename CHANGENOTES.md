@@ -1,3 +1,6 @@
+2.1.5:
+  - Added better 206 header management for streaming content.
+
 2.1.4:
   - Better handling of MC / Order Interaction submit when no correct answers
     defined.
