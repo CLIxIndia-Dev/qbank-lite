@@ -7,6 +7,7 @@ from dlkit_runtime.utilities import impl_key_dict
 
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.executable)
+    TEST_ABS_PATH = ABS_PATH
 else:
     PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
     ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
@@ -41,7 +42,7 @@ FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Repository Provider Implementation',
             'description': 'Implementation for repository service provider',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'dataStorePath': {
@@ -71,77 +72,142 @@ FILESYSTEM_ADAPTER_1 = {
     }
 }
 
-FILESYSTEM_1 = {
-    'id': 'filesystem_configuration_1',
-    'displayName': 'Filesystem Configuration',
-    'description': 'Configuration for Filesystem Implementation',
-    'parameters': {
-        'implKey': impl_key_dict('filesystem'),
-        'recordsRegistry': {
-            'syntax': 'STRING',
-            'displayName': 'Python path to the extension records registry file',
-            'description': 'dot-separated path to the extension records registry file',
-            'values': [
-                {'value': 'records.registry', 'priority': 1}
-            ]
-        },
-        'repositoryProviderImpl': {
-            'syntax': 'STRING',
-            'displayName': 'Repository Provider Implementation',
-            'description': 'Implementation for repository service provider',
-            'values': [
-                {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
-            ]
-        },
-        'assetContentRecordTypeForFiles': {
-            'syntax': 'TYPE',
-            'displayName': 'Asset Content Type for Files',
-            'description': 'Asset Content Type for Records that store Files on local disk',
-            'values': [
-                {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
-            ]
-        },
-        'dataStorePath': {
-            'syntax': 'STRING',
-            'displayName': 'Path to local filesystem datastore',
-            'description': 'Filesystem path for setting the MongoClient host.',
-            'values': [
-                {'value': DATA_STORE_PATH, 'priority': 1}
-            ]
-        },
-        'dataStoreFullPath': {
-            'syntax': 'STRING',
-            'displayName': 'Full path to local filesystem datastore',
-            'description': 'Filesystem path for setting the MongoClient host.',
-            'values': [
-                {'value': ABS_PATH, 'priority': 1}
-            ]
-        },
-        'magicItemLookupSessions': {
-            'syntax': 'STRING',
-            'displayName': 'Which magic item lookup sessions to try',
-            'description': 'To handle magic IDs.',
-            'values': [
-                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
-            ]
-        },
-        'useCachingForQualifierIds': {
-            'syntax': 'BOOLEAN',
-            'displayName': 'Flag to use memcached for authz qualifier_ids or not',
-            'description': 'Flag to use memcached for authz qualifier_ids or not',
-            'values': [
-                {'value': True, 'priority': 1}
-            ]
-        },
-    },
-}
+# FILESYSTEM_1 = {
+#     'id': 'filesystem_configuration_1',
+#     'displayName': 'Filesystem Configuration',
+#     'description': 'Configuration for Filesystem Implementation',
+#     'parameters': {
+#         'implKey': impl_key_dict('filesystem'),
+#         'recordsRegistry': {
+#             'syntax': 'STRING',
+#             'displayName': 'Python path to the extension records registry file',
+#             'description': 'dot-separated path to the extension records registry file',
+#             'values': [
+#                 {'value': 'records.registry', 'priority': 1}
+#             ]
+#         },
+#         'repositoryProviderImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Repository Provider Implementation',
+#             'description': 'Implementation for repository service provider',
+#             'values': [
+#                 {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
+#             ]
+#         },
+#         'assetContentRecordTypeForFiles': {
+#             'syntax': 'TYPE',
+#             'displayName': 'Asset Content Type for Files',
+#             'description': 'Asset Content Type for Records that store Files on local disk',
+#             'values': [
+#                 {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+#             ]
+#         },
+#         'dataStorePath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': DATA_STORE_PATH, 'priority': 1}
+#             ]
+#         },
+#         'dataStoreFullPath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Full path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': ABS_PATH, 'priority': 1}
+#             ]
+#         },
+#         'magicItemLookupSessions': {
+#             'syntax': 'STRING',
+#             'displayName': 'Which magic item lookup sessions to try',
+#             'description': 'To handle magic IDs.',
+#             'values': [
+#                 {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+#             ]
+#         },
+#         'useCachingForQualifierIds': {
+#             'syntax': 'BOOLEAN',
+#             'displayName': 'Flag to use memcached for authz qualifier_ids or not',
+#             'description': 'Flag to use memcached for authz qualifier_ids or not',
+#             'values': [
+#                 {'value': True, 'priority': 1}
+#             ]
+#         },
+#     },
+# }
+#
+# MONGO_1 = {
+#     'id': 'mongo_configuration_1',
+#     'displayName': 'Mongo Configuration',
+#     'description': 'Configuration for Mongo Implementation',
+#     'parameters': {
+#         'implKey': impl_key_dict('mongo'),
+#         'repositoryProviderImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Repository Provider Implementation',
+#             'description': 'Implementation for repository service provider',
+#             'values': [
+#                 {'value': 'FILESYSTEM_ADAPTER_1', 'priority': 1}
+#             ]
+#         },
+#         'assetContentRecordTypeForFiles': {
+#             'syntax': 'TYPE',
+#             'displayName': 'Asset Content Type for Files',
+#             'description': 'Asset Content Type for Records that store Files on local disk',
+#             'values': [
+#                 {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+#             ]
+#         },
+#         'recordsRegistry': {
+#             'syntax': 'STRING',
+#             'displayName': 'Python path to the extension records registry file',
+#             'description': 'dot-separated path to the extension records registry file',
+#             'values': [
+#                 {'value': 'records.registry', 'priority': 1}
+#             ]
+#         },
+#         'magicItemLookupSessions': {
+#             'syntax': 'STRING',
+#             'displayName': 'Which magic item lookup sessions to try',
+#             'description': 'To handle magic IDs.',
+#             'values': [
+#                 {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+#             ]
+#         },
+#         'localImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Implementation identifier for local service provider',
+#             'description': 'Implementation identifier for local service provider.  Typically the same identifier as the Mongo configuration',
+#             'values': [
+#                 {'value': 'MONGO_1', 'priority': 1}
+#             ]
+#         },
+#         'useCachingForQualifierIds': {
+#             'syntax': 'BOOLEAN',
+#             'displayName': 'Flag to use memcached for authz qualifier_ids or not',
+#             'description': 'Flag to use memcached for authz qualifier_ids or not',
+#             'values': [
+#                 {'value': True, 'priority': 1}
+#             ]
+#         },
+#         'dataStoreFullPath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Full path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': ABS_PATH, 'priority': 1}
+#             ]
+#         },
+#     }
+# }
 
-MONGO_1 = {
-    'id': 'mongo_configuration_1',
-    'displayName': 'Mongo Configuration',
-    'description': 'Configuration for Mongo Implementation',
+JSON_1 = {
+    'id': 'json_configuration_1',
+    'displayName': 'JSON Configuration',
+    'description': 'Configuration for JSON Implementation',
     'parameters': {
-        'implKey': impl_key_dict('mongo'),
+        'implKey': impl_key_dict('json'),
         'repositoryProviderImpl': {
             'syntax': 'STRING',
             'displayName': 'Repository Provider Implementation',
@@ -179,7 +245,7 @@ MONGO_1 = {
             'displayName': 'Implementation identifier for local service provider',
             'description': 'Implementation identifier for local service provider.  Typically the same identifier as the Mongo configuration',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'useCachingForQualifierIds': {
@@ -190,12 +256,28 @@ MONGO_1 = {
                 {'value': True, 'priority': 1}
             ]
         },
+        'dataStorePath': {
+            'syntax': 'STRING',
+            'displayName': 'Path to local filesystem datastore',
+            'description': 'Filesystem path for setting the JSONClient host.',
+            'values': [
+                {'value': DATA_STORE_PATH, 'priority': 1}
+            ]
+        },
         'dataStoreFullPath': {
             'syntax': 'STRING',
             'displayName': 'Full path to local filesystem datastore',
-            'description': 'Filesystem path for setting the MongoClient host.',
+            'description': 'Filesystem path for setting the JSONClient host.',
             'values': [
                 {'value': ABS_PATH, 'priority': 1}
+            ]
+        },
+        'useFilesystem': {
+            'syntax': 'BOOLEAN',
+            'displayName': 'Use the filesystem instead of MongoDB',
+            'description': 'Use the filesystem instead of MongoDB',
+            'values': [
+                {'value': False, 'priority': 1}
             ]
         },
     }
@@ -212,7 +294,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Repository Provider Implementation',
             'description': 'Implementation for repository service provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'assessmentProviderImpl': {
@@ -220,7 +302,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Assessment Provider Implementation',
             'description': 'Implementation for assessment service provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'authorizationProviderImpl': {
@@ -228,7 +310,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Authorization Provider Implementation',
             'description': 'Implementation for authorization service provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'learningProviderImpl': {
@@ -236,7 +318,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Learning Provider Implementation',
             'description': 'Implementation for learning service provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'hierarchyProviderImpl': {
@@ -244,7 +326,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'repositoryProviderImpl': {
@@ -260,7 +342,7 @@ AUTHZ_ADAPTER_1 = {
             'displayName': 'Logging Provider Implementation',
             'description': 'Implementation for logging provider',
             'values': [
-                {'value': 'FILESYSTEM_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
     }
@@ -340,7 +422,7 @@ TEST_FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Repository Provider Implementation',
             'description': 'Implementation for repository service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'dataStorePath': {
@@ -370,70 +452,143 @@ TEST_FILESYSTEM_ADAPTER_1 = {
     }
 }
 
-TEST_FILESYSTEM_1 = {
-    'id': 'filesystem_configuration_1',
-    'displayName': 'Filesystem Configuration',
-    'description': 'Configuration for Filesystem Implementation',
-    'parameters': {
-        'implKey': impl_key_dict('filesystem'),
-        'recordsRegistry': {
-            'syntax': 'STRING',
-            'displayName': 'Python path to the extension records registry file',
-            'description': 'dot-separated path to the extension records registry file',
-            'values': [
-                {'value': 'records.registry', 'priority': 1}
-            ]
-        },
-        'repositoryProviderImpl': {
-            'syntax': 'STRING',
-            'displayName': 'Repository Provider Implementation',
-            'description': 'Implementation for repository service provider',
-            'values': [
-                {'value': 'TEST_FILESYSTEM_ADAPTER_1', 'priority': 1}
-            ]
-        },
-        'assetContentRecordTypeForFiles': {
-            'syntax': 'TYPE',
-            'displayName': 'Asset Content Type for Files',
-            'description': 'Asset Content Type for Records that store Files on local disk',
-            'values': [
-                {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
-            ]
-        },
-        'dataStorePath': {
-            'syntax': 'STRING',
-            'displayName': 'Path to local filesystem datastore',
-            'description': 'Filesystem path for setting the MongoClient host.',
-            'values': [
-                {'value': TEST_DATA_STORE_PATH, 'priority': 1}
-            ]
-        },
-        'dataStoreFullPath': {
-            'syntax': 'STRING',
-            'displayName': 'Full path to local filesystem datastore',
-            'description': 'Filesystem path for setting the MongoClient host.',
-            'values': [
-                {'value': ABS_PATH, 'priority': 1}
-            ]
-        },
-        'magicItemLookupSessions': {
-            'syntax': 'STRING',
-            'displayName': 'Which magic item lookup sessions to try',
-            'description': 'To handle magic IDs.',
-            'values': [
-                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
-            ]
-        },
-    },
+# TEST_FILESYSTEM_1 = {
+#     'id': 'filesystem_configuration_1',
+#     'displayName': 'Filesystem Configuration',
+#     'description': 'Configuration for Filesystem Implementation',
+#     'parameters': {
+#         'implKey': impl_key_dict('filesystem'),
+#         'recordsRegistry': {
+#             'syntax': 'STRING',
+#             'displayName': 'Python path to the extension records registry file',
+#             'description': 'dot-separated path to the extension records registry file',
+#             'values': [
+#                 {'value': 'records.registry', 'priority': 1}
+#             ]
+#         },
+#         'repositoryProviderImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Repository Provider Implementation',
+#             'description': 'Implementation for repository service provider',
+#             'values': [
+#                 {'value': 'TEST_FILESYSTEM_ADAPTER_1', 'priority': 1}
+#             ]
+#         },
+#         'assetContentRecordTypeForFiles': {
+#             'syntax': 'TYPE',
+#             'displayName': 'Asset Content Type for Files',
+#             'description': 'Asset Content Type for Records that store Files on local disk',
+#             'values': [
+#                 {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+#             ]
+#         },
+#         'dataStorePath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': TEST_DATA_STORE_PATH, 'priority': 1}
+#             ]
+#         },
+#         'dataStoreFullPath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Full path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': ABS_PATH, 'priority': 1}
+#             ]
+#         },
+#         'magicItemLookupSessions': {
+#             'syntax': 'STRING',
+#             'displayName': 'Which magic item lookup sessions to try',
+#             'description': 'To handle magic IDs.',
+#             'values': [
+#                 {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+#             ]
+#         },
+#     },
+#
+# }
+#
+# TEST_MONGO_1 = {
+#     'id': 'mongo_configuration_1',
+#     'displayName': 'Mongo Configuration',
+#     'description': 'Configuration for Mongo Implementation',
+#     'parameters': {
+#         'implKey': impl_key_dict('mongo'),
+#         'mongoDBNamePrefix': {
+#             'syntax': 'STRING',
+#             'displayName': 'Mongo DB Name Prefix',
+#             'description': 'Prefix for naming mongo databases.',
+#             'values': [
+#                 {'value': 'test_qbank_lite_', 'priority': 1}
+#             ]
+#         },
+#         'repositoryProviderImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Repository Provider Implementation',
+#             'description': 'Implementation for repository service provider',
+#             'values': [
+#                 {'value': 'TEST_FILESYSTEM_ADAPTER_1', 'priority': 1}
+#             ]
+#         },
+#         'assetContentRecordTypeForFiles': {
+#             'syntax': 'TYPE',
+#             'displayName': 'Asset Content Type for Files',
+#             'description': 'Asset Content Type for Records that store Files on local disk',
+#             'values': [
+#                 {'value': FILESYSTEM_ASSET_CONTENT_TYPE, 'priority': 1}
+#             ]
+#         },
+#         'recordsRegistry': {
+#             'syntax': 'STRING',
+#             'displayName': 'Python path to the extension records registry file',
+#             'description': 'dot-separated path to the extension records registry file',
+#             'values': [
+#                 {'value': 'records.registry', 'priority': 1}
+#             ]
+#         },
+#         'magicItemLookupSessions': {
+#             'syntax': 'STRING',
+#             'displayName': 'Which magic item lookup sessions to try',
+#             'description': 'To handle magic IDs.',
+#             'values': [
+#                 {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+#             ]
+#         },
+#         'localImpl': {
+#             'syntax': 'STRING',
+#             'displayName': 'Implementation identifier for local service provider',
+#             'description': 'Implementation identifier for local service provider.  Typically the same identifier as the Mongo configuration',
+#             'values': [
+#                 {'value': 'TEST_MONGO_1', 'priority': 1}
+#             ]
+#         },
+#         'useCachingForQualifierIds': {
+#             'syntax': 'BOOLEAN',
+#             'displayName': 'Flag to use memcached for authz qualifier_ids or not',
+#             'description': 'Flag to use memcached for authz qualifier_ids or not',
+#             'values': [
+#                 {'value': True, 'priority': 1}
+#             ]
+#         },
+#         'dataStoreFullPath': {
+#             'syntax': 'STRING',
+#             'displayName': 'Full path to local filesystem datastore',
+#             'description': 'Filesystem path for setting the MongoClient host.',
+#             'values': [
+#                 {'value': TEST_ABS_PATH, 'priority': 1}
+#             ]
+#         },
+#     }
+# }
 
-}
-
-TEST_MONGO_1 = {
-    'id': 'mongo_configuration_1',
-    'displayName': 'Mongo Configuration',
-    'description': 'Configuration for Mongo Implementation',
+TEST_JSON_1 = {
+    'id': 'json_configuration_1',
+    'displayName': 'JSON Configuration',
+    'description': 'Configuration for JSON MongoDB Implementation',
     'parameters': {
-        'implKey': impl_key_dict('mongo'),
+        'implKey': impl_key_dict('json'),
         'mongoDBNamePrefix': {
             'syntax': 'STRING',
             'displayName': 'Mongo DB Name Prefix',
@@ -479,7 +634,7 @@ TEST_MONGO_1 = {
             'displayName': 'Implementation identifier for local service provider',
             'description': 'Implementation identifier for local service provider.  Typically the same identifier as the Mongo configuration',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'useCachingForQualifierIds': {
@@ -490,12 +645,28 @@ TEST_MONGO_1 = {
                 {'value': True, 'priority': 1}
             ]
         },
+        'dataStorePath': {
+            'syntax': 'STRING',
+            'displayName': 'Path to local filesystem datastore',
+            'description': 'Filesystem path for setting the MongoClient host.',
+            'values': [
+                {'value': TEST_DATA_STORE_PATH, 'priority': 1}
+            ]
+        },
         'dataStoreFullPath': {
             'syntax': 'STRING',
             'displayName': 'Full path to local filesystem datastore',
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': TEST_ABS_PATH, 'priority': 1}
+            ]
+        },
+        'useFilesystem': {
+            'syntax': 'BOOLEAN',
+            'displayName': 'Use the filesystem instead of MongoDB',
+            'description': 'Use the filesystem instead of MongoDB',
+            'values': [
+                {'value': False, 'priority': 1}
             ]
         },
     }
@@ -512,7 +683,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Repository Provider Implementation',
             'description': 'Implementation for repository service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'assessmentProviderImpl': {
@@ -520,7 +691,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Assessment Provider Implementation',
             'description': 'Implementation for assessment service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'authorizationProviderImpl': {
@@ -528,7 +699,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Authorization Provider Implementation',
             'description': 'Implementation for authorization service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'learningProviderImpl': {
@@ -536,7 +707,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Learning Provider Implementation',
             'description': 'Implementation for learning service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'hierarchyProviderImpl': {
@@ -544,7 +715,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'repositoryProviderImpl': {
@@ -560,7 +731,7 @@ TEST_AUTHZ_ADAPTER_1 = {
             'displayName': 'Logging Provider Implementation',
             'description': 'Implementation for logging provider',
             'values': [
-                {'value': 'TEST_MONGO_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
     }

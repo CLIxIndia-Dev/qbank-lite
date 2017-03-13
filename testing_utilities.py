@@ -480,14 +480,14 @@ class BaseTestCase(TestCase):
 
         if not os.path.isdir(TEST_DATA_STORE_PATH):
             os.makedirs(TEST_DATA_STORE_PATH)
-        #
-        # # copy over the test fixture data from tests/fixtures
-        # shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
-        #                 '{0}/authorization'.format(TEST_DATA_STORE_PATH))
-        # # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
-        # #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
-        # shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
-        #                 '{0}/repository'.format(TEST_DATA_STORE_PATH))
+
+        # copy over the test fixture data from tests/fixtures
+        shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
+                        '{0}/authorization'.format(TEST_DATA_STORE_PATH))
+        # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
+        #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
+        shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
+                        '{0}/repository'.format(TEST_DATA_STORE_PATH))
 
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']

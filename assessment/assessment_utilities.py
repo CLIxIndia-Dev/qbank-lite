@@ -5,7 +5,7 @@ import web
 
 from bs4 import BeautifulSoup
 
-from dlkit.mongo import types
+from dlkit.json import types
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
@@ -81,6 +81,12 @@ FILE_SUBMISSION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['file-submission'])
 EXTENDED_TEXT_INTERACTION_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['extended-text-answer'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-numeric-response-with-feedback'])
 MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-language-answer-with-feedback'])
+
+DRAG_AND_DROP_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['drag-and-drop'])
+DRAG_AND_DROP_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['drag-and-drop'])
+DRAG_AND_DROP_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-drag-and-drop'])
+DRAG_AND_DROP_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
+# DRAG_AND_DROP_QUESTION_GENUS_TYPE = Type(**QUESTION_GENUS_TYPES['drag-and-drop'])
 
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
@@ -472,6 +478,8 @@ def get_answer_records_from_item_genus(item_genus_type):
         answer_record_types.append(SIMPLE_INLINE_CHOICE_ANSWER_RECORD)
     elif item_genus_type == NUMERIC_RESPONSE_INTERACTION_GENUS:
         answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
+    elif item_genus_type == DRAG_AND_DROP_ITEM_GENUS_TYPE:
+        answer_record_types.append(DRAG_AND_DROP_ANSWER_RECORD)
 
     return answer_record_types
 
@@ -546,6 +554,9 @@ def get_question_records_from_item_genus(item_genus_type):
         question_record_types.append(MULTI_LANGUAGE_INLINE_CHOICE_QUESTION_RECORD)
     elif item_genus_type in [NUMERIC_RESPONSE_INTERACTION_GENUS]:
         question_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD)
+    elif item_genus_type in [DRAG_AND_DROP_ITEM_GENUS_TYPE]:
+        question_record_types.append(DRAG_AND_DROP_QUESTION_RECORD)
+        question_record_types.append(FILES_QUESTION_RECORD)  # Because we know this will use files
 
     # add in audio time limit support for MW sandbox and
 
@@ -1111,7 +1122,6 @@ def update_item_json_random_choices(bank, item, item_map):
         if isinstance(item_map, basestring):
             item_map = json.loads(item_map)
             serialize = True
-
         unrandomized_choice_order = item.get_question().get_unrandomized_choices()
         # now need to get the updated texts, because they might have Assets
         if isinstance(unrandomized_choice_order, dict):
@@ -1380,6 +1390,17 @@ def update_question_form(question, form, create=False):
         else:
             if 'questionString' in question:
                 form.set_text(str(question['questionString']))
+    elif any('drag-and-drop' in t for t in question_types):
+        # capture this before QTI
+        if 'droppables' in question:
+            for droppable in question['droppables']:
+                pass
+        if 'targets' in question:
+            for target in question['targets']:
+                pass
+        if 'zones' in question:
+            for zone in question['zones']:
+                pass
     elif any('qti' in t for t in question_types):
         if 'questionString' in question:
             try:

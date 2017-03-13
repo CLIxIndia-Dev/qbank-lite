@@ -5980,7 +5980,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
-            data = self.json(req)[0]
+            data = self.json(req)
+            data = [d for d in data if d['id'] == mc_item['id']][0]
             if original_order != data['question']['choices']:
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
@@ -6108,7 +6109,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
-            data = self.json(req)[0]
+            data = self.json(req)
+            data = [d for d in data if d['id'] == mw_item['id']][0]
             if original_order != data['question']['choices']:
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
@@ -6311,7 +6313,8 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         for i in range(0, 10):
             req = self.app.get(url)
             self.ok(req)
-            data = self.json(req)[0]
+            data = self.json(req)
+            data = [d for d in data if d['id'] == mw_item['id']][0]
             if original_order_1 != data['question']['choices']['RESPONSE_1']:
                 different_order_count += 1
             if original_order_2 != data['question']['choices']['RESPONSE_2']:
