@@ -1,3 +1,7 @@
+3.0.0:
+  - Switch to DLKit generic JSON impl; requires changes in app_configs/configs.py
+    and app_configs/registry.py.
+
 2.1.6:
   - Added in missing `TEST_ABS_PATH` declaration for bundled scenario, in configs.
 
