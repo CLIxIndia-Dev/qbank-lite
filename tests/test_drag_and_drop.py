@@ -91,9 +91,6 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_add_new_zone(self):
         self.fail('finish writing the test')
 
-    def test_can_remove_zone(self):
-        self.fail('finish writing the test')
-
     def test_can_clear_zone_texts(self):
         self.fail('finish writing the test')
 
@@ -106,9 +103,6 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_add_new_target(self):
         self.fail('finish writing the test')
 
-    def test_can_remove_target(self):
-        self.fail('finish writing the test')
-
     def test_can_clear_target_texts(self):
         self.fail('finish writing the test')
 
@@ -119,9 +113,6 @@ def UpdateTests(BaseDragAndDropTestCase):
         self.fail('finish writing the test')
 
     def test_can_add_new_droppable(self):
-        self.fail('finish writing the test')
-
-    def test_can_remove_droppable(self):
         self.fail('finish writing the test')
 
     def test_can_clear_droppable_texts(self):
@@ -142,10 +133,31 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_turn_shuffle_targets_off(self):
         self.fail('finish writing the test')
 
+    def test_can_set_targets_order(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_droppables_order(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_zones_order(self):
+        self.fail('finish writing the test')
+
 
 def DeleteTests(BaseDragAndDropTestCase):
     """Can delete various parts RESTfully"""
     def test_can_delete_drag_and_drop_item(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_droppable(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_target(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_zone(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_answer(self):
         self.fail('finish writing the test')
 
 
@@ -161,4 +173,9 @@ def TakingTests(BaseDragAndDropTestCase):
         self.fail('finish writing the test')
 
     def test_can_submit_right_answer(self):
+        self.fail('finish writing the test')
+
+    def test_text_comes_back_in_desired_language(self):
+        """ Check that zones, targets, and droppables all return the right language
+        """
         self.fail('finish writing the test')
