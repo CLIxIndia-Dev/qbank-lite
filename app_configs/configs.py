@@ -359,7 +359,7 @@ SERVICE = {
             'displayName': 'Assessment Provider Implementation',
             'description': 'Implementation for assessment service provider',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'loggingProviderImpl': {
@@ -367,7 +367,7 @@ SERVICE = {
             'displayName': 'Logging Provider Implementation',
             'description': 'Implementation for logging service provider',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'repositoryProviderImpl': {
@@ -383,7 +383,7 @@ SERVICE = {
             'displayName': 'Learning Provider Implementation',
             'description': 'Implementation for learning service provider',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
         'hierarchyProviderImpl': {
@@ -391,7 +391,7 @@ SERVICE = {
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
             'values': [
-                {'value': 'MONGO_1', 'priority': 1}
+                {'value': 'JSON_1', 'priority': 1}
             ]
         },
     }
@@ -748,7 +748,7 @@ TEST_SERVICE = {
             'displayName': 'Assessment Provider Implementation',
             'description': 'Implementation for assessment service provider',
             'values': [
-                {'value': 'TEST_FILESYSTEM_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'loggingProviderImpl': {
@@ -756,7 +756,7 @@ TEST_SERVICE = {
             'displayName': 'Logging Provider Implementation',
             'description': 'Implementation for logging service provider',
             'values': [
-                {'value': 'TEST_FILESYSTEM_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'repositoryProviderImpl': {
@@ -772,7 +772,7 @@ TEST_SERVICE = {
             'displayName': 'Learning Provider Implementation',
             'description': 'Implementation for learning service provider',
             'values': [
-                {'value': 'TEST_FILESYSTEM_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'hierarchyProviderImpl': {
@@ -780,7 +780,7 @@ TEST_SERVICE = {
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
             'values': [
-                {'value': 'TEST_FILESYSTEM_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
         'authorizationProviderImpl': {
@@ -788,7 +788,7 @@ TEST_SERVICE = {
             'displayName': 'Authorization Provider Implementation',
             'description': 'Implementation for authorization service provider',
             'values': [
-                {'value': 'TEST_FILESYSTEM_1', 'priority': 1}
+                {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
     }
