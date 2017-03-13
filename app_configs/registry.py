@@ -60,18 +60,18 @@ MANAGER_PATHS = {
     #                    'dlkit.mongo.repository.managers.RepositoryProxyManager')
     # },
     'json': {
-        'ASSESSMENT': ('dlkit.json.assessment.managers.AssessmentManager',
-                       'dlkit.json.assessment.managers.AssessmentProxyManager'),
-        'AUTHORIZATION': ('dlkit.json.authorization.managers.AuthorizationManager',
-                          'dlkit.json.authorization.managers.AuthorizationProxyManager'),
-        'HIERARCHY': ('dlkit.json.hierarchy.managers.HierarchyManager',
-                      'dlkit.json.hierarchy.managers.HierarchyProxyManager'),
-        'LEARNING': ('dlkit.json.learning.managers.LearningManager',
-                     'dlkit.json.learning.managers.LearningProxyManager'),
-        'LOGGING': ('dlkit.json.logging_.managers.LoggingManager',
-                    'dlkit.json.logging_.managers.LoggingProxyManager'),
-        'REPOSITORY': ('dlkit.json.repository.managers.RepositoryManager',
-                       'dlkit.json.repository.managers.RepositoryProxyManager')
+        'ASSESSMENT': ('dlkit.json_.assessment.managers.AssessmentManager',
+                       'dlkit.json_.assessment.managers.AssessmentProxyManager'),
+        'AUTHORIZATION': ('dlkit.json_.authorization.managers.AuthorizationManager',
+                          'dlkit.json_.authorization.managers.AuthorizationProxyManager'),
+        'HIERARCHY': ('dlkit.json_.hierarchy.managers.HierarchyManager',
+                      'dlkit.json_.hierarchy.managers.HierarchyProxyManager'),
+        'LEARNING': ('dlkit.json_.learning.managers.LearningManager',
+                     'dlkit.json_.learning.managers.LearningProxyManager'),
+        'LOGGING': ('dlkit.json_.logging_.managers.LoggingManager',
+                    'dlkit.json_.logging_.managers.LoggingProxyManager'),
+        'REPOSITORY': ('dlkit.json_.repository.managers.RepositoryManager',
+                       'dlkit.json_.repository.managers.RepositoryProxyManager')
     },
     'filesystem_adapter': {
         'REPOSITORY': ('dlkit.filesystem_adapter.repository.managers.RepositoryManager',
