@@ -4,7 +4,7 @@ import web
 from dlkit.primordium.id.primitives import Id
 from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
-from dlkit.mongo import types
+from dlkit.json import types
 
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import NotFound
