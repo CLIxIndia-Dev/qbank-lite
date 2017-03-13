@@ -5,7 +5,7 @@ import web
 
 from bs4 import BeautifulSoup
 
-from dlkit.json import types
+from dlkit.json_ import types
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
