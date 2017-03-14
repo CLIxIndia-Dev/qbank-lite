@@ -1,3 +1,24 @@
+3.0.0:
+  - Switch to DLKit generic JSON impl; requires changes in app_configs/configs.py
+    and app_configs/registry.py.
+
+2.1.6:
+  - Added in missing `TEST_ABS_PATH` declaration for bundled scenario, in configs.
+
+2.1.5:
+  - Added better 206 header management for streaming content.
+
+2.1.4:
+  - Better handling of MC / Order Interaction submit when no correct answers
+    defined.
+
+2.1.3:
+  - Chunk file transfers to allow for seeking / streaming.
+
+2.1.2:
+  - Handle the case when no fileId label exists in question text,
+    answer feedback, or choice.
+
 2.1.1:
   - Remove redunant remove_choice method in records for inline choice.
 

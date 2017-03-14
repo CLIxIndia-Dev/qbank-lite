@@ -4,7 +4,7 @@ import web
 from dlkit.primordium.id.primitives import Id
 from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
-from dlkit.mongo import types
+from dlkit.json import types
 
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import NotFound
@@ -113,6 +113,12 @@ def get_asset_content_genus_type(file_name):
                              authority='ODL.MIT.EDU')
         # ac_genus_type = GENERIC_ASSET_CONTENT_GENUS_TYPE
     return ac_genus_type
+
+
+def get_byte_ranges():
+    if 'HTTP_RANGE' in web.ctx.env:
+        return web.ctx.env['HTTP_RANGE'].split('=')[-1].split('-')
+    return None
 
 
 def get_file_extension(file_name):
