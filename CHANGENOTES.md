@@ -1,3 +1,6 @@
+3.0.1:
+  - Change DLKit `json` to `json_` to avoid collisions.
+
 3.0.0:
   - Switch to DLKit generic JSON impl; requires changes in app_configs/configs.py
     and app_configs/registry.py.
