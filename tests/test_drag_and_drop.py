@@ -73,6 +73,12 @@ def CreateTests(BaseDragAndDropTestCase):
     def test_shuffled_targets_do_not_shuffle_for_authoring(self):
         self.fail('finish writing the test')
 
+    def test_still_creates_question_if_target_source_tag_not_in_file_ids(self):
+        self.fail('finish writing the test')
+
+    def test_still_creates_question_if_droppable_source_tag_not_in_file_ids(self):
+        self.fail('finish writing the test')
+
 
 def UpdateTests(BaseDragAndDropTestCase):
     """Can edit the drag and drop RESTfully"""
@@ -161,7 +167,18 @@ def DeleteTests(BaseDragAndDropTestCase):
         self.fail('finish writing the test')
 
 
-def TakingTests(BaseDragAndDropTestCase):
+def QTITests(BaseDragAndDropTestCase):
+    def test_xml_includes_targets_zones_and_droppables(self):
+        self.fail('finish writing the test')
+
+    def test_xml_returned_even_if_droppable_source_not_in_file_ids(self):
+        self.fail('finsih writing the test')
+
+    def test_xml_returned_even_if_target_source_not_in_file_ids(self):
+        self.fail('finish writing the test')
+
+
+def SingleTargetTakingTests(BaseDragAndDropTestCase):
     """Can submit right / wrong answers to a drag-and-drop question"""
     def test_shuffled_droppables_do_shuffle_when_taking(self):
         self.fail('finish writing the test')
@@ -175,7 +192,22 @@ def TakingTests(BaseDragAndDropTestCase):
     def test_can_submit_right_answer(self):
         self.fail('finish writing the test')
 
+    def test_can_submit_coordinate_off_of_the_target(self):
+        self.fail('finish writing the test')
+
+    def test_can_submit_negative_coordinates(self):
+        self.fail('finish writing the test')
+
+    def test_can_submit_coordinate_on_the_zone_boundary(self):
+        self.fail('finish writing the test')
+
     def test_text_comes_back_in_desired_language(self):
         """ Check that zones, targets, and droppables all return the right language
         """
+        self.fail('finish writing the test')
+
+    def test_image_urls_come_back_in_targets(self):
+        self.fail('finish writing the test')
+
+    def test_image_urls_come_back_in_droppables(self):
         self.fail('finish writing the test')
