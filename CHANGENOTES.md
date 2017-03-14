@@ -1,3 +1,6 @@
+3.1.0:
+  - Can replace an existing variable value for numeric response questions.
+
 3.0.1:
   - Change DLKit `json` to `json_` to avoid collisions.
 
