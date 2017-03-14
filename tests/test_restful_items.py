@@ -5252,6 +5252,199 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
         self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
 
+    def test_can_update_numeric_response_variables_via_rest(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Please solve:
+</p>
+<p>
+   <printedVariable identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>""",
+                "variables": [{
+                    "id": "var1",
+                    "format": "%.4f",
+                    "type": "float",
+                    "min": 1.0,
+                    "max": 10.0,
+                    "step": 0.1
+                }, {
+                    "id": "var2",
+                    "type": "integer",
+                    "min": 1,
+                    "max": 10
+                }],
+                "genusTypeId": str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p></p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p></p>
+</modalFeedback>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['format'],
+            '%.4f'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        payload = {
+            "question": {
+                "variables": [{
+                    "id": "var1",
+                    "format": "%.2f",
+                    "type": "float",
+                    "min": 1.0,
+                    "max": 100.0,
+                    "step": 0.1
+                }]
+            }
+        }
+
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['max_value'],
+            100.0
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['format'],
+            '%.2f'
+        )
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve:
+</p>
+<p>
+   <printedVariable format="%.2f" identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random numbers are inserted that meet the requirements
+        expression = self._grab_expression(str(item_body))
+        var1 = float(expression[0:expression.index('+')].strip())
+        var2 = int(expression[expression.index('+') + 1::].strip())
+
+        self.assertTrue(1.0 <= var1 <= 100.0)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
     def test_can_add_question_to_existing_numeric_response_item_via_rest(self):
         url = '{0}/items'.format(self.url)
 
