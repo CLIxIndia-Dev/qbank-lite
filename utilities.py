@@ -6,7 +6,7 @@ import os
 
 from urllib import quote
 
-from dlkit.json import types
+from dlkit.json_ import types
 
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
