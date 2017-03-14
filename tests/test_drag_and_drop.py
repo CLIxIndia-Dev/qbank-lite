@@ -145,9 +145,6 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_set_droppables_order(self):
         self.fail('finish writing the test')
 
-    def test_can_set_zones_order(self):
-        self.fail('finish writing the test')
-
 
 def DeleteTests(BaseDragAndDropTestCase):
     """Can delete various parts RESTfully"""

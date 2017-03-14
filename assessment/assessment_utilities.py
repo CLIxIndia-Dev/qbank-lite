@@ -11,7 +11,7 @@ from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArg
     IllegalState
 from dlkit_runtime.primitives import InitializableLocale
 from dlkit_runtime.primordium import Duration, DateTime, Id, Type,\
-    DataInputStream
+    DataInputStream, DisplayText
 from dlkit_runtime.proxy_example import TestRequest
 
 from inflection import underscore
@@ -423,6 +423,12 @@ def get_choice_files(files):
     return dict((k, files[k]) for k in files.keys() if k.startswith('choice'))
 
 
+def get_drop_behavior_as_string(object_map):
+    if 'dropBehaviorType' in object_map:
+        return object_map['dropBehaviorType']
+    return None
+
+
 def get_media_path(bank):
     host_path = web.ctx.get('homedomain', '')
     rm = rutils.get_repository_manager()
@@ -485,6 +491,7 @@ def get_answer_records_from_item_genus(item_genus_type):
 
 
 def get_choice_ids_in_order(new_choice_list, existing_choice_list):
+    new_choice_list = [c for c in new_choice_list if not key_to_be_deleted(c)]
     choice_order = []
     if all('order' in c for c in new_choice_list):
         # sort the new choice list by 'order' first
@@ -521,6 +528,12 @@ def get_choice_ids_in_order(new_choice_list, existing_choice_list):
 
             choice_order.append(choice_id)
     return choice_order
+
+
+def get_name_as_string(object_map):
+    if 'name' in object_map:
+        return object_map['name']
+    return None
 
 
 def get_question_records_from_item_genus(item_genus_type):
@@ -686,6 +699,15 @@ def get_taken_section_map(taken, update=False, with_files=False, bank=None):
     return section_maps
 
 
+def get_text_as_display_text(object_map):
+    if 'text' in object_map:
+        text = object_map['text']
+        if isinstance(text, dict):
+            return DisplayText(**text)
+        return DisplayText(text=text)
+    return None
+
+
 def get_response_submissions(response):
     if response['type'] == 'answer-record-type%3Alabel-ortho-faces%40ODL.MIT.EDU':
         submission = response['integerValues']
@@ -707,6 +729,12 @@ def get_response_submissions(response):
     else:
         raise Unsupported
     return submission
+
+
+def get_reuse_as_integer(object_map):
+    if 'reuse' in object_map:
+        return int(object_map['reuse'])
+    return None
 
 
 def is_drag_and_drop(object_data):
@@ -815,6 +843,10 @@ def is_survey(response):
 def is_right_answer(answer):
     return (answer.genus_type == Type(**ANSWER_GENUS_TYPES['right-answer']) or
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
+
+
+def key_to_be_deleted(object_map):
+    return 'delete' in object_map and object_map['delete']
 
 
 def match_submission_to_answer(answers, response):
@@ -1071,6 +1103,44 @@ def update_drag_drop_answer_form_with_zone_conditions(form, answer_map):
         form.clear_zone_conditions()
         for zone_condition in answer_map['zoneConditions']:
             pass
+    return form
+
+
+def update_drag_drop_question_form_with_droppables(form, question_map):
+    if 'droppables' in question_map:
+        for droppable in question_map['droppables']:
+            if 'id' in droppable:
+                if key_to_be_deleted(droppable):
+                    # remove_droppable
+                    form.remove_droppable(droppable['id'])
+                    break
+                # update droppable
+                droppable_text = get_text_as_display_text(droppable)
+                reuse = get_reuse_as_integer(droppable)
+                drop_behavior_type = get_drop_behavior_as_string(droppable)
+                name = get_name_as_string(droppable)
+                form.update_droppable(droppable['id'],
+                                      droppable_text=droppable_text,
+                                      reuse=reuse,
+                                      drop_behavior_type=drop_behavior_type)
+                break
+            # add new droppable
+            pass
+            break
+        # set droppables order
+        droppable_order = get_choice_ids_in_order(question_map['droppables'], form._my_map['droppables'])
+        # now re-order the choices per what is sent in
+        # need to also account for mix of new choices and old choices
+        try:
+            form.set_droppable_order(droppable_order)
+        except AttributeError:
+            pass
+    elif 'clearDroppables' in question_map:
+        form.clear_droppables()
+    elif 'clearDroppableTexts' in question_map:
+        # list of droppableIds to clear the texts of
+        for droppable_id in question_map['clearDroppableTexts']:
+            form.clear_droppable_texts(droppable_id)
     return form
 
 
@@ -1432,7 +1502,26 @@ def update_question_form(question, form, create=False):
         # capture this before QTI
         if 'droppables' in question:
             for droppable in question['droppables']:
+                if 'id' in droppable:
+                    if 'delete' in droppable and droppable['delete']:
+                        # remove_droppable
+                        pass
+                        break
+                    # update droppable
+                    pass
+                    break
+                # add new droppable
                 pass
+                break
+            # set droppables order
+
+        elif 'clearDroppables' in question:
+            form.clear_droppables()
+        elif 'clearDroppableTexts' in question:
+            # list of droppableIds to clear the texts of
+            for droppable_id in question['clearDroppableTexts']:
+                form.clear_droppable_texts(droppable_id)
+
         if 'targets' in question:
             for target in question['targets']:
                 pass
@@ -1460,7 +1549,7 @@ def update_question_form(question, form, create=False):
                 elif 'id' in choice and 'removeLanguageType' in choice:
                     language_type = Type(choice['removeLanguageType'])
                     form.remove_choice_language(language_type, choice['id'])
-                elif 'id' in choice and 'delete' in choice and choice['delete']:
+                elif 'id' in choice and key_to_be_deleted(choice):
                     form.remove_choice(choice['id'])
                 elif 'id' in choice:
                     try:
@@ -1474,18 +1563,13 @@ def update_question_form(question, form, create=False):
                         form.add_choice(utilities.create_display_text(choice['text']))
                     except InvalidArgument:
                         form.add_choice(u'{0}'.format(choice['text']).encode('utf8'))
-            desired_choices = [c for c in question['choices'] if 'delete' not in c]
-
-            choice_order = get_choice_ids_in_order(desired_choices, form._my_map['choices'])
+            choice_order = get_choice_ids_in_order(question['choices'], form._my_map['choices'])
             # now re-order the choices per what is sent in
             # need to also account for mix of new choices and old choices
-            if (len(choice_order) == len(desired_choices) and
-                    len(choice_order) > 0 and
-                    len(choice_order) == len(form._my_map['choices'])):
-                try:
-                    form.set_choice_order(choice_order)
-                except AttributeError:
-                    pass
+            try:
+                form.set_choice_order(choice_order)
+            except AttributeError:
+                pass
 
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
@@ -1498,7 +1582,7 @@ def update_question_form(question, form, create=False):
                     elif 'id' in choice and 'removeLanguageType' in choice:
                         language_type = Type(choice['removeLanguageType'])
                         form.remove_choice_language(language_type, choice['id'], region)
-                    elif 'id' in choice and 'delete' in choice and choice['delete']:
+                    elif 'id' in choice and key_to_be_deleted(choice):
                         form.remove_choice(choice['id'], region)
                     elif 'id' in choice:
                         try:
@@ -1514,20 +1598,15 @@ def update_question_form(question, form, create=False):
                         except InvalidArgument:
                             form.add_choice(u'{0}'.format(choice['text']).encode('utf8'), region)
 
-                desired_choices = [c for c in region_data['choices'] if 'delete' not in c]
-
-                choice_order = get_choice_ids_in_order(desired_choices,
+                choice_order = get_choice_ids_in_order(region_data['choices'],
                                                        form._my_map['choices'][region])
 
                 # now re-order the choices per what is sent in
                 # need to also account for mix of new choices and old choices
-                if (len(choice_order) == len(desired_choices) and
-                        len(choice_order) > 0 and
-                        len(choice_order) == len(form._my_map['choices'][region])):
-                    try:
-                        form.set_choice_order(choice_order, region)
-                    except AttributeError:
-                        pass
+                try:
+                    form.set_choice_order(choice_order, region)
+                except AttributeError:
+                    pass
         if 'shuffle' in question:
             form.set_shuffle(bool(question['shuffle']))
         if 'maxStrings' in question:
