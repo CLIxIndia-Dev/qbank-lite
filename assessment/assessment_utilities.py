@@ -709,6 +709,15 @@ def get_response_submissions(response):
     return submission
 
 
+def is_drag_and_drop(object_data):
+    if 'type' in object_data:
+        # in this case (for responses) it is a passed dictionary
+        return 'drag-and-drop' in object_data['type']
+
+    # in this case object_data is a list of types / recordTypeIds
+    return any('drag-and-drop' in t for t in object_data)
+
+
 def is_file_submission(response):
     if isinstance(response['type'], list):
         return any(mc in r
@@ -1017,6 +1026,11 @@ def update_answer_form(answer, form, question=None):
             form.clear_choice_ids()
             for choice_id in answer['choiceIds']:
                 form.add_choice_id(choice_id)
+    elif is_drag_and_drop(answer_types):
+        # capture this before qti
+        form = update_drag_drop_answer_form_with_coordinate_conditions(form, answer)
+        form = update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer)
+        form = update_drag_drop_answer_form_with_zone_conditions(form, answer)
     elif any('qti' in t for t in answer_types):
         pass
     else:
@@ -1033,6 +1047,30 @@ def update_answer_form_with_files(form, data):
             record._init_metadata()
             record._init_map()
         form = update_form_with_files(form, data)
+    return form
+
+
+def update_drag_drop_answer_form_with_coordinate_conditions(form, answer_map):
+    if 'coordinateConditions' in answer_map:
+        form.clear_coordinate_conditions()
+        for coordinate_condition in answer_map['coordinateConditions']:
+            pass
+    return form
+
+
+def update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer_map):
+    if 'spatialUnitConditions' in answer_map:
+        form.clear_spatial_unit_conditions()
+        for spatial_unit_condition in answer_map['spatialUnitConditions']:
+            pass
+    return form
+
+
+def update_drag_drop_answer_form_with_zone_conditions(form, answer_map):
+    if 'zoneConditions' in answer_map:
+        form.clear_zone_conditions()
+        for zone_condition in answer_map['zoneConditions']:
+            pass
     return form
 
 
@@ -1390,7 +1428,7 @@ def update_question_form(question, form, create=False):
         else:
             if 'questionString' in question:
                 form.set_text(str(question['questionString']))
-    elif any('drag-and-drop' in t for t in question_types):
+    elif is_drag_and_drop(question_types):
         # capture this before QTI
         if 'droppables' in question:
             for droppable in question['droppables']:
@@ -1618,6 +1656,10 @@ def update_response_form(response, form):
                 form.add_decimal_value(float(response[region]), region)
             except ValueError:
                 form.set_text(str(response[region]))
+    elif is_drag_and_drop(response):
+        form = update_drag_drop_answer_form_with_coordinate_conditions(form, response)
+        form = update_drag_drop_answer_form_with_spatial_unit_conditions(form, response)
+        form = update_drag_drop_answer_form_with_zone_conditions(form, response)
     else:
         raise Unsupported()
     return form
