@@ -1501,8 +1501,13 @@ def update_question_form(question, form, create=False):
         if 'timeValue' in question:
             form.set_time_value(Duration(**question['timeValue']))
         if 'variables' in question:
-            # TODO: edit existing variable
             for var_data in question['variables']:
+                try:
+                    # remove the variable if it exists
+                    form.remove_variable(var_data['id'])
+                except IllegalState:
+                    pass
+
                 if 'format'in var_data:
                     var_format = var_data['format']
                 else:
