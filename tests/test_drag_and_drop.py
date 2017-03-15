@@ -1,4 +1,16 @@
+import os
+
+from dlkit_runtime.primitives import Type
+
+from records.registry import ITEM_GENUS_TYPES
+
 from testing_utilities import BaseTestCase
+
+
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
+
+DRAG_AND_DROP_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
 
 
 class BaseDragAndDropTestCase(BaseTestCase):
@@ -6,11 +18,29 @@ class BaseDragAndDropTestCase(BaseTestCase):
     def _item_payload():
         """payload without the question and answer parts.
         Pull in self._question_payload() and self._answers_payload() if you need those"""
-        return {}
+        return {
+            'genusTypeId': DRAG_AND_DROP_ITEM_GENUS_TYPE,
+            'name': 'Test drag and drop item'
+        }
 
-    @staticmethod
-    def _question_payload():
-        return {}
+    def _question_payload(self):
+        payload = {
+            'targets': [{}],
+            'droppables': [],
+            'zones': [],
+            'fileIds': {}
+        }
+
+        media_files = [self._target,
+                       self._draggable1,
+                       self._draggable2]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        return payload
 
     @staticmethod
     def _answers_payload():
@@ -23,10 +53,16 @@ class BaseDragAndDropTestCase(BaseTestCase):
         pass
 
     def setUp(self):
+        self._target = open('{0}/tests/files/drag-and-drop/drag_and_drop_input_DPP-Concpt-BlkonRmp-Trgt.png'.format(ABS_PATH), 'rb')
+        self._draggable1 = open('{0}/tests/files/drag-and-drop/draggable_green_dot.png'.format(ABS_PATH), 'rb')
+        self._draggable2 = open('{0}/tests/files/drag-and-drop/draggable_red_dot.png'.format(ABS_PATH), 'rb')
         super(BaseDragAndDropTestCase, self).setUp()
 
     def tearDown(self):
         super(BaseDragAndDropTestCase, self).tearDown()
+        self._target.close()
+        self._draggable1.close()
+        self._draggable2.close()
 
 
 def CreateTests(BaseDragAndDropTestCase):
@@ -67,11 +103,17 @@ def CreateTests(BaseDragAndDropTestCase):
     def test_can_set_shuffle_targets_flag(self):
         self.fail('finish writing the test')
 
+    def test_can_set_shuffle_zones_flag(self):
+        self.fail('finish writing the test')
+
     def test_shuffled_droppables_do_not_shuffle_for_authoring(self):
         self.fail('finish writing the test')
 
     def test_shuffled_targets_do_not_shuffle_for_authoring(self):
         self.fail('finish writing the test')
+
+    def test_shuffled_zones_do_not_shuffle_for_authoring(self):
+        self.fail('finish writing hte test')
 
     def test_still_creates_question_if_target_source_tag_not_in_file_ids(self):
         self.fail('finish writing the test')
@@ -97,7 +139,7 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_add_new_zone(self):
         self.fail('finish writing the test')
 
-    def test_can_clear_zone_texts(self):
+    def test_can_clear_zone_names(self):
         self.fail('finish writing the test')
 
     def test_can_update_target_with_new_language(self):
@@ -139,10 +181,19 @@ def UpdateTests(BaseDragAndDropTestCase):
     def test_can_turn_shuffle_targets_off(self):
         self.fail('finish writing the test')
 
+    def test_can_turn_shuffle_zones_on(self):
+        self.fail('finish writing the test')
+
+    def test_can_turn_shuffle_zones_off(self):
+        self.fail('finish writing the test')
+
     def test_can_set_targets_order(self):
         self.fail('finish writing the test')
 
     def test_can_set_droppables_order(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_zone_order(self):
         self.fail('finish writing the test')
 
 

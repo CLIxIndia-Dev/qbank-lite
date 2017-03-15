@@ -435,6 +435,10 @@ class BaseTestCase(TestCase):
     def _filename(file_object):
         return file_object.name.split('/')[-1]
 
+    @staticmethod
+    def _label(text):
+        return text.replace('.', '_')
+
     def code(self, _req, _code):
         self.assertEqual(_req.status, _code)
 

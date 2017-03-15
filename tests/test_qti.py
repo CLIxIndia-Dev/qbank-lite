@@ -58,10 +58,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         numeric_choice_line_str = _stringify(numeric_choice_wrapper)
         return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
 
-    @staticmethod
-    def _label(text):
-        return text.replace('.', '_')
-
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)

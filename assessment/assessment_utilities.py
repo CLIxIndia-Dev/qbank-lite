@@ -11,7 +11,7 @@ from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArg
     IllegalState
 from dlkit_runtime.primitives import InitializableLocale
 from dlkit_runtime.primordium import Duration, DateTime, Id, Type,\
-    DataInputStream, DisplayText
+    DataInputStream, DisplayText, RectangularSpatialUnit
 from dlkit_runtime.proxy_example import TestRequest
 
 from inflection import underscore
@@ -491,7 +491,7 @@ def get_answer_records_from_item_genus(item_genus_type):
 
 
 def get_choice_ids_in_order(new_choice_list, existing_choice_list):
-    new_choice_list = [c for c in new_choice_list if not key_to_be_deleted(c)]
+    new_choice_list = [c for c in new_choice_list if not object_to_be_deleted(c)]
     choice_order = []
     if all('order' in c for c in new_choice_list):
         # sort the new choice list by 'order' first
@@ -528,6 +528,18 @@ def get_choice_ids_in_order(new_choice_list, existing_choice_list):
 
             choice_order.append(choice_id)
     return choice_order
+
+
+def get_container_id_as_string(object_map):
+    if 'containerId' in object_map:
+        return object_map['containerId']
+    return None
+
+
+def get_language_to_remove_as_type(object_map):
+    if 'removeLanguageType' in object_map:
+        return Type(object_map['removeLanguageType'])
+    return None
 
 
 def get_name_as_string(object_map):
@@ -650,6 +662,24 @@ def get_response_map(bank, section, question_id):
     return response_map
 
 
+def get_spatial_unit_as_spatial_unit(object_map):
+    if 'spatialUnit' in object_map:
+        unit = object_map['spatialUnit']
+        # For now, we only support rectangular spatial units
+        if ('recordType' in unit and
+                unit['recordType'] == 'osid.mapping.SpatialUnit%3Arectangle%40ODL.MIT.EDU'):
+            if 'coordinate' not in unit:
+                raise InvalidArgument('coordinate required for rectangular spatial units')
+            if 'width' not in unit:
+                raise InvalidArgument('width required for rectangular spatial units')
+            if 'height' not in unit:
+                raise InvalidArgument('height required for rectangular spatial units')
+            return RectangularSpatialUnit(coordinate=unit['coordinate'],
+                                          width=unit['width'],
+                                          height=unit['height'])
+    return None
+
+
 def get_taken_section_map(taken, update=False, with_files=False, bank=None):
     # let's get the questions first ... we need to inject that information into
     # the response, so that UI side we can match on the original, canonical itemId
@@ -734,6 +764,12 @@ def get_response_submissions(response):
 def get_reuse_as_integer(object_map):
     if 'reuse' in object_map:
         return int(object_map['reuse'])
+    return None
+
+
+def get_visible_as_boolean(object_map):
+    if 'visible' in object_map:
+        return bool(object_map['visible'])
     return None
 
 
@@ -845,7 +881,7 @@ def is_right_answer(answer):
             str(answer.genus_type).lower() == 'genustype%3adefault%40dlkit.mit.edu')
 
 
-def key_to_be_deleted(object_map):
+def object_to_be_deleted(object_map):
     return 'delete' in object_map and object_map['delete']
 
 
@@ -882,6 +918,10 @@ def match_submission_to_answer(answers, response):
         return answer_match
 
 
+def remove_language_type(object_map):
+    return 'removeLanguageType' in object_map
+
+
 def set_answer_form_genus_and_feedback(answer, answer_form):
     """answer is a dictionary"""
     if 'genus' in answer:
@@ -906,8 +946,8 @@ def set_answer_form_genus_and_feedback(answer, answer_form):
     elif 'updatedFeedback' in answer:
         updated_feedback = utilities.create_display_text(answer['updatedFeedback'])
         answer_form.edit_feedback(updated_feedback)
-    elif 'removeLanguageType' in answer:
-        language_type = Type(answer['removeLanguageType'])
+    elif remove_language_type(answer):
+        language_type = get_language_to_remove_as_type(answer)
         answer_form.remove_feedback_language(language_type)
 
     if 'confusedLearningObjectiveIds' in answer:
@@ -1109,23 +1149,34 @@ def update_drag_drop_answer_form_with_zone_conditions(form, answer_map):
 def update_drag_drop_question_form_with_droppables(form, question_map):
     if 'droppables' in question_map:
         for droppable in question_map['droppables']:
+            droppable_text = get_text_as_display_text(droppable)
+            reuse = get_reuse_as_integer(droppable)
+            drop_behavior_type = get_drop_behavior_as_string(droppable)
+            name = get_name_as_string(droppable)
+                
             if 'id' in droppable:
-                if key_to_be_deleted(droppable):
-                    # remove_droppable
+                if object_to_be_deleted(droppable):
+                    # remove droppable
                     form.remove_droppable(droppable['id'])
                     break
+                elif remove_language_type(droppable):
+                    # remove droppable language
+                    form.remove_droppable_language(get_language_to_remove_as_type(droppable),
+                                                   droppable['id'])
+                    break
                 # update droppable
-                droppable_text = get_text_as_display_text(droppable)
-                reuse = get_reuse_as_integer(droppable)
-                drop_behavior_type = get_drop_behavior_as_string(droppable)
-                name = get_name_as_string(droppable)
                 form.update_droppable(droppable['id'],
                                       droppable_text=droppable_text,
+                                      name=name,
                                       reuse=reuse,
                                       drop_behavior_type=drop_behavior_type)
                 break
             # add new droppable
-            pass
+            # We must honor the default values for these parameters, if they aren't given
+            form.add_droppable(droppable_text=droppable_text,
+                               name=name or '',
+                               reuse=reuse or 1,
+                               drop_behavior_type=drop_behavior_type)
             break
         # set droppables order
         droppable_order = get_choice_ids_in_order(question_map['droppables'], form._my_map['droppables'])
@@ -1141,6 +1192,107 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
         # list of droppableIds to clear the texts of
         for droppable_id in question_map['clearDroppableTexts']:
             form.clear_droppable_texts(droppable_id)
+    return form
+
+
+def update_drag_drop_question_form_with_targets(form, question_map):
+    if 'targets' in question_map:
+        for target in question_map['targets']:
+            target_text = get_text_as_display_text(target)
+            drop_behavior_type = get_drop_behavior_as_string(target)
+            name = get_name_as_string(target)
+
+            if 'id' in target:
+                if object_to_be_deleted(target):
+                    # remove target
+                    form.remove_target(target['id'])
+                    break
+                elif remove_language_type(target):
+                    # remove target language
+                    form.remove_target_language(get_language_to_remove_as_type(target),
+                                                target['id'])
+                    break
+                # update target
+                form.update_target(target['id'],
+                                   target_text=target_text,
+                                   name=name,
+                                   drop_behavior_type=drop_behavior_type)
+                break
+            # add new target
+            # We must honor the default values
+            form.add_target(target_text=target_text,
+                            name=name or '',
+                            drop_behavior_type=drop_behavior_type)
+            break
+        # set targets order
+        target_order = get_choice_ids_in_order(question_map['targets'], form._my_map['targets'])
+        # now re-order the choices per what is sent in
+        # need to also account for mix of new choices and old choices
+        try:
+            form.set_target_order(target_order)
+        except AttributeError:
+            pass
+    elif 'clearTargets' in question_map:
+        form.clear_targets()
+    elif 'clearTargetTexts' in question_map:
+        # list of targetIds to clear the texts of
+        for target_id in question_map['clearTargetTexts']:
+            form.clear_target_texts(target_id)
+    return form
+
+
+def update_drag_drop_question_form_with_zones(form, question_map):
+    if 'zones' in question_map:
+        for zone in question_map['zones']:
+            spatial_unit = get_spatial_unit_as_spatial_unit(zone)
+            container_id = get_container_id_as_string(zone)
+            drop_behavior_type = get_drop_behavior_as_string(zone)
+            name = get_name_as_string(zone)
+            reuse = get_reuse_as_integer(zone)
+            visible = get_visible_as_boolean(zone)
+
+            if 'id' in zone:
+                if object_to_be_deleted(zone):
+                    # remove zone
+                    form.remove_zone(zone['id'])
+                    break
+                elif remove_language_type(zone):
+                    # remove zone language
+                    form.remove_zone_language(get_language_to_remove_as_type(zone),
+                                              zone['id'])
+                    break
+                # update zone
+                form.update_zone(zone['id'],
+                                 name=name,
+                                 spatial_unit=spatial_unit,
+                                 container_id=container_id,
+                                 visible=visible,
+                                 reuse=reuse,
+                                 drop_behavior_type=drop_behavior_type)
+                break
+            # add new zone
+            # We must honor the default values
+            form.add_zone(spatial_unit,
+                          container_id,
+                          name=name or '',
+                          visible=visible or True,
+                          reuse=reuse or 0,
+                          drop_behavior_type=drop_behavior_type)
+            break
+        # set zone order
+        zone_order = get_choice_ids_in_order(question_map['zones'], form._my_map['zones'])
+        # now re-order the choices per what is sent in
+        # need to also account for mix of new choices and old choices
+        try:
+            form.set_zone_order(zone_order)
+        except AttributeError:
+            pass
+    elif 'clearZones' in question_map:
+        form.clear_zones()
+    elif 'clearZoneNames' in question_map:
+        # list of zoneIds to clear the names of
+        for zone_id in question_map['clearZoneNames']:
+            form.clear_zone_names(zone_id)
     return form
 
 
@@ -1500,34 +1652,9 @@ def update_question_form(question, form, create=False):
                 form.set_text(str(question['questionString']))
     elif is_drag_and_drop(question_types):
         # capture this before QTI
-        if 'droppables' in question:
-            for droppable in question['droppables']:
-                if 'id' in droppable:
-                    if 'delete' in droppable and droppable['delete']:
-                        # remove_droppable
-                        pass
-                        break
-                    # update droppable
-                    pass
-                    break
-                # add new droppable
-                pass
-                break
-            # set droppables order
-
-        elif 'clearDroppables' in question:
-            form.clear_droppables()
-        elif 'clearDroppableTexts' in question:
-            # list of droppableIds to clear the texts of
-            for droppable_id in question['clearDroppableTexts']:
-                form.clear_droppable_texts(droppable_id)
-
-        if 'targets' in question:
-            for target in question['targets']:
-                pass
-        if 'zones' in question:
-            for zone in question['zones']:
-                pass
+        form = update_drag_drop_question_form_with_droppables(form, question)
+        form = update_drag_drop_question_form_with_targets(form, question)
+        form = update_drag_drop_question_form_with_zones(form, question)
     elif any('qti' in t for t in question_types):
         if 'questionString' in question:
             try:
@@ -1538,18 +1665,18 @@ def update_question_form(question, form, create=False):
         elif 'updatedQuestionString' in question:
             updated_text = utilities.create_display_text(question['updatedQuestionString'])
             form.edit_text(updated_text)
-        elif 'removeLanguageType' in question:
-            language_type = Type(question['removeLanguageType'])
+        elif remove_language_type(question):
+            language_type = get_language_to_remove_as_type(question)
             form.remove_text_language(language_type)
         if 'choices' in question:
             for choice in question['choices']:
                 if 'id' in choice and 'updatedText' in choice:
                     updated_choice = utilities.create_display_text(choice['updatedText'])
                     form.edit_choice(updated_choice, choice['id'])
-                elif 'id' in choice and 'removeLanguageType' in choice:
-                    language_type = Type(choice['removeLanguageType'])
+                elif 'id' in choice and remove_language_type(choice):
+                    language_type = get_language_to_remove_as_type(choice)
                     form.remove_choice_language(language_type, choice['id'])
-                elif 'id' in choice and key_to_be_deleted(choice):
+                elif 'id' in choice and object_to_be_deleted(choice):
                     form.remove_choice(choice['id'])
                 elif 'id' in choice:
                     try:
@@ -1579,10 +1706,10 @@ def update_question_form(question, form, create=False):
                     if 'id' in choice and 'updatedText' in choice:
                         updated_choice = utilities.create_display_text(choice['updatedText'])
                         form.edit_choice(updated_choice, choice['id'], region)
-                    elif 'id' in choice and 'removeLanguageType' in choice:
-                        language_type = Type(choice['removeLanguageType'])
+                    elif 'id' in choice and remove_language_type(choice):
+                        language_type = get_language_to_remove_as_type(choice)
                         form.remove_choice_language(language_type, choice['id'], region)
-                    elif 'id' in choice and key_to_be_deleted(choice):
+                    elif 'id' in choice and object_to_be_deleted(choice):
                         form.remove_choice(choice['id'], region)
                     elif 'id' in choice:
                         try:
