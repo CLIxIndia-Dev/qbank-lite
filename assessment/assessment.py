@@ -522,6 +522,7 @@ class ItemsList(utilities.BaseClass):
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
                     if item_genus in [DRAG_AND_DROP_ITEM_GENUS]:
                         items_records_list.append(DRAG_AND_DROP_ITEM_RECORD)
+                        items_records_list.remove(QTI_ITEM)
 
                     form = bank.get_item_form_for_create(items_records_list)
                     form = utilities.set_form_basics(form, item_json)
@@ -1222,8 +1223,9 @@ class ItemDetails(utilities.BaseClass):
                     existing_question_map = existing_question.object_map
                     q_id = existing_question.ident
 
-                    if 'type' not in question:
-                        question['type'] = existing_question_map['recordTypeIds'][0]
+                    # if 'type' not in question:
+                    #     question['type'] = existing_question_map['recordTypeIds'][0]
+
                     if 'recordTypeIds' not in question:
                         question['recordTypeIds'] = existing_question_map['recordTypeIds']
 
