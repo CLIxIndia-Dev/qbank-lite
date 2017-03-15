@@ -1,3 +1,6 @@
+3.1.1:
+  - Remove old reference to dlkit-lite in .gitmodules.
+
 3.1.0:
   - Can replace an existing variable value for numeric response questions.
 
