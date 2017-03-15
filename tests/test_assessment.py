@@ -171,7 +171,6 @@ class BaseAssessmentTestCase(BaseTestCase):
     def setUp(self):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
-        self._bank = get_fixture_bank()
         self._repo = get_fixture_repository()
 
     def tearDown(self):

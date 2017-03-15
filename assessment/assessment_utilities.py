@@ -4,14 +4,17 @@ import re
 import web
 
 from bs4 import BeautifulSoup
+from bson import ObjectId
+from bson.errors import InvalidId
 
+from dlkit.abstract_osid.osid.objects import OsidObjectForm
 from dlkit.json_ import types
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
 from dlkit_runtime.primitives import InitializableLocale
 from dlkit_runtime.primordium import Duration, DateTime, Id, Type,\
-    DataInputStream, DisplayText, RectangularSpatialUnit
+    DataInputStream, DisplayText, RectangularSpatialUnit, BasicCoordinate
 from dlkit_runtime.proxy_example import TestRequest
 
 from inflection import underscore
@@ -361,6 +364,37 @@ def evaluate_inline_choice(answers, submission):
     return correct
 
 
+def extract_id_using_index(object_, potential_id, key):
+    # Used when trying to create Drag and Drop questions & answers with the
+    # same RESTful call, when the forms require zoneId for example, but
+    # the client doesn't have them yet.
+    if object_ is None:
+        # For response forms, will expect them to pass in actual IDs, because the
+        # client will have them
+        return potential_id
+
+    try:
+        if isinstance(potential_id, int):
+            raise InvalidId
+        ObjectId(potential_id)
+    except InvalidId:
+        int_potential_id = int(potential_id)
+        if isinstance(object_, OsidObjectForm):
+            # if it's a form, things aren't shuffled yet, so just pull from the _my_map
+            current_key_values = object_._my_map['{0}s'.format(key)]
+        else:
+            # actually need to get the unrandomized version of the keys...
+            current_key_values = getattr(object_, 'get_unrandomized_{0}s'.format(key))()
+
+        if 0 <= int_potential_id < len(current_key_values):
+            potential_id = current_key_values[int_potential_id]['id']
+        else:
+            raise InvalidArgument('desired id as a {0} index does not exist'.format(key))
+    else:
+        pass
+    return potential_id
+
+
 def find_answer_in_answers(ans_id, ans_list):
     for ans in ans_list:
         if ans.ident == ans_id:
@@ -530,15 +564,35 @@ def get_choice_ids_in_order(new_choice_list, existing_choice_list):
     return choice_order
 
 
-def get_container_id_as_string(object_map):
+def get_container_id_as_string(form, object_map):
+    """In order to support creation of zones with the same form as new targets,
+         we will also accept a "target index" for the container_id, and then
+         we find the actual targetId in this method.
+    """
+    # NOTE: This assumes the targets are created first in the form!!
     if 'containerId' in object_map:
-        return object_map['containerId']
+        container_id = extract_id_using_index(form,
+                                              object_map['containerId'],
+                                              'target')
+        return container_id
     return None
 
 
 def get_language_to_remove_as_type(object_map):
     if 'removeLanguageType' in object_map:
         return Type(object_map['removeLanguageType'])
+    return None
+
+
+def get_name_as_display_text(object_map):
+    if 'name' in object_map:
+        name = object_map['name']
+        if isinstance(name, dict):
+            return DisplayText(**name)
+        return DisplayText(text=name,
+                           language_type=DEFAULT_LANGUAGE_TYPE,
+                           format_type=DEFAULT_FORMAT_TYPE,
+                           script_type=DEFAULT_SCRIPT_TYPE)
     return None
 
 
@@ -674,7 +728,7 @@ def get_spatial_unit_as_spatial_unit(object_map):
                 raise InvalidArgument('width required for rectangular spatial units')
             if 'height' not in unit:
                 raise InvalidArgument('height required for rectangular spatial units')
-            return RectangularSpatialUnit(coordinate=unit['coordinate'],
+            return RectangularSpatialUnit(coordinate=BasicCoordinate(unit['coordinate']),
                                           width=unit['width'],
                                           height=unit['height'])
     return None
@@ -734,7 +788,10 @@ def get_text_as_display_text(object_map):
         text = object_map['text']
         if isinstance(text, dict):
             return DisplayText(**text)
-        return DisplayText(text=text)
+        return DisplayText(text=text,
+                           language_type=DEFAULT_LANGUAGE_TYPE,
+                           format_type=DEFAULT_FORMAT_TYPE,
+                           script_type=DEFAULT_SCRIPT_TYPE)
     return None
 
 
@@ -777,6 +834,8 @@ def is_drag_and_drop(object_data):
     if 'type' in object_data:
         # in this case (for responses) it is a passed dictionary
         return 'drag-and-drop' in object_data['type']
+    if 'genusTypeId' in object_data:
+        return 'drag-and-drop' in object_data['genusTypeId']
 
     # in this case object_data is a list of types / recordTypeIds
     return any('drag-and-drop' in t for t in object_data)
@@ -920,6 +979,14 @@ def match_submission_to_answer(answers, response):
 
 def remove_language_type(object_map):
     return 'removeLanguageType' in object_map
+
+
+def reorder_list_by_unrandomized_list(unrandomized_list, randomized_list):
+    reordered_list = []
+    for object_ in unrandomized_list:
+        matching_object = [o for o in randomized_list if o['id'] == object_['id']][0]
+        reordered_list.append(matching_object)
+    return reordered_list
 
 
 def set_answer_form_genus_and_feedback(answer, answer_form):
@@ -1100,9 +1167,9 @@ def update_answer_form(answer, form, question=None):
                 form.add_choice_id(choice_id)
     elif is_drag_and_drop(answer_types):
         # capture this before qti
-        form = update_drag_drop_answer_form_with_coordinate_conditions(form, answer)
-        form = update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer)
-        form = update_drag_drop_answer_form_with_zone_conditions(form, answer)
+        form = update_drag_drop_answer_form_with_coordinate_conditions(form, answer, question)
+        form = update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer, question)
+        form = update_drag_drop_answer_form_with_zone_conditions(form, answer, question)
     elif any('qti' in t for t in answer_types):
         pass
     else:
@@ -1122,27 +1189,74 @@ def update_answer_form_with_files(form, data):
     return form
 
 
-def update_drag_drop_answer_form_with_coordinate_conditions(form, answer_map):
+def update_drag_drop_answer_form_with_coordinate_conditions(form, answer_map, question=None):
+    """In order to support creation of answers with the same RESTful call as questions,
+         we will also accept "indices" for the container_id and droppable_id, and then
+         we find the actual ids in this method.
+    Need the corresponding question in order to make this work. Note that this
+    assumes the question already exists.
+    """
     if 'coordinateConditions' in answer_map:
         form.clear_coordinate_conditions()
         for coordinate_condition in answer_map['coordinateConditions']:
-            pass
+            droppable_id = extract_id_using_index(question,
+                                                  coordinate_condition['droppableId'],
+                                                  'droppable')
+            container_id = extract_id_using_index(question,
+                                                  coordinate_condition['containerId'],
+                                                  'target')
+            form.add_coordinate_condition(droppable_id,
+                                          container_id,
+                                          BasicCoordinate(coordinate_condition['coordinate']))
+    elif 'clearCoordinateConditions' in answer_map:
+        form.clear_coordinate_conditions()
     return form
 
 
-def update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer_map):
+def update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer_map, question=None):
+    """In order to support creation of answers with the same RESTful call as questions,
+         we will also accept "indices" for the container_id and droppable_id, and then
+         we find the actual ids in this method.
+    Need the corresponding question in order to make this work. Note that this
+    assumes the question already exists.
+    """
     if 'spatialUnitConditions' in answer_map:
         form.clear_spatial_unit_conditions()
         for spatial_unit_condition in answer_map['spatialUnitConditions']:
-            pass
+            droppable_id = extract_id_using_index(question,
+                                                  spatial_unit_condition['droppableId'],
+                                                  'droppable')
+            container_id = extract_id_using_index(question,
+                                                  spatial_unit_condition['containerId'],
+                                                  'target')
+            form.add_spatial_unit_condition(droppable_id,
+                                            container_id,
+                                            BasicCoordinate(spatial_unit_condition['coordinate']))
+    elif 'clearSpatialUnitConditions' in answer_map:
+        form.clear_spatial_unit_conditions()
     return form
 
 
-def update_drag_drop_answer_form_with_zone_conditions(form, answer_map):
+def update_drag_drop_answer_form_with_zone_conditions(form, answer_map, question=None):
+    """In order to support creation of answers with the same RESTful call as questions,
+         we will also accept "indices" for the zone_id and droppable_id, and then
+         we find the actual ids in this method.
+    Need the corresponding question in order to make this work. Note that this
+    assumes the question already exists.
+    """
     if 'zoneConditions' in answer_map:
         form.clear_zone_conditions()
         for zone_condition in answer_map['zoneConditions']:
-            pass
+            droppable_id = extract_id_using_index(question,
+                                                  zone_condition['droppableId'],
+                                                  'droppable')
+            zone_id = extract_id_using_index(question,
+                                             zone_condition['zoneId'],
+                                             'zone')
+            form.add_zone_condition(droppable_id,
+                                    zone_id)
+    elif 'clearZoneConditions' in answer_map:
+        form.clear_zone_conditions()
     return form
 
 
@@ -1158,34 +1272,35 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
                 if object_to_be_deleted(droppable):
                     # remove droppable
                     form.remove_droppable(droppable['id'])
-                    break
+                    continue
                 elif remove_language_type(droppable):
                     # remove droppable language
                     form.remove_droppable_language(get_language_to_remove_as_type(droppable),
                                                    droppable['id'])
-                    break
+                    continue
                 # update droppable
                 form.update_droppable(droppable['id'],
                                       droppable_text=droppable_text,
                                       name=name,
                                       reuse=reuse,
                                       drop_behavior_type=drop_behavior_type)
-                break
+                continue
             # add new droppable
             # We must honor the default values for these parameters, if they aren't given
             form.add_droppable(droppable_text=droppable_text,
                                name=name or '',
                                reuse=reuse or 1,
                                drop_behavior_type=drop_behavior_type)
-            break
+            continue
         # set droppables order
         droppable_order = get_choice_ids_in_order(question_map['droppables'], form._my_map['droppables'])
         # now re-order the choices per what is sent in
         # need to also account for mix of new choices and old choices
-        try:
-            form.set_droppable_order(droppable_order)
-        except AttributeError:
-            pass
+        if len(droppable_order) > 0:
+            try:
+                form.set_droppable_order(droppable_order)
+            except AttributeError:
+                pass
     elif 'clearDroppables' in question_map:
         form.clear_droppables()
     elif 'clearDroppableTexts' in question_map:
@@ -1206,32 +1321,33 @@ def update_drag_drop_question_form_with_targets(form, question_map):
                 if object_to_be_deleted(target):
                     # remove target
                     form.remove_target(target['id'])
-                    break
+                    continue
                 elif remove_language_type(target):
                     # remove target language
                     form.remove_target_language(get_language_to_remove_as_type(target),
                                                 target['id'])
-                    break
+                    continue
                 # update target
                 form.update_target(target['id'],
                                    target_text=target_text,
                                    name=name,
                                    drop_behavior_type=drop_behavior_type)
-                break
+                continue
             # add new target
             # We must honor the default values
             form.add_target(target_text=target_text,
                             name=name or '',
                             drop_behavior_type=drop_behavior_type)
-            break
+            continue
         # set targets order
         target_order = get_choice_ids_in_order(question_map['targets'], form._my_map['targets'])
         # now re-order the choices per what is sent in
         # need to also account for mix of new choices and old choices
-        try:
-            form.set_target_order(target_order)
-        except AttributeError:
-            pass
+        if len(target_order) > 0:
+            try:
+                form.set_target_order(target_order)
+            except AttributeError:
+                pass
     elif 'clearTargets' in question_map:
         form.clear_targets()
     elif 'clearTargetTexts' in question_map:
@@ -1245,9 +1361,10 @@ def update_drag_drop_question_form_with_zones(form, question_map):
     if 'zones' in question_map:
         for zone in question_map['zones']:
             spatial_unit = get_spatial_unit_as_spatial_unit(zone)
-            container_id = get_container_id_as_string(zone)
+            container_id = get_container_id_as_string(form, zone)
             drop_behavior_type = get_drop_behavior_as_string(zone)
-            name = get_name_as_string(zone)
+            name = get_name_as_display_text(zone)  # cannot just return a string, because
+                                                   # these are multi-language for zones
             reuse = get_reuse_as_integer(zone)
             visible = get_visible_as_boolean(zone)
 
@@ -1255,12 +1372,12 @@ def update_drag_drop_question_form_with_zones(form, question_map):
                 if object_to_be_deleted(zone):
                     # remove zone
                     form.remove_zone(zone['id'])
-                    break
+                    continue
                 elif remove_language_type(zone):
                     # remove zone language
                     form.remove_zone_language(get_language_to_remove_as_type(zone),
                                               zone['id'])
-                    break
+                    continue
                 # update zone
                 form.update_zone(zone['id'],
                                  name=name,
@@ -1269,24 +1386,29 @@ def update_drag_drop_question_form_with_zones(form, question_map):
                                  visible=visible,
                                  reuse=reuse,
                                  drop_behavior_type=drop_behavior_type)
-                break
+                continue
             # add new zone
             # We must honor the default values
+            # but we can't do the same thing for boolean values
+            # i.e. visible or True will return True if visible is False or None
+            if visible is None:
+                visible = True
             form.add_zone(spatial_unit,
                           container_id,
                           name=name or '',
-                          visible=visible or True,
+                          visible=visible,
                           reuse=reuse or 0,
                           drop_behavior_type=drop_behavior_type)
-            break
+            continue
         # set zone order
         zone_order = get_choice_ids_in_order(question_map['zones'], form._my_map['zones'])
         # now re-order the choices per what is sent in
         # need to also account for mix of new choices and old choices
-        try:
-            form.set_zone_order(zone_order)
-        except AttributeError:
-            pass
+        if len(zone_order) > 0:
+            try:
+                form.set_zone_order(zone_order)
+            except AttributeError:
+                pass
     elif 'clearZones' in question_map:
         form.clear_zones()
     elif 'clearZoneNames' in question_map:
@@ -1374,37 +1496,55 @@ def update_item_json_answers(item, item_map):
 
 def update_item_json_random_choices(bank, item, item_map):
     # for convenience, return choices in original order
+    item = bank.get_item(item.ident)
+    serialize = False
+    if isinstance(item_map, basestring):
+        item_map = json.loads(item_map)
+        serialize = True
+
     try:
         # need to re-get the item so that the choice order isn't already shuffled
         # by .object_map
-        item = bank.get_item(item.ident)
-        serialize = False
-        if isinstance(item_map, basestring):
-            item_map = json.loads(item_map)
-            serialize = True
-        unrandomized_choice_order = item.get_question().get_unrandomized_choices()
-        # now need to get the updated texts, because they might have Assets
-        if isinstance(unrandomized_choice_order, dict):
-            new_choices = {}
-            for region, choices in unrandomized_choice_order.iteritems():
-                new_choices[region] = []
-                for choice in choices:
-                    matching_choice = [c for c in item_map['question']['choices'][region] if c['id'] == choice['id']][0]
-                    new_choices[region].append(matching_choice)
-        else:
-            new_choices = []
-            for choice in unrandomized_choice_order:
-                matching_choice = [c for c in item_map['question']['choices'] if c['id'] == choice['id']][0]
-                new_choices.append(matching_choice)
-        item_map['question']['choices'] = new_choices
-
-    except AttributeError:
-        # item is not randomized MC
-        pass
+        question = item.get_question()
     except TypeError:
         # item has no question
         pass
     else:
+        if hasattr(question, 'get_unrandomized_choices'):
+            unrandomized_choice_order = question.get_unrandomized_choices()
+
+            # now need to get the updated texts, because they might have Assets
+            if isinstance(unrandomized_choice_order, dict):
+                new_choices = {}
+                for region, choices in unrandomized_choice_order.iteritems():
+                    new_choices[region] = reorder_list_by_unrandomized_list(choices,
+                                                                            item_map['question']['choices'][region])
+            else:
+                new_choices = reorder_list_by_unrandomized_list(unrandomized_choice_order,
+                                                                item_map['question']['choices'])
+            item_map['question']['choices'] = new_choices
+        if hasattr(question, 'get_unrandomized_droppables'):
+            unrandomized_droppables_order = question.get_unrandomized_droppables()
+
+            new_droppables = reorder_list_by_unrandomized_list(unrandomized_droppables_order,
+                                                               item_map['question']['droppables'])
+
+            item_map['question']['droppables'] = new_droppables
+        if hasattr(question, 'get_unrandomized_targets'):
+            unrandomized_targets_order = question.get_unrandomized_targets()
+
+            new_targets = reorder_list_by_unrandomized_list(unrandomized_targets_order,
+                                                            item_map['question']['targets'])
+
+            item_map['question']['targets'] = new_targets
+        if hasattr(question, 'get_unrandomized_zones'):
+            unrandomized_zones_order = question.get_unrandomized_zones()
+
+            new_zones = reorder_list_by_unrandomized_list(unrandomized_zones_order,
+                                                          item_map['question']['zones'])
+
+            item_map['question']['zones'] = new_zones
+
         if serialize:
             item_map = json.dumps(item_map)
     return item_map
@@ -1655,6 +1795,15 @@ def update_question_form(question, form, create=False):
         form = update_drag_drop_question_form_with_droppables(form, question)
         form = update_drag_drop_question_form_with_targets(form, question)
         form = update_drag_drop_question_form_with_zones(form, question)
+
+        # set the shuffle parameters
+        if 'shuffleDroppables' in question:
+            form.set_shuffle_droppables(bool(question['shuffleDroppables']))
+        if 'shuffleTargets' in question:
+            form.set_shuffle_targets(bool(question['shuffleTargets']))
+        if 'shuffleZones' in question:
+            form.set_shuffle_zones(bool(question['shuffleZones']))
+
     elif any('qti' in t for t in question_types):
         if 'questionString' in question:
             try:

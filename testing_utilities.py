@@ -17,6 +17,8 @@ from dlkit_runtime.utilities import impl_key_dict
 from main import app
 from records.registry import LOG_ENTRY_RECORD_TYPES
 
+from urllib import unquote
+
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 TEST_DATA_STORE_PATH = 'test_datastore'
@@ -493,6 +495,8 @@ class BaseTestCase(TestCase):
         shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
                         '{0}/repository'.format(TEST_DATA_STORE_PATH))
 
+        self._bank = get_fixture_bank()
+
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']
 
@@ -515,3 +519,14 @@ class BaseTestCase(TestCase):
         envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')
+
+    def upload_media_file(self, file_handle):
+        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        file_handle.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile',
+                                           self._filename(file_handle),
+                                           file_handle.read())])
+        self.ok(req)
+        data = self.json(req)
+        return data

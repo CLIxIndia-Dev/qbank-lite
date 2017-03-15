@@ -74,6 +74,9 @@ MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECOR
 MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
 
+DRAG_AND_DROP_ITEM_GENUS = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
+DRAG_AND_DROP_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['drag-and-drop'])
+
 TIME_VALUE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['time-value'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
@@ -455,11 +458,13 @@ class ItemsList(utilities.BaseClass):
                 uploaded_file = x['qtiFile'].file
             except AttributeError:  # 'dict' object has no attribute 'file'
                 # let's do QTI questions differently
-                if 'genusTypeId' in self.data() and 'qti' in self.data()['genusTypeId']:
+                item_json = self.data()
+
+                if ('genusTypeId' in item_json and
+                        ('qti' in item_json['genusTypeId'] or autils.is_drag_and_drop(item_json))):
                     # do QTI-ish stuff
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
-                    item_json = self.data()
                     item_genus = Type(item_json['genusTypeId'])
 
                     if item_genus not in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
@@ -473,7 +478,8 @@ class ItemsList(utilities.BaseClass):
                                           ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS,
                                           EXTENDED_TEXT_INTERACTION_GENUS,
                                           INLINE_CHOICE_INTERACTION_GENUS,
-                                          NUMERIC_RESPONSE_INTERACTION_GENUS]:
+                                          NUMERIC_RESPONSE_INTERACTION_GENUS,
+                                          DRAG_AND_DROP_ITEM_GENUS]:
                         raise OperationFailed('Item type not supported, or unrecognized')
 
                     add_provenance_parent = False
@@ -514,6 +520,8 @@ class ItemsList(utilities.BaseClass):
                                       ORDER_INTERACTION_MW_SANDBOX_GENUS,
                                       ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
+                    if item_genus in [DRAG_AND_DROP_ITEM_GENUS]:
+                        items_records_list.append(DRAG_AND_DROP_ITEM_RECORD)
 
                     form = bank.get_item_form_for_create(items_records_list)
                     form = utilities.set_form_basics(form, item_json)
@@ -526,6 +534,7 @@ class ItemsList(utilities.BaseClass):
                         autils.archive_item(bank, parent_item)
 
                     new_item = bank.create_item(form)
+                    question = None
 
                     if 'question' in item_json:
                         question = item_json['question']
@@ -546,7 +555,7 @@ class ItemsList(utilities.BaseClass):
                         # need to also handle fileIds / images / media attached to the question
                         q_form = autils.update_question_form_with_files(q_form, question)
 
-                        bank.create_question(q_form)
+                        question = bank.create_question(q_form)
 
                     if 'answers' in item_json:
                         for answer in item_json['answers']:
@@ -565,7 +574,7 @@ class ItemsList(utilities.BaseClass):
                             a_form = autils.update_answer_form_with_files(a_form, answer)
 
                             # set conditions / choiceIds
-                            a_form = autils.update_answer_form(answer, a_form)
+                            a_form = autils.update_answer_form(answer, a_form, question)
 
                             bank.create_answer(a_form)
                 else:
@@ -1238,7 +1247,7 @@ class ItemDetails(utilities.BaseClass):
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
-                        if 'delete' in answer and answer['delete']:
+                        if autils.object_to_be_deleted(answer):
                             bank.delete_answer(a_id)
                         else:
                             afu = bank.get_answer_form_for_update(a_id)
@@ -1261,8 +1270,9 @@ class ItemDetails(utilities.BaseClass):
                             answer['recordTypeIds'] = [str(t) for t in a_types]
 
                         if (('type' in answer and 'multi-choice' in answer['type']) or
-                                any('multi-choice' in ar for ar in answer['recordTypeIds'])):
-                            # because multiple choice answers need to match to
+                                any('multi-choice' in ar for ar in answer['recordTypeIds']) or
+                                autils.is_drag_and_drop(answer)):
+                            # because multiple choice and drag/drop answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed
                             # in by the consumer.
                             # update this here because we need the new question,

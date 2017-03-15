@@ -215,17 +215,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._picture3.close()
         self._picture4.close()
 
-    def upload_media_file(self, file_handle):
-        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
-        file_handle.seek(0)
-        req = self.app.post(url,
-                            upload_files=[('inputFile',
-                                           self._filename(file_handle),
-                                           file_handle.read())])
-        self.ok(req)
-        data = self.json(req)
-        return data
-
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
                                          unquote(str(self._item.ident)))
