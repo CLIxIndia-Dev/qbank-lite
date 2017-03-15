@@ -5,6 +5,8 @@ import json
 
 from dlkit_runtime.primitives import Type
 
+from paste.fixture import AppError
+
 from records.registry import ITEM_GENUS_TYPES, QUESTION_GENUS_TYPES, ANSWER_GENUS_TYPES
 
 from testing_utilities import BaseTestCase
@@ -74,7 +76,7 @@ class BaseDragAndDropTestCase(BaseTestCase):
                 },
                 'containerId': 0,
                 'dropBehaviorType': DROP_DROP_BEHAVIOR,
-                'name': u'जोन बी',
+                'name': u'Zone बी',
                 'reuse': 2,
                 'visible': True
             }],
@@ -148,10 +150,24 @@ class BaseDragAndDropTestCase(BaseTestCase):
         return payload
 
     def create_item_without_question_or_answers(self):
-        pass
+        payload = self._item_payload()
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
 
     def create_item_with_question_and_answers(self):
-        pass
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
 
     def setUp(self):
         self._target = open('{0}/tests/files/drag-and-drop/drag_and_drop_input_DPP-Concpt-BlkonRmp-Trgt.png'.format(ABS_PATH), 'rb')
@@ -161,6 +177,11 @@ class BaseDragAndDropTestCase(BaseTestCase):
 
         super(BaseDragAndDropTestCase, self).setUp()
         self.url = '/api/v1/assessment/banks/{0}/items'.format(unquote(str(self._bank.ident)))
+        self._hi_language_type = '639-2%3AHIN%40ISO'
+        self._hi_script_type = '15924%3ADEVA%40ISO'
+        self._format_type = 'TextFormats%3APLAIN%40okapia.net'
+        self._en_language_type = '639-2%3AENG%40ISO'
+        self._en_script_type = '15924%3ALATN%40ISO'
 
     def tearDown(self):
         super(BaseDragAndDropTestCase, self).tearDown()
@@ -186,6 +207,12 @@ class CreateTests(BaseDragAndDropTestCase):
         question = data['question']
         self.assertEqual(data['genusTypeId'], str(DRAG_AND_DROP_ITEM_GENUS_TYPE))
         self.assertEqual(question['genusTypeId'], str(DRAG_AND_DROP_QUESTION_GENUS_TYPE))
+
+        # make sure no QTI record types
+        self.assertTrue(not any('qti' in r for r in data['recordTypeIds']))
+        self.assertTrue(not any('qti' in r for r in data['question']['recordTypeIds']))
+        for answer in data['answers']:
+            self.assertTrue(not any('qti' in r for r in answer['recordTypeIds']))
 
         # check the three shuffle flags in the question match the payload
         self.assertEqual(question['shuffleDroppables'],
@@ -353,55 +380,510 @@ class CreateTests(BaseDragAndDropTestCase):
         self.assertTrue(num_different == 0)
 
     def test_shuffled_targets_do_not_shuffle_for_authoring(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['question']['shuffleTargets'] = True
+
+        # let's make two targets for this test to see if they don't shuffle
+        payload['question']['targets'].append(payload['question']['targets'][0])
+
+        payload['answers'] = self._answers_payload()
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['question']['shuffleTargets'])
+        original_target_ids_order = [t['id'] for t in data['question']['multiLanguageTargets']]
+
+        self.assertEqual(len(original_target_ids_order), 2)
+
+        num_different = 0
+
+        item_url = '{0}/{1}'.format(self.url,
+                                    data['id'])
+
+        for i in range(0, 15):
+            req2 = self.app.get(item_url)
+            self.ok(req)
+            data2 = self.json(req2)
+            target_ids_order_2 = [t['id'] for t in data2['question']['targets']]
+
+            if original_target_ids_order != target_ids_order_2:
+                num_different += 1
+        self.assertTrue(num_different == 0)
 
     def test_shuffled_zones_do_not_shuffle_for_authoring(self):
-        self.fail('finish writing hte test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
 
-    def test_still_creates_question_if_target_source_tag_not_in_file_ids(self):
-        self.fail('finish writing the test')
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['question']['shuffleZones'])
+        original_zone_ids_order = [t['id'] for t in data['question']['multiLanguageZones']]
 
-    def test_still_creates_question_if_droppable_source_tag_not_in_file_ids(self):
-        self.fail('finish writing the test')
+        self.assertEqual(len(original_zone_ids_order), 2)
+
+        num_different = 0
+
+        item_url = '{0}/{1}'.format(self.url,
+                                    data['id'])
+
+        for i in range(0, 15):
+            req2 = self.app.get(item_url)
+            self.ok(req)
+            data2 = self.json(req2)
+            target_ids_order_2 = [z['id'] for z in data2['question']['zones']]
+
+            if original_zone_ids_order != target_ids_order_2:
+                num_different += 1
+        self.assertTrue(num_different == 0)
+
+    def test_still_creates_question_if_source_tag_not_in_file_ids(self):
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+
+        payload['question']['fileIds'] = {}
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        for droppable in question['droppables']:
+            self.assertNotIn('/api/v1/repository/repositories', droppable['text'])
+            self.assertNotIn('/stream', droppable['text'])
+            self.assertIn('AssetContent:', droppable['text'])
+        for target in question['targets']:
+            self.assertNotIn('/api/v1/repository/repositories', target['text'])
+            self.assertNotIn('/stream', target['text'])
+            self.assertIn('AssetContent:', target['text'])
+
+    def test_still_creates_answers_if_source_tag_not_in_file_ids(self):
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        payload['answers'][0]['fileIds'] = {}
+        payload['answers'][1]['fileIds'] = {}
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        for answer in data['answers']:
+            self.assertNotIn('/api/v1/repository/repositories', answer['feedback']['text'])
+            self.assertNotIn('/stream', answer['feedback']['text'])
+            self.assertIn('AssetContent:', answer['feedback']['text'])
 
     def test_cannot_set_zone_to_negative_target_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['question']['zones'][0]['containerId'] = -1
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_cannot_set_zone_to_non_existent_target_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['question']['zones'][0]['containerId'] = 1
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_cannot_set_answer_droppable_to_negative_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        payload['answers'][0]['zoneConditions'][0]['droppableId'] = -1
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_cannot_set_answer_droppable_to_non_existent_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        payload['answers'][0]['zoneConditions'][0]['droppableId'] = 2
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_cannot_set_answer_zone_to_negative_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        payload['answers'][0]['zoneConditions'][0]['zoneId'] = -1
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
     def test_cannot_set_answer_zone_to_non_existent_index(self):
-        self.fail('finish writing the test')
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        payload['answers'] = self._answers_payload()
+
+        payload['answers'][0]['zoneConditions'][0]['zoneId'] = 2
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          self.url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
 
 
 class UpdateTests(BaseDragAndDropTestCase):
     """Can edit the drag and drop RESTfully"""
     def test_can_add_question_to_existing_item(self):
-        self.fail('finish writing the test')
+        item = self.create_item_without_question_or_answers()
+
+        url = '{0}/{1}'.format(self.url,
+                               item['id'])
+        payload = {
+            'question': self._question_payload()
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(question['genusTypeId'], str(DRAG_AND_DROP_QUESTION_GENUS_TYPE))
+
+        # make sure no QTI record types
+        self.assertTrue(not any('qti' in r for r in data['recordTypeIds']))
+        self.assertTrue(not any('qti' in r for r in data['question']['recordTypeIds']))
+
+        # check the three shuffle flags in the question match the payload
+        self.assertEqual(question['shuffleDroppables'],
+                         payload['question']['shuffleDroppables'])
+        self.assertEqual(question['shuffleTargets'],
+                         payload['question']['shuffleTargets'])
+        self.assertEqual(question['shuffleZones'],
+                         payload['question']['shuffleZones'])
+
+        # make sure the media files all show as URLs
+        self.assertIn('fileIds', question)
+        for droppable in question['droppables']:
+            self.assertIn('/api/v1/repository/repositories', droppable['text'])
+            self.assertIn('/stream', droppable['text'])
+        for target in question['targets']:
+            self.assertIn('/api/v1/repository/repositories', target['text'])
+            self.assertIn('/stream', target['text'])
+
+        # make sure droppables, targets, and zones appear
+        self.assertEqual(len(question['droppables']),
+                         len(payload['question']['droppables']))
+        self.assertEqual(len(question['targets']),
+                         len(payload['question']['targets']))
+        self.assertEqual(len(question['zones']),
+                         len(payload['question']['zones']))
+
+        # check that the various arguments are saved correctly for the question
+        # i.e. visible, reuse, name, etc.
+        # use the multiLanguage versions to check, since those aren't shuffled
+        # and we can index-match to the payload easier
+        for index, droppable in enumerate(question['multiLanguageDroppables']):
+            self.assertEqual(droppable['name'],
+                             payload['question']['droppables'][index]['name'])
+            self.assertEqual(droppable['reuse'],
+                             payload['question']['droppables'][index]['reuse'])
+            self.assertEqual(droppable['dropBehaviorType'],
+                             payload['question']['droppables'][index]['dropBehaviorType'])
+        for index, target in enumerate(question['multiLanguageTargets']):
+            self.assertEqual(target['name'],
+                             payload['question']['targets'][index]['name'])
+            self.assertEqual(target['dropBehaviorType'],
+                             payload['question']['targets'][index]['dropBehaviorType'])
+        for index, zone in enumerate(question['multiLanguageZones']):
+            self.assertEqual(zone['reuse'],
+                             payload['question']['zones'][index]['reuse'])
+            self.assertEqual(zone['dropBehaviorType'],
+                             payload['question']['zones'][index]['dropBehaviorType'])
+            self.assertEqual(zone['visible'],
+                             payload['question']['zones'][index]['visible'])
+            self.assertEqual(zone['spatialUnit']['width'],
+                             payload['question']['zones'][index]['spatialUnit']['width'])
+            self.assertEqual(zone['spatialUnit']['height'],
+                             payload['question']['zones'][index]['spatialUnit']['height'])
+            self.assertEqual(zone['spatialUnit']['coordinateValues'],
+                             payload['question']['zones'][index]['spatialUnit']['coordinate'])
+            self.assertEqual(zone['spatialUnit']['recordTypes'][0],
+                             payload['question']['zones'][index]['spatialUnit']['recordType'])
+
+        # make sure the multi-language stuff comes out right in the question object_map
+        self.assertIn('multiLanguageDroppables', question)
+        for droppable in question['multiLanguageDroppables']:
+            self.assertNotIn('text', droppable)
+            self.assertIn('texts', droppable)
+        for droppable in question['droppables']:
+            self.assertIn('text', droppable)
+            self.assertNotIn('texts', droppable)
+        self.assertIn('multiLanguageTargets', question)
+        for target in question['multiLanguageTargets']:
+            self.assertNotIn('text', target)
+            self.assertIn('texts', target)
+        for target in question['targets']:
+            self.assertIn('text', target)
+            self.assertNotIn('texts', target)
+        self.assertIn('multiLanguageZones', question)
+        for zone in question['multiLanguageZones']:
+            self.assertNotIn('name', zone)
+            self.assertIn('names', zone)
+        for zone in question['zones']:
+            self.assertIn('name', zone)
+            self.assertNotIn('names', zone)
+
+        # check that the indices all got converted to the right IDs for question zones
+        # and answer zone conditions
+        # Especially important with the shuffling!
+        expected_target_id = question['targets'][0]['id']
+        for zone in question['zones']:
+            self.assertEqual(zone['containerId'], expected_target_id)
 
     def test_can_add_answers_to_existing_item(self):
-        self.fail('finish writing the test')
+        item = self.create_item_without_question_or_answers()
+
+        url = '{0}/{1}'.format(self.url,
+                               item['id'])
+        payload = {
+            'answers': self._answers_payload()
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        for answer in data['answers']:
+            self.assertTrue(not any('qti' in r for r in answer['recordTypeIds']))
+
+        # make sure the media files all show as URLs
+        for answer in data['answers']:
+            self.assertIn('/api/v1/repository/repositories', answer['feedback']['text'])
+            self.assertIn('/stream', answer['feedback']['text'])
+            self.assertIn('fileIds', answer)
+
+        # check the answers
+        self.assertEqual(len(data['answers']), 2)
+        self.assertEqual(data['answers'][0]['genusTypeId'], str(RIGHT_ANSWER))
+        self.assertEqual(data['answers'][1]['genusTypeId'], str(WRONG_ANSWER))
+        for answer in data['answers']:
+            self.assertEqual(len(answer['spatialUnitConditions']), 0)
+            self.assertEqual(len(answer['coordinateConditions']), 0)
+            self.assertEqual(len(answer['zoneConditions']), 2)
+
+        # For the indices, in this case since no question exists,
+        # we should expect no conversion.
+        expected_droppable_0_id = 0
+        expected_droppable_1_id = 1
+
+        expected_zone_0_id = 0
+        expected_zone_1_id = 1
+        for answer in data['answers']:
+            if answer['genusTypeId'] == str(RIGHT_ANSWER):
+                for zone_condition in answer['zoneConditions']:
+                    if zone_condition['droppableId'] == expected_droppable_0_id:
+                        self.assertEqual(zone_condition['zoneId'],
+                                         expected_zone_0_id)
+                    else:
+                        self.assertEqual(zone_condition['droppableId'],
+                                         expected_droppable_1_id)
+                        self.assertEqual(zone_condition['zoneId'],
+                                         expected_zone_1_id)
+            else:
+                for zone_condition in answer['zoneConditions']:
+                    if zone_condition['droppableId'] == expected_droppable_1_id:
+                        self.assertEqual(zone_condition['zoneId'],
+                                         expected_zone_0_id)
+                    else:
+                        self.assertEqual(zone_condition['droppableId'],
+                                         expected_droppable_0_id)
+                        self.assertEqual(zone_condition['zoneId'],
+                                         expected_zone_1_id)
 
     def test_can_update_zone_with_new_language(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        hindi_name = u'एक भूरा खरगोश'
+        zone_0_id = item['question']['multiLanguageZones'][0]['id']
+        payload = {
+            'question': {
+                'zones': [{
+                    'id': zone_0_id,
+                    'name': {
+                        'text': hindi_name,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageZones']), 2)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageZones'][0]['names']), 2)
+        self.assertTrue(any(n['text'] == hindi_name for n in data['question']['multiLanguageZones'][0]['names']))
+
+        req = self.app.get(url)
+        # zone text should be in English
+        self.ok(req)
+        data = self.json(req)
+        zone = [z for z in data['question']['zones'] if z['id'] == zone_0_id][0]
+        self.assertIn('Zone', zone['name'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        # zone text should be in Hindi
+        self.ok(req)
+        data = self.json(req)
+        zone = [z for z in data['question']['zones'] if z['id'] == zone_0_id][0]
+        self.assertEqual(hindi_name, zone['name'])
 
     def test_can_remove_zone_language(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        hindi_name = u'एक भूरा खरगोश'
+        zone_0_id = item['question']['multiLanguageZones'][0]['id']
+        payload = {
+            'question': {
+                'zones': [{
+                    'id': zone_0_id,
+                    'name': {
+                        'text': hindi_name,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'zones': [{
+                    'id': zone_0_id,
+                    'removeLanguageType': self._en_language_type
+                }]
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageZones']), 2)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageZones'][0]['names']), 1)
+        self.assertEqual(data['question']['multiLanguageZones'][0]['names'][0]['text'],
+                         hindi_name)
+
+        req = self.app.get(url)
+        # zone text should be in Hindi because that's the only available language
+        self.ok(req)
+        data = self.json(req)
+        zone = [z for z in data['question']['zones'] if z['id'] == zone_0_id][0]
+        self.assertEqual(hindi_name, zone['name'])
 
     def test_can_add_new_zone(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        target_id = item['question']['targets'][0]['id']
+        payload = {
+            'question': {
+                'zones': [{
+                    'name': 'Zone 3',
+                    'visible': False,
+                    'reuse': 1,
+                    'dropBehaviorType': SNAP_DROP_BEHAVIOR,
+                    'spatialUnit': {
+                        'recordType': 'osid.mapping.SpatialUnit%3Arectangle%40ODL.MIT.EDU',
+                        'coordinate': [100, 100],
+                        'width': 25,
+                        'height': 25
+                    },
+                    'containerId': target_id
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageZones']), 3)
+        new_zone = data['question']['multiLanguageZones'][2]
+        self.assertEqual(new_zone['names'][0]['text'],
+                         payload['question']['zones'][0]['name'])
+        self.assertEqual(new_zone['visible'],
+                         payload['question']['zones'][0]['visible'])
+        self.assertEqual(new_zone['reuse'],
+                         payload['question']['zones'][0]['reuse'])
+        self.assertEqual(new_zone['dropBehaviorType'],
+                         payload['question']['zones'][0]['dropBehaviorType'])
+        self.assertEqual(new_zone['containerId'],
+                         payload['question']['zones'][0]['containerId'])
+        self.assertEqual(new_zone['spatialUnit']['coordinateValues'],
+                         payload['question']['zones'][0]['spatialUnit']['coordinate'])
+        self.assertEqual(new_zone['spatialUnit']['height'],
+                         payload['question']['zones'][0]['spatialUnit']['height'])
+        self.assertEqual(new_zone['spatialUnit']['width'],
+                         payload['question']['zones'][0]['spatialUnit']['width'])
 
     def test_can_clear_zone_names(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        zone_0_id = item['question']['multiLanguageZones'][0]['id']
+        payload = {
+            'question': {
+                'clearZoneNames': [zone_0_id]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageZones'][0]['names']), 0)
 
     def test_can_change_zone_visibility(self):
         self.fail('finish writign the test')
@@ -416,6 +898,12 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.fail('finish writing the test')
 
     def test_can_change_zone_container(self):
+        self.fail('finish writing the test')
+
+    def test_can_delete_zone(self):
+        self.fail('finish writing the test')
+
+    def test_can_delete_all_zones(self):
         self.fail('finish writing the test')
 
     def test_can_update_target_with_new_language(self):
@@ -436,6 +924,12 @@ class UpdateTests(BaseDragAndDropTestCase):
     def test_can_change_target_drop_behavior(self):
         self.fail('finish writign the test')
 
+    def test_can_delete_target(self):
+        self.fail('finish writing the test')
+
+    def test_can_delete_all_targets(self):
+        self.fail('finish writing the test')
+
     def test_can_update_droppable_with_new_language(self):
         self.fail('finish writing the test')
 
@@ -450,6 +944,12 @@ class UpdateTests(BaseDragAndDropTestCase):
 
     def test_can_change_droppable_reuse(self):
         self.fail('finish writing hte test')
+
+    def test_can_delete_droppable(self):
+        self.fail('finish writing the test')
+
+    def test_can_delete_all_droppables(self):
+        self.fail('finish writing the test')
 
     def test_can_add_new_file_to_question(self):
         self.fail('finish writing the test')

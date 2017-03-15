@@ -520,6 +520,7 @@ def get_answer_records_from_item_genus(item_genus_type):
         answer_record_types.append(MULTI_LANGUAGE_NUMERIC_RESPONSE_ANSWER_RECORD)
     elif item_genus_type == DRAG_AND_DROP_ITEM_GENUS_TYPE:
         answer_record_types.append(DRAG_AND_DROP_ANSWER_RECORD)
+        answer_record_types.remove(QTI_ANSWER)
 
     return answer_record_types
 
@@ -587,12 +588,20 @@ def get_language_to_remove_as_type(object_map):
 def get_name_as_display_text(object_map):
     if 'name' in object_map:
         name = object_map['name']
+        language_type = DEFAULT_LANGUAGE_TYPE
+        format_type = DEFAULT_FORMAT_TYPE
+        script_type = DEFAULT_SCRIPT_TYPE
+
         if isinstance(name, dict):
-            return DisplayText(**name)
+            language_type = Type(name['languageTypeId'])
+            format_type = Type(name['formatTypeId'])
+            script_type = Type(name['scriptTypeId'])
+            name = name['text']
+
         return DisplayText(text=name,
-                           language_type=DEFAULT_LANGUAGE_TYPE,
-                           format_type=DEFAULT_FORMAT_TYPE,
-                           script_type=DEFAULT_SCRIPT_TYPE)
+                           language_type=language_type,
+                           format_type=format_type,
+                           script_type=script_type)
     return None
 
 
@@ -636,7 +645,7 @@ def get_question_records_from_item_genus(item_genus_type):
     elif item_genus_type in [DRAG_AND_DROP_ITEM_GENUS_TYPE]:
         question_record_types.append(DRAG_AND_DROP_QUESTION_RECORD)
         question_record_types.append(FILES_QUESTION_RECORD)  # Because we know this will use files
-
+        question_record_types.remove(QTI_QUESTION)
     # add in audio time limit support for MW sandbox and
 
     if item_genus_type in [ORDER_INTERACTION_MW_SANDBOX_GENUS,
@@ -786,12 +795,20 @@ def get_taken_section_map(taken, update=False, with_files=False, bank=None):
 def get_text_as_display_text(object_map):
     if 'text' in object_map:
         text = object_map['text']
+        language_type = DEFAULT_LANGUAGE_TYPE
+        format_type = DEFAULT_FORMAT_TYPE
+        script_type = DEFAULT_SCRIPT_TYPE
+
         if isinstance(text, dict):
-            return DisplayText(**text)
+            language_type = Type(text['languageTypeId'])
+            format_type = Type(text['formatTypeId'])
+            script_type = Type(text['scriptTypeId'])
+            text = text['text']
+
         return DisplayText(text=text,
-                           language_type=DEFAULT_LANGUAGE_TYPE,
-                           format_type=DEFAULT_FORMAT_TYPE,
-                           script_type=DEFAULT_SCRIPT_TYPE)
+                           language_type=language_type,
+                           format_type=format_type,
+                           script_type=script_type)
     return None
 
 
