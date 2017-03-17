@@ -1,3 +1,6 @@
+3.2.0:
+  - Update main.spec to dynamically calculate the pathex argument.
+
 3.1.1:
   - Remove old reference to dlkit-lite in .gitmodules.
 
