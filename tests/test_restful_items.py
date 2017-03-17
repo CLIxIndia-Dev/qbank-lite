@@ -5760,3 +5760,63 @@ class RESTfulTests(BaseAssessmentTestCase):
         item = self.json(req)
         self.assertEqual(item['question']['choices'][0]['text'],
                          payload['question']['choices'][0]['text'])
+
+    def test_feedback_not_escaped_when_does_not_include_modal_feedback_tag(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<div>
+<p>
+  <strong>Introducting a new student</strong>
+</p>
+<p>It's the first day of school after the summer vacations. A new student has joined the class</p>
+<p>Student 1 talks to the new student to make him/her feel comfortable.</p>
+<p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
+</div>""",
+                "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS),
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 100
+                }
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "feedback": """<p>Thanks for uploading!</p>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        self._audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission',
+                                           self._filename(self._audio_test_file),
+                                           self._audio_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertNotIn('&lt;', data['feedback'])
+        self.assertNotIn('&gt;', data['feedback'])
+        self.assertIn('<p>', data['feedback'])
+        self.assertIn('</p>', data['feedback'])
