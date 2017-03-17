@@ -1318,7 +1318,7 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
             reuse = get_reuse_as_integer(droppable)
             drop_behavior_type = get_drop_behavior_as_string(droppable)
             name = get_name_as_display_text(droppable)
-                
+
             if 'id' in droppable:
                 if object_to_be_deleted(droppable):
                     # remove droppable
