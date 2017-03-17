@@ -1958,7 +1958,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             except AttributeError:
                 if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
                     # TODO: for now, take empty response for MW Sandbox
-                    raise IllegalState('You must supply a file with a file upload question')
+                    raise IllegalState('You must supply a file with a file upload question in the "submission" field.')
             else:
                 if '.' not in filename:
                     extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype

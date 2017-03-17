@@ -1,3 +1,6 @@
+3.2.1:
+  - Do not escape feedback when provided without `<modalFeedback>` tag.
+
 3.2.0:
   - Update main.spec to dynamically calculate the pathex argument.
 
