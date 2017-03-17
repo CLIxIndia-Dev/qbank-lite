@@ -1,3 +1,6 @@
+3.4.0:
+  - Clean up dlkit submodule URLs.
+
 3.3.0:
   - Support drag-and-drop problem types.
 
