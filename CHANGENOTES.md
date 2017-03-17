@@ -1,3 +1,6 @@
+3.3.0:
+  - Support drag-and-drop problem types.
+
 3.2.1:
   - Do not escape feedback when provided without `<modalFeedback>` tag.
 
