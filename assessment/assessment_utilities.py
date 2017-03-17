@@ -378,7 +378,10 @@ def extract_id_using_index(object_, potential_id, key):
             raise InvalidId
         ObjectId(potential_id)
     except InvalidId:
-        int_potential_id = int(potential_id)
+        try:
+            int_potential_id = int(potential_id)
+        except ValueError:
+            raise InvalidArgument('The ID is not a valid ID or index.')
         if isinstance(object_, OsidObjectForm):
             # if it's a form, things aren't shuffled yet, so just pull from the _my_map
             current_key_values = object_._my_map['{0}s'.format(key)]
@@ -579,6 +582,26 @@ def get_container_id_as_string(form, object_map):
     return None
 
 
+def get_description_as_display_text(object_map):
+    if 'description' in object_map:
+        description = object_map['description']
+        language_type = DEFAULT_LANGUAGE_TYPE
+        format_type = DEFAULT_FORMAT_TYPE
+        script_type = DEFAULT_SCRIPT_TYPE
+
+        if isinstance(description, dict):
+            language_type = Type(description['languageTypeId'])
+            format_type = Type(description['formatTypeId'])
+            script_type = Type(description['scriptTypeId'])
+            description = description['text']
+
+        return DisplayText(text=description,
+                           language_type=language_type,
+                           format_type=format_type,
+                           script_type=script_type)
+    return None
+
+
 def get_language_to_remove_as_type(object_map):
     if 'removeLanguageType' in object_map:
         return Type(object_map['removeLanguageType'])
@@ -731,13 +754,13 @@ def get_spatial_unit_as_spatial_unit(object_map):
         # For now, we only support rectangular spatial units
         if ('recordType' in unit and
                 unit['recordType'] == 'osid.mapping.SpatialUnit%3Arectangle%40ODL.MIT.EDU'):
-            if 'coordinate' not in unit:
-                raise InvalidArgument('coordinate required for rectangular spatial units')
+            if 'coordinateValues' not in unit:
+                raise InvalidArgument('coordinateValues required for rectangular spatial units')
             if 'width' not in unit:
                 raise InvalidArgument('width required for rectangular spatial units')
             if 'height' not in unit:
                 raise InvalidArgument('height required for rectangular spatial units')
-            return RectangularSpatialUnit(coordinate=BasicCoordinate(unit['coordinate']),
+            return RectangularSpatialUnit(coordinate=BasicCoordinate(unit['coordinateValues']),
                                           width=unit['width'],
                                           height=unit['height'])
     return None
@@ -837,7 +860,11 @@ def get_response_submissions(response):
 
 def get_reuse_as_integer(object_map):
     if 'reuse' in object_map:
-        return int(object_map['reuse'])
+        try:
+            return int(object_map['reuse'])
+        except ValueError:
+            # cannot be parsed as int
+            raise InvalidArgument('reuse must be an integer')
     return None
 
 
@@ -996,6 +1023,12 @@ def match_submission_to_answer(answers, response):
 
 def remove_language_type(object_map):
     return 'removeLanguageType' in object_map
+
+
+def remove_field(object_map, field):
+    if 'removeFromField' in object_map:
+        return object_map['removeFromField'] == field
+    return False
 
 
 def reorder_list_by_unrandomized_list(unrandomized_list, randomized_list):
@@ -1224,8 +1257,8 @@ def update_drag_drop_answer_form_with_coordinate_conditions(form, answer_map, qu
                                                   'target')
             form.add_coordinate_condition(droppable_id,
                                           container_id,
-                                          BasicCoordinate(coordinate_condition['coordinate']))
-    elif 'clearCoordinateConditions' in answer_map:
+                                          BasicCoordinate(coordinate_condition['coordinateValues']))
+    elif 'clearCoordinateConditions' in answer_map and answer_map['clearCoordinateConditions']:
         form.clear_coordinate_conditions()
     return form
 
@@ -1246,10 +1279,11 @@ def update_drag_drop_answer_form_with_spatial_unit_conditions(form, answer_map, 
             container_id = extract_id_using_index(question,
                                                   spatial_unit_condition['containerId'],
                                                   'target')
+            spatial_unit = get_spatial_unit_as_spatial_unit(spatial_unit_condition)
             form.add_spatial_unit_condition(droppable_id,
                                             container_id,
-                                            BasicCoordinate(spatial_unit_condition['coordinate']))
-    elif 'clearSpatialUnitConditions' in answer_map:
+                                            spatial_unit)
+    elif 'clearSpatialUnitConditions' in answer_map and answer_map['clearSpatialUnitConditions']:
         form.clear_spatial_unit_conditions()
     return form
 
@@ -1272,7 +1306,7 @@ def update_drag_drop_answer_form_with_zone_conditions(form, answer_map, question
                                              'zone')
             form.add_zone_condition(droppable_id,
                                     zone_id)
-    elif 'clearZoneConditions' in answer_map:
+    elif 'clearZoneConditions' in answer_map and answer_map['clearZoneConditions']:
         form.clear_zone_conditions()
     return form
 
@@ -1318,7 +1352,7 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
                 form.set_droppable_order(droppable_order)
             except AttributeError:
                 pass
-    elif 'clearDroppables' in question_map:
+    elif 'clearDroppables' in question_map and question_map['clearDroppables']:
         form.clear_droppables()
     elif 'clearDroppableTexts' in question_map:
         # list of droppableIds to clear the texts of
@@ -1365,7 +1399,7 @@ def update_drag_drop_question_form_with_targets(form, question_map):
                 form.set_target_order(target_order)
             except AttributeError:
                 pass
-    elif 'clearTargets' in question_map:
+    elif 'clearTargets' in question_map and question_map['clearTargets']:
         form.clear_targets()
     elif 'clearTargetTexts' in question_map:
         # list of targetIds to clear the texts of
@@ -1380,10 +1414,13 @@ def update_drag_drop_question_form_with_zones(form, question_map):
             spatial_unit = get_spatial_unit_as_spatial_unit(zone)
             container_id = get_container_id_as_string(form, zone)
             drop_behavior_type = get_drop_behavior_as_string(zone)
-            name = get_name_as_display_text(zone)  # cannot just return a string, because
-                                                   # these are multi-language for zones
             reuse = get_reuse_as_integer(zone)
             visible = get_visible_as_boolean(zone)
+
+            # cannot just return a string for name & description, because
+            # these are multi-language for zones
+            name = get_name_as_display_text(zone)
+            description = get_description_as_display_text(zone)
 
             if 'id' in zone:
                 if object_to_be_deleted(zone):
@@ -1392,12 +1429,17 @@ def update_drag_drop_question_form_with_zones(form, question_map):
                     continue
                 elif remove_language_type(zone):
                     # remove zone language
-                    form.remove_zone_language(get_language_to_remove_as_type(zone),
-                                              zone['id'])
+                    if remove_field(zone, 'name'):
+                        form.remove_zone_name_language(get_language_to_remove_as_type(zone),
+                                                       zone['id'])
+                    elif remove_field(zone, 'description'):
+                        form.remove_zone_description_language(get_language_to_remove_as_type(zone),
+                                                              zone['id'])
                     continue
                 # update zone
                 form.update_zone(zone['id'],
                                  name=name,
+                                 description=description,
                                  spatial_unit=spatial_unit,
                                  container_id=container_id,
                                  visible=visible,
@@ -1413,6 +1455,7 @@ def update_drag_drop_question_form_with_zones(form, question_map):
             form.add_zone(spatial_unit,
                           container_id,
                           name=name or '',
+                          description=description or '',
                           visible=visible,
                           reuse=reuse or 0,
                           drop_behavior_type=drop_behavior_type)
@@ -1426,12 +1469,16 @@ def update_drag_drop_question_form_with_zones(form, question_map):
                 form.set_zone_order(zone_order)
             except AttributeError:
                 pass
-    elif 'clearZones' in question_map:
+    elif 'clearZones' in question_map and question_map['clearZones']:
         form.clear_zones()
     elif 'clearZoneNames' in question_map:
         # list of zoneIds to clear the names of
         for zone_id in question_map['clearZoneNames']:
             form.clear_zone_names(zone_id)
+    elif 'clearZoneDescriptions' in question_map:
+        # list of zoneIds to clear the names of
+        for zone_id in question_map['clearZoneDescriptions']:
+            form.clear_zone_descriptions(zone_id)
     return form
 
 
@@ -1859,10 +1906,11 @@ def update_question_form(question, form, create=False):
             choice_order = get_choice_ids_in_order(question['choices'], form._my_map['choices'])
             # now re-order the choices per what is sent in
             # need to also account for mix of new choices and old choices
-            try:
-                form.set_choice_order(choice_order)
-            except AttributeError:
-                pass
+            if len(choice_order) > 0:
+                try:
+                    form.set_choice_order(choice_order)
+                except AttributeError:
+                    pass
 
         if 'inlineRegions' in question:
             for region, region_data in question['inlineRegions'].iteritems():
@@ -1896,10 +1944,11 @@ def update_question_form(question, form, create=False):
 
                 # now re-order the choices per what is sent in
                 # need to also account for mix of new choices and old choices
-                try:
-                    form.set_choice_order(choice_order, region)
-                except AttributeError:
-                    pass
+                if len(choice_order) > 0:
+                    try:
+                        form.set_choice_order(choice_order, region)
+                    except AttributeError:
+                        pass
         if 'shuffle' in question:
             form.set_shuffle(bool(question['shuffle']))
         if 'maxStrings' in question:

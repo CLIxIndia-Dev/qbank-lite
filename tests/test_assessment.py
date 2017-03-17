@@ -5884,6 +5884,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You did it!', data['feedback'])
         self.assertIn('', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
+        self.assertIn('/stream', data['feedback'])
         self.assertNotIn('Sorry, bad choice', data['feedback'])
 
     def test_images_in_incorrect_feedback_are_converted_to_urls(self):

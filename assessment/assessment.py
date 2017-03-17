@@ -1221,7 +1221,6 @@ class ItemDetails(utilities.BaseClass):
                 if updated_item.object_map['question'] is not None:
                     existing_question = updated_item.get_question()
                     existing_question_map = existing_question.object_map
-                    q_id = existing_question.ident
 
                     # if 'type' not in question:
                     #     question['type'] = existing_question_map['recordTypeIds'][0]
@@ -2052,6 +2051,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if exact_answer_match is not None:
                         answer_to_use = exact_answer_match
                     try:
+                        # Note that this usage of answer_to_use.object_map generates the right source URLs...
                         if any('qti' in answer_record
                                for answer_record in answer_to_use.object_map['recordTypeIds']):
                             feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
@@ -2122,6 +2122,14 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 pass
                             # only take the first feedback / confused LO for now
                             break
+                elif autils.is_drag_and_drop(local_data_map):
+                    item = first_section._get_item(question.ident)
+                    try:
+                        feedback = item.get_feedback_for_response(response)
+                    except NotFound:
+                        pass
+                    else:
+                        feedback_strings.append(feedback.text)
             if len(feedback_strings) > 0:
                 return_data.update({
                     'feedback': feedback_strings[0]
