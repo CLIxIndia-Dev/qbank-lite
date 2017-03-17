@@ -434,7 +434,7 @@ class ItemsList(utilities.BaseClass):
 
                 if 'wronganswers' in params:
                     item_map = autils.update_item_json_answers(item, item_map)
-                if 'unordered' in params:
+                if 'unshuffled' in params:
                     item_map = autils.update_item_json_random_choices(assessment_bank, item, item_map)
 
                 results.append(item_map)

@@ -318,14 +318,16 @@ class CreateTests(BaseDragAndDropTestCase):
         # use the multiLanguage versions to check, since those aren't shuffled
         # and we can index-match to the payload easier
         for index, droppable in enumerate(question['multiLanguageDroppables']):
-            self.assertEqual(droppable['name'],
+            # don't check texts[0]['text'] here because the image src
+            self.assertEqual(droppable['names'][0]['text'],
                              payload['question']['droppables'][index]['name'])
             self.assertEqual(droppable['reuse'],
                              payload['question']['droppables'][index]['reuse'])
             self.assertEqual(droppable['dropBehaviorType'],
                              payload['question']['droppables'][index]['dropBehaviorType'])
         for index, target in enumerate(question['multiLanguageTargets']):
-            self.assertEqual(target['name'],
+            # don't check texts[0]['text'] here because the image src
+            self.assertEqual(target['names'][0]['text'],
                              payload['question']['targets'][index]['name'])
             self.assertEqual(target['dropBehaviorType'],
                              payload['question']['targets'][index]['dropBehaviorType'])
@@ -350,16 +352,24 @@ class CreateTests(BaseDragAndDropTestCase):
         for droppable in question['multiLanguageDroppables']:
             self.assertNotIn('text', droppable)
             self.assertIn('texts', droppable)
+            self.assertNotIn('name', droppable)
+            self.assertIn('names', droppable)
         for droppable in question['droppables']:
             self.assertIn('text', droppable)
             self.assertNotIn('texts', droppable)
+            self.assertIn('name', droppable)
+            self.assertNotIn('names', droppable)
         self.assertIn('multiLanguageTargets', question)
         for target in question['multiLanguageTargets']:
             self.assertNotIn('text', target)
             self.assertIn('texts', target)
+            self.assertNotIn('name', target)
+            self.assertIn('names', target)
         for target in question['targets']:
             self.assertIn('text', target)
             self.assertNotIn('texts', target)
+            self.assertIn('name', target)
+            self.assertNotIn('names', target)
         self.assertIn('multiLanguageZones', question)
         for zone in question['multiLanguageZones']:
             self.assertNotIn('name', zone)
@@ -595,14 +605,14 @@ class UpdateTests(BaseDragAndDropTestCase):
         # use the multiLanguage versions to check, since those aren't shuffled
         # and we can index-match to the payload easier
         for index, droppable in enumerate(question['multiLanguageDroppables']):
-            self.assertEqual(droppable['name'],
+            self.assertEqual(droppable['names'][0]['text'],
                              payload['question']['droppables'][index]['name'])
             self.assertEqual(droppable['reuse'],
                              payload['question']['droppables'][index]['reuse'])
             self.assertEqual(droppable['dropBehaviorType'],
                              payload['question']['droppables'][index]['dropBehaviorType'])
         for index, target in enumerate(question['multiLanguageTargets']):
-            self.assertEqual(target['name'],
+            self.assertEqual(target['names'][0]['text'],
                              payload['question']['targets'][index]['name'])
             self.assertEqual(target['dropBehaviorType'],
                              payload['question']['targets'][index]['dropBehaviorType'])
@@ -627,23 +637,35 @@ class UpdateTests(BaseDragAndDropTestCase):
         for droppable in question['multiLanguageDroppables']:
             self.assertNotIn('text', droppable)
             self.assertIn('texts', droppable)
+            self.assertNotIn('name', droppable)
+            self.assertIn('names', droppable)
         for droppable in question['droppables']:
             self.assertIn('text', droppable)
             self.assertNotIn('texts', droppable)
+            self.assertIn('name', droppable)
+            self.assertNotIn('names', droppable)
         self.assertIn('multiLanguageTargets', question)
         for target in question['multiLanguageTargets']:
             self.assertNotIn('text', target)
             self.assertIn('texts', target)
+            self.assertNotIn('name', target)
+            self.assertIn('names', target)
         for target in question['targets']:
             self.assertIn('text', target)
             self.assertNotIn('texts', target)
+            self.assertIn('name', target)
+            self.assertNotIn('names', target)
         self.assertIn('multiLanguageZones', question)
         for zone in question['multiLanguageZones']:
             self.assertNotIn('name', zone)
             self.assertIn('names', zone)
+            self.assertNotIn('description', zone)
+            self.assertIn('descriptions', zone)
         for zone in question['zones']:
             self.assertIn('name', zone)
             self.assertNotIn('names', zone)
+            self.assertIn('description', zone)
+            self.assertNotIn('descriptions', zone)
 
         # check that the indices all got converted to the right IDs for question zones
         # and answer zone conditions
@@ -1028,6 +1050,7 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['question']['multiLanguageZones'][0]['names']), 0)
+        self.assertEqual(data['question']['zones'][0]['name'], '')
 
     def test_can_clear_zone_descriptions(self):
         item = self.create_item_with_question_and_answers()
@@ -1045,6 +1068,7 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['question']['multiLanguageZones'][0]['descriptions']), 0)
+        self.assertEqual(data['question']['zones'][0]['description'], '')
 
     def test_can_change_zone_visibility(self):
         item = self.create_item_with_question_and_answers()
@@ -1287,7 +1311,7 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertEqual(len(data['question']['zones']), 2)
         self.assertEqual(len(data['question']['multiLanguageZones']), 2)
 
-    def test_can_update_target_with_new_language(self):
+    def test_can_update_target_text_with_new_language(self):
         item = self.create_item_with_question_and_answers()
         hindi_text = u'ढलान'
         target_0_id = item['question']['multiLanguageTargets'][0]['id']
@@ -1331,7 +1355,51 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotIn('Ramp', target['text'])
         self.assertIn(hindi_text, target['text'])
 
-    def test_can_remove_target_language(self):
+    def test_can_update_target_name_with_new_language(self):
+        item = self.create_item_with_question_and_answers()
+        hindi_text = u'ढलान'
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+        payload = {
+            'question': {
+                'targets': [{
+                    'id': target_0_id,
+                    'name': {
+                        'text': hindi_text,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageTargets']), 1)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageTargets'][0]['names']), 2)
+        self.assertTrue(any(hindi_text == n['text'] for n in data['question']['multiLanguageTargets'][0]['names']))
+
+        req = self.app.get(url)
+        # target text should be in English
+        self.ok(req)
+        data = self.json(req)
+        target = [t for t in data['question']['targets'] if t['id'] == target_0_id][0]
+        self.assertEqual('Image of ramp', target['name'])
+        self.assertNotEqual(hindi_text, target['name'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        # target text should be in Hindi
+        self.ok(req)
+        data = self.json(req)
+        target = [t for t in data['question']['targets'] if t['id'] == target_0_id][0]
+        self.assertNotEqual('Image of ramp', target['name'])
+        self.assertEqual(hindi_text, target['name'])
+
+    def test_can_remove_target_text_language(self):
         item = self.create_item_with_question_and_answers()
         hindi_text = u'ढलान'
         target_0_id = item['question']['multiLanguageTargets'][0]['id']
@@ -1358,7 +1426,8 @@ class UpdateTests(BaseDragAndDropTestCase):
             'question': {
                 'targets': [{
                     'id': target_0_id,
-                    'removeLanguageType': self._en_language_type
+                    'removeLanguageType': self._en_language_type,
+                    'removeFromField': 'text'
                 }]
             }
         }
@@ -1381,6 +1450,56 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotIn('Ramp', target['text'])
         self.assertIn(hindi_text, target['text'])
 
+    def test_can_remove_target_name_language(self):
+        item = self.create_item_with_question_and_answers()
+        hindi_text = u'ढलान'
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+        payload = {
+            'question': {
+                'targets': [{
+                    'id': target_0_id,
+                    'name': {
+                        'text': hindi_text,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'targets': [{
+                    'id': target_0_id,
+                    'removeLanguageType': self._en_language_type,
+                    'removeFromField': 'name'
+                }]
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageTargets']), 1)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageTargets'][0]['names']), 1)
+        self.assertEqual(hindi_text,
+                         data['question']['multiLanguageTargets'][0]['names'][0]['text'])
+
+        req = self.app.get(url)
+        # zone text should be in Hindi because that's the only available language
+        self.ok(req)
+        data = self.json(req)
+        target = [t for t in data['question']['targets'] if t['id'] == target_0_id][0]
+        self.assertEqual(hindi_text, target['name'])
+
     def test_can_add_new_target(self):
         item = self.create_item_with_question_and_answers()
         self.assertEqual(len(item['question']['multiLanguageTargets']), 1)
@@ -1402,13 +1521,14 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertEqual(len(data['question']['multiLanguageTargets']), 2)
         new_target = data['question']['multiLanguageTargets'][1]
         self.assertIn('Ski slope', new_target['texts'][0]['text'])
-        self.assertEqual(new_target['name'],
+        self.assertEqual(new_target['names'][0]['text'],
                          payload['question']['targets'][0]['name'])
         self.assertEqual(new_target['dropBehaviorType'],
                          payload['question']['targets'][0]['dropBehaviorType'])
 
     def test_can_clear_target_texts(self):
         item = self.create_item_with_question_and_answers()
+        self.assertEqual(len(item['question']['multiLanguageTargets'][0]['texts']), 1)
         target_0_id = item['question']['multiLanguageTargets'][0]['id']
         payload = {
             'question': {
@@ -1423,6 +1543,24 @@ class UpdateTests(BaseDragAndDropTestCase):
         data = self.json(req)
         self.assertEqual(len(data['question']['multiLanguageTargets'][0]['texts']), 0)
         self.assertEqual(data['question']['targets'][0]['text'], '')
+
+    def test_can_clear_target_names(self):
+        item = self.create_item_with_question_and_answers()
+        self.assertEqual(len(item['question']['multiLanguageTargets'][0]['names']), 1)
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+        payload = {
+            'question': {
+                'clearTargetNames': [target_0_id]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageTargets'][0]['names']), 0)
+        self.assertEqual(data['question']['targets'][0]['name'], '')
 
     def test_can_change_target_name(self):
         item = self.create_item_with_question_and_answers()
@@ -1537,7 +1675,7 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertEqual(len(data['question']['targets']), 1)
         self.assertEqual(len(data['question']['multiLanguageTargets']), 1)
 
-    def test_can_update_droppable_with_new_language(self):
+    def test_can_update_droppable_text_with_new_language(self):
         item = self.create_item_with_question_and_answers()
         hindi_text = u'हरा बिंदु'
         droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
@@ -1581,7 +1719,51 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotIn('Green dot', droppable['text'])
         self.assertIn(hindi_text, droppable['text'])
 
-    def test_can_remove_droppable_language(self):
+    def test_can_update_droppable_name_with_new_language(self):
+        item = self.create_item_with_question_and_answers()
+        hindi_text = u'हरा बिंदु'
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        payload = {
+            'question': {
+                'droppables': [{
+                    'id': droppable_0_id,
+                    'name': {
+                        'text': hindi_text,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageDroppables']), 2)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageDroppables'][0]['names']), 2)
+        self.assertTrue(any(hindi_text == n['text'] for n in data['question']['multiLanguageDroppables'][0]['names']))
+
+        req = self.app.get(url)
+        # target text should be in English
+        self.ok(req)
+        data = self.json(req)
+        droppable = [d for d in data['question']['droppables'] if d['id'] == droppable_0_id][0]
+        self.assertEqual('Green dot', droppable['name'])
+        self.assertNotEqual(hindi_text, droppable['name'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        # target text should be in Hindi
+        self.ok(req)
+        data = self.json(req)
+        droppable = [d for d in data['question']['droppables'] if d['id'] == droppable_0_id][0]
+        self.assertNotEqual('Green dot', droppable['name'])
+        self.assertEqual(hindi_text, droppable['name'])
+
+    def test_can_remove_droppable_text_language(self):
         item = self.create_item_with_question_and_answers()
         hindi_text = u'हरा बिंदु'
         droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
@@ -1608,7 +1790,8 @@ class UpdateTests(BaseDragAndDropTestCase):
             'question': {
                 'droppables': [{
                     'id': droppable_0_id,
-                    'removeLanguageType': self._en_language_type
+                    'removeLanguageType': self._en_language_type,
+                    'removeFromField': 'text'
                 }]
             }
         }
@@ -1631,6 +1814,56 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotIn('Green dot', droppable['text'])
         self.assertIn(hindi_text, droppable['text'])
 
+    def test_can_remove_droppable_name_language(self):
+        item = self.create_item_with_question_and_answers()
+        hindi_text = u'हरा बिंदु'
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        payload = {
+            'question': {
+                'droppables': [{
+                    'id': droppable_0_id,
+                    'name': {
+                        'text': hindi_text,
+                        'formatTypeId': self._format_type,
+                        'languageTypeId': self._hi_language_type,
+                        'scriptTypeId': self._hi_script_type
+                    }
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        payload = {
+            'question': {
+                'droppables': [{
+                    'id': droppable_0_id,
+                    'removeLanguageType': self._en_language_type,
+                    'removeFromField': 'name'
+                }]
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['question']['multiLanguageDroppables']), 2)  # make sure this didn't increment
+        self.assertEqual(len(data['question']['multiLanguageDroppables'][0]['names']), 1)
+        self.assertEqual(hindi_text,
+                         data['question']['multiLanguageDroppables'][0]['names'][0]['text'])
+
+        req = self.app.get(url)
+        # zone text should be in Hindi because that's the only available language
+        self.ok(req)
+        data = self.json(req)
+        droppable = [d for d in data['question']['droppables'] if d['id'] == droppable_0_id][0]
+        self.assertEqual(hindi_text, droppable['name'])
+
     def test_can_add_new_droppable(self):
         item = self.create_item_with_question_and_answers()
         self.assertEqual(len(item['question']['multiLanguageDroppables']), 2)
@@ -1652,13 +1885,14 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertEqual(len(data['question']['multiLanguageDroppables']), 3)
         new_droppable = data['question']['multiLanguageDroppables'][2]
         self.assertIn('Watermelon', new_droppable['texts'][0]['text'])
-        self.assertEqual(new_droppable['name'],
+        self.assertEqual(new_droppable['names'][0]['text'],
                          payload['question']['droppables'][0]['name'])
         self.assertEqual(new_droppable['dropBehaviorType'],
                          payload['question']['droppables'][0]['dropBehaviorType'])
 
     def test_can_clear_droppable_texts(self):
         item = self.create_item_with_question_and_answers()
+        self.assertEqual(len(item['question']['multiLanguageDroppables'][0]['texts']), 1)
         droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
         payload = {
             'question': {
@@ -1673,6 +1907,24 @@ class UpdateTests(BaseDragAndDropTestCase):
         data = self.json(req)
         self.assertEqual(len(data['question']['multiLanguageDroppables'][0]['texts']), 0)
         self.assertEqual(data['question']['droppables'][0]['text'], '')
+
+    def test_can_clear_droppable_names(self):
+        item = self.create_item_with_question_and_answers()
+        self.assertEqual(len(item['question']['multiLanguageDroppables'][0]['names']), 1)
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        payload = {
+            'question': {
+                'clearDroppableNames': [droppable_0_id]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['question']['multiLanguageDroppables'][0]['names']), 0)
+        self.assertEqual(data['question']['droppables'][0]['name'], '')
 
     def test_can_change_droppable_reuse(self):
         item = self.create_item_with_question_and_answers()
@@ -2328,7 +2580,7 @@ class UpdateTests(BaseDragAndDropTestCase):
                          target_0_id)
         self.assertEqual(data['answers'][0]['coordinateConditions'][0]['droppableId'],
                          droppable_1_id)
-        self.assertEqual(data['answers'][0]['coordinateConditions'][0]['coordinateValues'],
+        self.assertEqual(data['answers'][0]['coordinateConditions'][0]['coordinate'],
                          payload['answers'][0]['coordinateConditions'][0]['coordinateValues'])
 
     def test_can_clear_answer_coordinate_conditions(self):
@@ -2713,7 +2965,7 @@ class AuthoringGetTests(BaseDragAndDropTestCase):
         original_droppable_ids_order = [d['id'] for d in data['question']['multiLanguageDroppables']]
 
         check_droppables_are_shuffled('{0}'.format(self.url))
-        check_droppables_not_shuffled('{0}?unordered'.format(self.url))
+        check_droppables_not_shuffled('{0}?unshuffled'.format(self.url))
 
         item_url = '{0}/{1}'.format(self.url,
                                     data['id'])
@@ -2777,7 +3029,7 @@ class AuthoringGetTests(BaseDragAndDropTestCase):
         self.assertEqual(len(original_target_ids_order), 2)
 
         check_targets_are_shuffled('{0}'.format(self.url))
-        check_targets_not_shuffled('{0}?unordered'.format(self.url))
+        check_targets_not_shuffled('{0}?unshuffled'.format(self.url))
 
         item_url = '{0}/{1}'.format(self.url,
                                     data['id'])
@@ -2836,7 +3088,7 @@ class AuthoringGetTests(BaseDragAndDropTestCase):
         self.assertEqual(len(original_zone_ids_order), 2)
 
         check_zones_are_shuffled('{0}'.format(self.url))
-        check_zones_not_shuffled('{0}?unordered'.format(self.url))
+        check_zones_not_shuffled('{0}?unshuffled'.format(self.url))
 
         item_url = '{0}/{1}'.format(self.url,
                                     data['id'])

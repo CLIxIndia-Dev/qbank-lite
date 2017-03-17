@@ -5974,7 +5974,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6103,7 +6103,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6307,7 +6307,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):

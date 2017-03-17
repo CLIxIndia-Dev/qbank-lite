@@ -1317,7 +1317,7 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
             droppable_text = get_text_as_display_text(droppable)
             reuse = get_reuse_as_integer(droppable)
             drop_behavior_type = get_drop_behavior_as_string(droppable)
-            name = get_name_as_string(droppable)
+            name = get_name_as_display_text(droppable)
                 
             if 'id' in droppable:
                 if object_to_be_deleted(droppable):
@@ -1326,8 +1326,12 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
                     continue
                 elif remove_language_type(droppable):
                     # remove droppable language
-                    form.remove_droppable_language(get_language_to_remove_as_type(droppable),
-                                                   droppable['id'])
+                    if remove_field(droppable, 'text'):
+                        form.remove_droppable_text_language(get_language_to_remove_as_type(droppable),
+                                                            droppable['id'])
+                    elif remove_field(droppable, 'name'):
+                        form.remove_droppable_name_language(get_language_to_remove_as_type(droppable),
+                                                            droppable['id'])
                     continue
                 # update droppable
                 form.update_droppable(droppable['id'],
@@ -1358,6 +1362,10 @@ def update_drag_drop_question_form_with_droppables(form, question_map):
         # list of droppableIds to clear the texts of
         for droppable_id in question_map['clearDroppableTexts']:
             form.clear_droppable_texts(droppable_id)
+    elif 'clearDroppableNames' in question_map:
+        # list of droppableIds to clear the names of
+        for droppable_id in question_map['clearDroppableNames']:
+            form.clear_droppable_names(droppable_id)
     return form
 
 
@@ -1366,7 +1374,7 @@ def update_drag_drop_question_form_with_targets(form, question_map):
         for target in question_map['targets']:
             target_text = get_text_as_display_text(target)
             drop_behavior_type = get_drop_behavior_as_string(target)
-            name = get_name_as_string(target)
+            name = get_name_as_display_text(target)
 
             if 'id' in target:
                 if object_to_be_deleted(target):
@@ -1375,8 +1383,12 @@ def update_drag_drop_question_form_with_targets(form, question_map):
                     continue
                 elif remove_language_type(target):
                     # remove target language
-                    form.remove_target_language(get_language_to_remove_as_type(target),
-                                                target['id'])
+                    if remove_field(target, 'text'):
+                        form.remove_target_text_language(get_language_to_remove_as_type(target),
+                                                         target['id'])
+                    elif remove_field(target, 'name'):
+                        form.remove_target_name_language(get_language_to_remove_as_type(target),
+                                                         target['id'])
                     continue
                 # update target
                 form.update_target(target['id'],
@@ -1405,6 +1417,10 @@ def update_drag_drop_question_form_with_targets(form, question_map):
         # list of targetIds to clear the texts of
         for target_id in question_map['clearTargetTexts']:
             form.clear_target_texts(target_id)
+    elif 'clearTargetNames' in question_map:
+        # list of targetIds to clear the names of
+        for target_id in question_map['clearTargetNames']:
+            form.clear_target_names(target_id)
     return form
 
 
