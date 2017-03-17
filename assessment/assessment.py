@@ -2129,7 +2129,11 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     except NotFound:
                         pass
                     else:
-                        feedback_strings.append(feedback.text)
+                        # Need to wrap the feedback in <?xml> and also as a single block
+                        # to make this work with OEA player
+                        feedback_wrapped = '<modalFeedback>{0}</modalFeedback>'.format(feedback.text)
+                        feedback_soup = BeautifulSoup(feedback_wrapped, 'xml')
+                        feedback_strings.append(feedback_soup.prettify())
             if len(feedback_strings) > 0:
                 return_data.update({
                     'feedback': feedback_strings[0]

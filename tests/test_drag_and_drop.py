@@ -3048,7 +3048,7 @@ class SingleTargetTakingTests(BaseDragAndDropTestCase):
 
         check_zones_not_shuffled(offered)
 
-    def test_can_submit_wrong_answer(self):
+    def test_can_submit_wrong_answer_with_no_match(self):
         item = self.create_item_with_question_and_answers()
         droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
         target_0_id = item['question']['multiLanguageTargets'][0]['id']
@@ -3137,6 +3137,50 @@ class SingleTargetTakingTests(BaseDragAndDropTestCase):
         self.assertIn('/api/v1/repository/repositories', data['feedback'])
         self.assertIn('/stream', data['feedback'])
         self.assertIn('<modalFeedback', data['feedback'])
+        self.assertIn('<p>', data['feedback'])
+        self.assertNotIn('&lt;', data['feedback'])
+        self.assertNotIn('&gt;', data['feedback'])
+
+    def test_can_submit_wrong_answer_with_answer_match(self):
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        droppable_1_id = item['question']['multiLanguageDroppables'][1]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': [115, 125]
+            }, {
+                'droppableId': droppable_1_id,
+                'containerId': target_0_id,
+                'coordinateValues': [25, 15]
+            }]
+        }
+
+        req = self.app.post(submit_url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertIn('Try again!', data['feedback'])
+        self.assertIn('/api/v1/repository/repositories', data['feedback'])
+        self.assertIn('/stream', data['feedback'])
+        self.assertIn('<modalFeedback', data['feedback'])
+        self.assertIn('<p>', data['feedback'])
+        self.assertNotIn('&lt;', data['feedback'])
+        self.assertNotIn('&gt;', data['feedback'])
 
     def test_can_submit_right_answer(self):
 
