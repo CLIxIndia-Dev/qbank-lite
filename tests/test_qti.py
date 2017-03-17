@@ -58,10 +58,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         numeric_choice_line_str = _stringify(numeric_choice_wrapper)
         return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
 
-    @staticmethod
-    def _label(text):
-        return text.replace('.', '_')
-
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -218,17 +214,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._picture2.close()
         self._picture3.close()
         self._picture4.close()
-
-    def upload_media_file(self, file_handle):
-        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
-        file_handle.seek(0)
-        req = self.app.post(url,
-                            upload_files=[('inputFile',
-                                           self._filename(file_handle),
-                                           file_handle.read())])
-        self.ok(req)
-        data = self.json(req)
-        return data
 
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
