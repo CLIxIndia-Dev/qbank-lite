@@ -74,6 +74,9 @@ MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECOR
 MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
 
+DRAG_AND_DROP_ITEM_GENUS = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
+DRAG_AND_DROP_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['drag-and-drop'])
+
 TIME_VALUE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['time-value'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
@@ -431,7 +434,7 @@ class ItemsList(utilities.BaseClass):
 
                 if 'wronganswers' in params:
                     item_map = autils.update_item_json_answers(item, item_map)
-                if 'unordered' in params:
+                if 'unshuffled' in params:
                     item_map = autils.update_item_json_random_choices(assessment_bank, item, item_map)
 
                 results.append(item_map)
@@ -455,11 +458,13 @@ class ItemsList(utilities.BaseClass):
                 uploaded_file = x['qtiFile'].file
             except AttributeError:  # 'dict' object has no attribute 'file'
                 # let's do QTI questions differently
-                if 'genusTypeId' in self.data() and 'qti' in self.data()['genusTypeId']:
+                item_json = self.data()
+
+                if ('genusTypeId' in item_json and
+                        ('qti' in item_json['genusTypeId'] or autils.is_drag_and_drop(item_json))):
                     # do QTI-ish stuff
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
-                    item_json = self.data()
                     item_genus = Type(item_json['genusTypeId'])
 
                     if item_genus not in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
@@ -473,7 +478,8 @@ class ItemsList(utilities.BaseClass):
                                           ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS,
                                           EXTENDED_TEXT_INTERACTION_GENUS,
                                           INLINE_CHOICE_INTERACTION_GENUS,
-                                          NUMERIC_RESPONSE_INTERACTION_GENUS]:
+                                          NUMERIC_RESPONSE_INTERACTION_GENUS,
+                                          DRAG_AND_DROP_ITEM_GENUS]:
                         raise OperationFailed('Item type not supported, or unrecognized')
 
                     add_provenance_parent = False
@@ -514,6 +520,9 @@ class ItemsList(utilities.BaseClass):
                                       ORDER_INTERACTION_MW_SANDBOX_GENUS,
                                       ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
+                    if item_genus in [DRAG_AND_DROP_ITEM_GENUS]:
+                        items_records_list.append(DRAG_AND_DROP_ITEM_RECORD)
+                        items_records_list.remove(QTI_ITEM)
 
                     form = bank.get_item_form_for_create(items_records_list)
                     form = utilities.set_form_basics(form, item_json)
@@ -526,6 +535,7 @@ class ItemsList(utilities.BaseClass):
                         autils.archive_item(bank, parent_item)
 
                     new_item = bank.create_item(form)
+                    question = None
 
                     if 'question' in item_json:
                         question = item_json['question']
@@ -546,7 +556,7 @@ class ItemsList(utilities.BaseClass):
                         # need to also handle fileIds / images / media attached to the question
                         q_form = autils.update_question_form_with_files(q_form, question)
 
-                        bank.create_question(q_form)
+                        question = bank.create_question(q_form)
 
                     if 'answers' in item_json:
                         for answer in item_json['answers']:
@@ -565,7 +575,7 @@ class ItemsList(utilities.BaseClass):
                             a_form = autils.update_answer_form_with_files(a_form, answer)
 
                             # set conditions / choiceIds
-                            a_form = autils.update_answer_form(answer, a_form)
+                            a_form = autils.update_answer_form(answer, a_form, question)
 
                             bank.create_answer(a_form)
                 else:
@@ -1211,10 +1221,10 @@ class ItemDetails(utilities.BaseClass):
                 if updated_item.object_map['question'] is not None:
                     existing_question = updated_item.get_question()
                     existing_question_map = existing_question.object_map
-                    q_id = existing_question.ident
 
-                    if 'type' not in question:
-                        question['type'] = existing_question_map['recordTypeIds'][0]
+                    # if 'type' not in question:
+                    #     question['type'] = existing_question_map['recordTypeIds'][0]
+
                     if 'recordTypeIds' not in question:
                         question['recordTypeIds'] = existing_question_map['recordTypeIds']
 
@@ -1238,7 +1248,7 @@ class ItemDetails(utilities.BaseClass):
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
-                        if 'delete' in answer and answer['delete']:
+                        if autils.object_to_be_deleted(answer):
                             bank.delete_answer(a_id)
                         else:
                             afu = bank.get_answer_form_for_update(a_id)
@@ -1261,8 +1271,9 @@ class ItemDetails(utilities.BaseClass):
                             answer['recordTypeIds'] = [str(t) for t in a_types]
 
                         if (('type' in answer and 'multi-choice' in answer['type']) or
-                                any('multi-choice' in ar for ar in answer['recordTypeIds'])):
-                            # because multiple choice answers need to match to
+                                any('multi-choice' in ar for ar in answer['recordTypeIds']) or
+                                autils.is_drag_and_drop(answer)):
+                            # because multiple choice and drag/drop answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed
                             # in by the consumer.
                             # update this here because we need the new question,
@@ -2040,6 +2051,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if exact_answer_match is not None:
                         answer_to_use = exact_answer_match
                     try:
+                        # Note that this usage of answer_to_use.object_map generates the right source URLs...
                         if any('qti' in answer_record
                                for answer_record in answer_to_use.object_map['recordTypeIds']):
                             feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
@@ -2110,6 +2122,18 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                                 pass
                             # only take the first feedback / confused LO for now
                             break
+                elif autils.is_drag_and_drop(local_data_map):
+                    item = first_section._get_item(question.ident)
+                    try:
+                        feedback = item.get_feedback_for_response(response)
+                    except (NotFound, IllegalState):
+                        pass
+                    else:
+                        # Need to wrap the feedback in <?xml> and also as a single block
+                        # to make this work with OEA player
+                        feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback.text)
+                        feedback_soup = BeautifulSoup(feedback_wrapped, 'xml')
+                        feedback_strings.append(feedback_soup.prettify())
             if len(feedback_strings) > 0:
                 return_data.update({
                     'feedback': feedback_strings[0]

@@ -171,7 +171,6 @@ class BaseAssessmentTestCase(BaseTestCase):
     def setUp(self):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
-        self._bank = get_fixture_bank()
         self._repo = get_fixture_repository()
 
     def tearDown(self):
@@ -5885,6 +5884,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You did it!', data['feedback'])
         self.assertIn('', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
+        self.assertIn('/stream', data['feedback'])
         self.assertNotIn('Sorry, bad choice', data['feedback'])
 
     def test_images_in_incorrect_feedback_are_converted_to_urls(self):
@@ -5974,7 +5974,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6103,7 +6103,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6307,7 +6307,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):

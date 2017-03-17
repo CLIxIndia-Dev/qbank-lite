@@ -3153,27 +3153,8 @@ class RESTfulTests(BaseAssessmentTestCase):
             },
             "answers": [{
                 "genusTypeId": str(RIGHT_ANSWER_GENUS),
-                "choiceIds": ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
-                              'id969e920d-6d22-4d06-b4ac-40a821e350c6',
-                              'id820fae90-3794-40d1-bee0-daa36da223b3',
-                              'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
-                              'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
-                              'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
-                              'iddd689e9d-0cd0-478d-9d37-2856f866a757',
-                              'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
-                              'id41288bb9-e76e-4313-bf57-2101edfe3a76',
-                              'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
-                              'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
-                              'id472afb75-4aa9-4daa-a163-075798ee57ab',
-                              'id8c68713f-8e39-446b-a6c8-df25dfb8118e'],
                 "feedback": """  <modalFeedback  identifier="Feedback372632509" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p>Correct Feedback goes here!</p>
-</modalFeedback>"""
-            }, {
-                "genusTypeId": str(WRONG_ANSWER_GENUS),
-                "choiceIds": [None],
-                "feedback": """  <modalFeedback  identifier="Feedback2014412711" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
-<p>Wrong...Feedback goes here!</p>
 </modalFeedback>"""
             }]
         }
