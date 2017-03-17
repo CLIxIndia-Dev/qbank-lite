@@ -2126,7 +2126,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     item = first_section._get_item(question.ident)
                     try:
                         feedback = item.get_feedback_for_response(response)
-                    except NotFound:
+                    except (NotFound, IllegalState):
                         pass
                     else:
                         # Need to wrap the feedback in <?xml> and also as a single block

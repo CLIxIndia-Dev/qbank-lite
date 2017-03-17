@@ -3201,7 +3201,7 @@ class SingleTargetTakingTests(BaseDragAndDropTestCase):
             'coordinateConditions': [{
                 'droppableId': droppable_0_id,
                 'containerId': target_0_id,
-                'coordinateValues': [25, 15]
+                'coordinateValues': [25.25, 14.9]
             }, {
                 'droppableId': droppable_1_id,
                 'containerId': target_0_id,
@@ -3224,13 +3224,139 @@ class SingleTargetTakingTests(BaseDragAndDropTestCase):
         self.assertNotIn('&gt;', data['feedback'])
 
     def test_submitting_coordinate_off_of_the_target_is_incorrect(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        droppable_1_id = item['question']['multiLanguageDroppables'][1]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': [51.1, 31.2]
+            }, {
+                'droppableId': droppable_1_id,
+                'containerId': target_0_id,
+                'coordinateValues': [10000.25, 10000.75]
+            }]
+        }
+
+        req = self.app.post(submit_url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
 
     def test_submitting_negative_coordinates_is_incorrect(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        droppable_1_id = item['question']['multiLanguageDroppables'][1]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': [-1, -1]
+            }, {
+                'droppableId': droppable_1_id,
+                'containerId': target_0_id,
+                'coordinateValues': [-1, -10000]
+            }]
+        }
+
+        req = self.app.post(submit_url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
 
     def test_submitting_coordinate_on_the_zone_boundary_is_correct(self):
-        self.fail('finish writing the test')
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        droppable_1_id = item['question']['multiLanguageDroppables'][1]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': [50, 30]
+            }, {
+                'droppableId': droppable_1_id,
+                'containerId': target_0_id,
+                'coordinateValues': [100, 100]
+            }]
+        }
+
+        req = self.app.post(submit_url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+
+    def test_cannot_submit_non_numeric_coordinates(self):
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        droppable_1_id = item['question']['multiLanguageDroppables'][1]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': ['50', '0']
+            }, {
+                'droppableId': droppable_1_id,
+                'containerId': target_0_id,
+                'coordinateValues': ['101', '129']
+            }]
+        }
+
+        self.assertRaises(AppError,
+                          self.app.post,
+                          submit_url,
+                          json.dumps(payload),
+                          {'content-type': 'application/json'})
 
     def test_text_comes_back_in_desired_language(self):
         """ Check that zones, targets, and droppables all return the right language
