@@ -792,51 +792,52 @@ class AnswerTypeTests(BaseAssessmentTestCase):
             payload['answers'][0]['feedback']
         )
 
-    def test_solution_returned_when_student_submits_right_answer(self):
-        payload = self.item_payload()
-        payload['solution'] = 'basket weaving'
-
-        req = self.app.post(self.url,
-                            params=json.dumps(payload),
-                            headers={'content-type': 'application/json'})
-        self.ok(req)
-        item = self.json(req)
-
-        self.assertEqual(
-            item['texts']['solution']['text'],
-            payload['solution']
-        )
-
-        item_id = item['id']
-        right_choice_id = item['question']['choices'][1]['id']
-
-        taken, offered = self.create_taken_for_item(self._bank.ident, item_id)
-
-        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(unquote(str(self._bank.ident)),
-                                                                                   unquote(str(taken.ident)))
-        req = self.app.get(url)
-        self.ok(req)
-        data = self.json(req)
-        question_id = data['data'][0]['id']
-
-        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions/{2}/submit'.format(unquote(str(self._bank.ident)),
-                                                                                              unquote(str(taken.ident)),
-                                                                                              unquote(question_id))
-        right_answer_payload = {
-            'choiceIds': [right_choice_id]
-        }
-
-        req = self.app.post(url,
-                            params=json.dumps(right_answer_payload),
-                            headers={'content-type': 'application/json'})
-
-        self.ok(req)
-        data = self.json(req)
-        self.assertTrue(data['correct'])
-        self.assertEqual(
-            data['feedback']['text'],
-            payload['solution']
-        )
+    # removed functionality for performance
+    # def test_solution_returned_when_student_submits_right_answer(self):
+    #     payload = self.item_payload()
+    #     payload['solution'] = 'basket weaving'
+    #
+    #     req = self.app.post(self.url,
+    #                         params=json.dumps(payload),
+    #                         headers={'content-type': 'application/json'})
+    #     self.ok(req)
+    #     item = self.json(req)
+    #
+    #     self.assertEqual(
+    #         item['texts']['solution']['text'],
+    #         payload['solution']
+    #     )
+    #
+    #     item_id = item['id']
+    #     right_choice_id = item['question']['choices'][1]['id']
+    #
+    #     taken, offered = self.create_taken_for_item(self._bank.ident, item_id)
+    #
+    #     url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(unquote(str(self._bank.ident)),
+    #                                                                                unquote(str(taken.ident)))
+    #     req = self.app.get(url)
+    #     self.ok(req)
+    #     data = self.json(req)
+    #     question_id = data['data'][0]['id']
+    #
+    #     url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions/{2}/submit'.format(unquote(str(self._bank.ident)),
+    #                                                                                           unquote(str(taken.ident)),
+    #                                                                                           unquote(question_id))
+    #     right_answer_payload = {
+    #         'choiceIds': [right_choice_id]
+    #     }
+    #
+    #     req = self.app.post(url,
+    #                         params=json.dumps(right_answer_payload),
+    #                         headers={'content-type': 'application/json'})
+    #
+    #     self.ok(req)
+    #     data = self.json(req)
+    #     self.assertTrue(data['correct'])
+    #     self.assertEqual(
+    #         data['feedback']['text'],
+    #         payload['solution']
+    #     )
 
     def test_can_add_confused_learning_objectives_to_wrong_answer(self):
         payload = self.item_payload()
