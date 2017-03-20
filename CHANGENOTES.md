@@ -1,3 +1,7 @@
+3.4.1:
+  - Fix `app_configs/configs.py` to use filespace, to work for field
+    deployments.
+
 3.4.0:
   - Clean up dlkit submodule URLs.
 
