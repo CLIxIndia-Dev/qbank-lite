@@ -1815,8 +1815,9 @@ class AssessmentTakenQuestions(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
-            questions = bank.get_questions(first_section.ident)
+            questions = first_section.get_questions()
             if 'qti' in web.input():
                 data = []
                 for question in questions:
@@ -1830,7 +1831,6 @@ class AssessmentTakenQuestions(utilities.BaseClass):
                 data = json.dumps(data)
             else:
                 data = utilities.extract_items(questions)
-
             return data
         except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1947,23 +1947,22 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             bank.use_isolated_bank_view()
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
-            question = bank.get_question(first_section.ident,
-                                         utilities.clean_id(question_id))
+            question = first_section.get_question(utilities.clean_id(question_id))
             response_form = bank.get_response_form(assessment_section_id=first_section.ident,
                                                    item_id=question.ident)
             local_data_map = self.data()
             if 'type' not in local_data_map:
                 # kind of a hack
-                question_map = question.object_map['genusTypeId']
+                q_object_map = question.object_map
+                question_map = q_object_map['genusTypeId']
                 if question_map != 'GenusType%3ADEFAULT%40DLKIT.MIT.EDU':
-                    local_data_map['type'] = question.object_map['genusTypeId']
+                    local_data_map['type'] = q_object_map['genusTypeId']
                     local_data_map['type'] = local_data_map['type'].replace('question-type',
                                                                             'answer-type')
                 else:
-                    local_data_map['type'] = question.object_map['recordTypeIds'][0]
+                    local_data_map['type'] = q_object_map['recordTypeIds'][0]
                     local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                             'answer-record-type')
-
             try:
                 filename = x['submission'].filename
             except AttributeError:
@@ -1978,7 +1977,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if extension not in filename:
                         filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
-
             try:
                 update_form = autils.update_response_form(local_data_map, response_form)
             except AttributeError:
@@ -1987,16 +1985,17 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
 
+            answers = None
             try:
                 response = bank.get_response(first_section.ident, question.ident)
                 correct = response.is_correct()
             except (AttributeError, IllegalState):
                 # Now need to actually check the answers against the
                 # item answers.
-                answers = bank.get_answers(first_section.ident, question.ident)
+                answers = first_section.get_answers(question.ident)
                 # compare these answers to the submitted response
-
                 correct = autils.validate_response(local_data_map, answers)
+
             feedback = "No feedback available."
             return_data = {
                 'correct': correct,
@@ -2006,23 +2005,27 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             feedback_strings = []
             confused_los = []
             try:
-                taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
-                feedback = taken.get_solution_for_question(
-                    utilities.clean_id(question_id))['explanation']
-                if isinstance(feedback, basestring):
-                    feedback = {
-                        'text': feedback
-                    }
-                return_data.update({
-                    'feedback': feedback
-                })
+                # CLIx has no solution parts...
+                raise IllegalState()
+                # taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
+                # feedback = taken.get_solution_for_question(
+                #     utilities.clean_id(question_id))['explanation']
+                # if isinstance(feedback, basestring):
+                #     feedback = {
+                #         'text': feedback
+                #     }
+                # return_data.update({
+                #     'feedback': feedback
+                # })
             except (IllegalState, TypeError, AttributeError):
                 # update with answer feedback, if available
                 # for now, just support this for multiple choice questions...
+                if answers is None:
+                    answers = first_section.get_answers(question.ident)
+
                 if (autils.is_multiple_choice(local_data_map) or
                         autils.is_ordered_choice(local_data_map)):
                     submissions = autils.get_response_submissions(local_data_map)
-                    answers = bank.get_answers(first_section.ident, question.ident)
                     exact_answer_match = None
                     default_answer_match = None
                     for answer in answers:
@@ -2066,7 +2069,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 elif (autils.is_file_submission(local_data_map) or
                         autils.is_short_answer(local_data_map)):
                     # right now assume one "correct" answer with generic feedback
-                    answers = bank.get_answers(first_section.ident, question.ident)
                     feedback_strings = []
                     confused_los = []
                     for answer in answers:
@@ -2101,7 +2103,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     except (KeyError, AttributeError):
                         pass
                 elif autils.is_numeric_response(local_data_map):
-                    answers = bank.get_answers(first_section.ident, question.ident)
                     feedback_strings = []
                     confused_los = []
                     for answer in answers:
@@ -2142,7 +2143,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 return_data.update({
                     'confusedLearningObjectiveIds': confused_los
                 })
-
             return return_data
         except (PermissionDenied, IllegalState, NotFound, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)

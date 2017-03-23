@@ -1,3 +1,14 @@
+3.5.1:
+  - Account for drag and drop targets / zones / droppables with no `name`
+    value provided on create.
+
+3.5.0:
+  - Simple refactors to try and improve getQuestions and Submit performance.
+
+3.4.1:
+  - Fix `app_configs/configs.py` to use filespace, to work for field
+    deployments.
+
 3.4.0:
   - Clean up dlkit submodule URLs.
 
