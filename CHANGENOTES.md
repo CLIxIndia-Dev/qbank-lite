@@ -1,3 +1,7 @@
+3.5.1:
+  - Account for drag and drop targets / zones / droppables with no `name`
+    value provided on create.
+
 3.5.0:
   - Simple refactors to try and improve getQuestions and Submit performance.
 
