@@ -550,6 +550,36 @@ class CreateTests(BaseDragAndDropTestCase):
                           params=json.dumps(payload),
                           headers={'content-type': 'application/json'})
 
+    def test_can_create_droppable_with_no_name(self):
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        del payload['question']['droppables'][0]['name']
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+    def test_can_create_target_with_no_name(self):
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        del payload['question']['targets'][0]['name']
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
+    def test_can_create_zone_with_no_name(self):
+        payload = self._item_payload()
+        payload['question'] = self._question_payload()
+        del payload['question']['zones'][0]['name']
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+
 
 class UpdateTests(BaseDragAndDropTestCase):
     """Can edit the drag and drop RESTfully"""
