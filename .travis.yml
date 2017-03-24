@@ -8,6 +8,7 @@ sudo: false
 
 before_install:
   - pip install --upgrade pytest
+  - pip install coveralls
 
 # command to install dependencies
 install:
@@ -16,4 +17,8 @@ install:
   - git submodule update --init --recursive
 
 # command to run tests
-script: python -m pytest -x
+script: coverage run pytest -x
+
+# command to report coverage stats
+after_success:
+  - coveralls
