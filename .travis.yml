@@ -17,7 +17,7 @@ install:
   - git submodule update --init --recursive
 
 # command to run tests
-script: coverage run pytest -x
+script: python -m pytest -x
 
 # command to report coverage stats
 after_success:
