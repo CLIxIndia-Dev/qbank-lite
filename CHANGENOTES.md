@@ -1,3 +1,6 @@
+3.5.2:
+  - Refactor item response validation.
+
 3.5.1:
   - Account for drag and drop targets / zones / droppables with no `name`
     value provided on create.
