@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/CLIxIndia-Dev/qbank-lite.svg?branch=master)](https://travis-ci.org/CLIxIndia-Dev/qbank-lite)
+[![Build Status](https://travis-ci.org/CLIxIndia-Dev/qbank-lite.svg?branch=master)](https://travis-ci.org/CLIxIndia-Dev/qbank-lite)[![Coverage Status](https://coveralls.io/repos/github/CLIxIndia-Dev/qbank-lite/badge.svg?branch=master)](https://coveralls.io/github/CLIxIndia-Dev/qbank-lite?branch=master)
 
 Running
 =========================

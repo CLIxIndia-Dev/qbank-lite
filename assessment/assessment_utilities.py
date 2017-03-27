@@ -34,6 +34,8 @@ MULTI_LANGUAGE_ANSWER_WITH_FEEDBACK = Type(**ANSWER_RECORD_TYPES['multi-language
 EDX_FILE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-file-asset'])
 EDX_IMAGE_ASSET_GENUS_TYPE = Type(**ASSET_GENUS_TYPES['edx-image-asset'])
 EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
+EDX_MULTI_CHOICE_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_multiple_choice_item'])
+EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx-numeric-response-item'])
 EDX_MULTI_CHOICE_PROBLEM_TYPE = Type(**ITEM_GENUS_TYPES['multi-choice-edx'])
 EDX_NUMERIC_RESPONSE_PROBLEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx'])
 GENERIC_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['generic'])
@@ -47,6 +49,8 @@ REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
+
+LABEL_ORTHO_FACES_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['label-ortho-faces'])
 
 FILES_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['files'])
 FILES_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['files'])
@@ -280,11 +284,18 @@ def create_new_item(bank, data):
         #  * author comments
         #  * extra python script
         # any files?
-        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE,
-                                              ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+        question_type = data['question']['type']
+        if 'multi-choice' in question_type:
+            form = bank.get_item_form_for_create([EDX_MULTI_CHOICE_ITEM_RECORD_TYPE])
+        elif 'numeric-response' in question_type:
+            form = bank.get_item_form_for_create([EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE])
+        else:
+            form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE,
+                                                  ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+
         form.display_name = data['name']
         form.description = data['description']
-        question_type = data['question']['type']
+
         if 'multi-choice' in question_type:
             form.set_genus_type(EDX_MULTI_CHOICE_PROBLEM_TYPE)
         elif 'numeric-response' in question_type:
@@ -326,7 +337,15 @@ def create_new_item(bank, data):
                 files_list[filename] = DataInputStream(file)
             form = add_files_to_form(form, files_list)
     else:
-        form = bank.get_item_form_for_create([ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+        question_type = None
+        if 'question' in data and 'type' in data['question']:
+            question_type = data['question']['type']
+        if question_type is not None and 'label-ortho-faces' in question_type:
+            form = bank.get_item_form_for_create([LABEL_ORTHO_FACES_ITEM_RECORD,
+                                                  ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+        else:
+            form = bank.get_item_form_for_create([ITEM_WITH_WRONG_ANSWERS_RECORD_TYPE])
+
         form.display_name = str(data['name'])
         form.description = str(data['description'])
         if 'genus' in data:
@@ -852,7 +871,11 @@ def get_response_submissions(response):
         submission = response['inlineRegions']
     elif is_numeric_response(response):
         # just take the first region for now
-        submission = response[response.keys()[0]]
+        response_keys = response.keys()
+        del response_keys['type']
+        del response_keys['recordTypeIds']
+
+        submission = response[response_keys[0]]
     else:
         raise Unsupported
     return submission

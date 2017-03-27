@@ -99,7 +99,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                                                answer_record_types=[QTI_ANSWER_RECORD,
                                                                     MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
                                                                     FILES_ANSWER_RECORD])
-        form.load_from_qti_item(self._test_xml)
+        form.load_from_qti_item(self._test_xml, correct=True)
         bank.create_answer(form)
 
         return bank.get_item(new_item.ident)
@@ -219,7 +219,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         url = '{0}/items/{1}/qti'.format(self.url,
                                          unquote(str(self._item.ident)))
         req = self.app.get(url)
-        qti_xml = BeautifulSoup(req.body, 'lxml-xml')
+        qti_xml = BeautifulSoup(req.body, 'xml')
         item = qti_xml.assessmentItem
         self.assertTrue(item.itemBody.choiceInteraction)
         self.assertTrue(item.responseDeclaration)
@@ -556,12 +556,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
-
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
@@ -1233,9 +1231,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
