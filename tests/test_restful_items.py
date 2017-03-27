@@ -2572,9 +2572,8 @@ class RESTfulTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
@@ -2867,9 +2866,8 @@ class RESTfulTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 

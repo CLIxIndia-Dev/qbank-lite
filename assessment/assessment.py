@@ -426,7 +426,6 @@ class ItemsList(utilities.BaseClass):
                         item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
                     except AttributeError:
                         pass  # not a qti question
-
                 item_map = item.object_map
 
                 if item_qti is not None:
@@ -1985,156 +1984,41 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
 
-            answers = None
-            try:
-                response = bank.get_response(first_section.ident, question.ident)
-                correct = response.is_correct()
-            except (AttributeError, IllegalState):
-                # Now need to actually check the answers against the
-                # item answers.
-                answers = first_section.get_answers(question.ident)
-                # compare these answers to the submitted response
-                correct = autils.validate_response(local_data_map, answers)
+            response = bank.get_response(first_section.ident, question.ident)
+            correct = response.is_correct()
 
             feedback = "No feedback available."
             return_data = {
                 'correct': correct,
                 'feedback': feedback
             }
+
             # update with item solution, if available
             feedback_strings = []
             confused_los = []
+
+            item = first_section._get_item(question.ident)
             try:
-                # CLIx has no solution parts...
-                raise IllegalState()
-                # taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
-                # feedback = taken.get_solution_for_question(
-                #     utilities.clean_id(question_id))['explanation']
-                # if isinstance(feedback, basestring):
-                #     feedback = {
-                #         'text': feedback
-                #     }
-                # return_data.update({
-                #     'feedback': feedback
-                # })
-            except (IllegalState, TypeError, AttributeError):
-                # update with answer feedback, if available
-                # for now, just support this for multiple choice questions...
-                if answers is None:
-                    answers = first_section.get_answers(question.ident)
+                feedback = item.get_feedback_for_response(response)
+            except (NotFound, IllegalState, AttributeError):
+                pass
+            else:
+                # Need to wrap the feedback in <?xml> and also as a single block
+                # to make this work with OEA player
+                feedback_wrapped = feedback.text
+                if u'<modalFeedback' not in feedback_wrapped:
+                    feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback_wrapped)
 
-                if (autils.is_multiple_choice(local_data_map) or
-                        autils.is_ordered_choice(local_data_map)):
-                    submissions = autils.get_response_submissions(local_data_map)
-                    exact_answer_match = None
-                    default_answer_match = None
-                    for answer in answers:
-                        correct_submissions = 0
-                        answer_choice_ids = list(answer.get_choice_ids())
-                        number_choices = len(answer_choice_ids)
-                        if len(submissions) == number_choices:
-                            for index, choice_id in enumerate(answer_choice_ids):
-                                if autils.is_multiple_choice(local_data_map):
-                                    if str(choice_id) in submissions:
-                                        correct_submissions += 1
+                feedback_soup = BeautifulSoup(feedback_wrapped, 'xml')
+                feedback_strings.append(feedback_soup.prettify())
 
-                        if not correct and autils.answer_is_default_incorrect(answer):
-                            default_answer_match = answer
-                        elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
-                            default_answer_match = answer
+            try:
+                response_los = item.get_confused_learning_objective_ids_for_response(response)
+            except(NotFound, IllegalState, AttributeError):
+                pass
+            else:
+                confused_los += list(response_los)
 
-                        # try to find an exact answer match, first
-                        if (correct_submissions == number_choices and
-                                len(submissions) == number_choices):
-                            exact_answer_match = answer
-
-                    # now that we have either an exact match or a default (wrong) answer
-                    # let's calculate the feedback and the confused LOs
-                    answer_to_use = default_answer_match
-                    if exact_answer_match is not None:
-                        answer_to_use = exact_answer_match
-                    try:
-                        # Note that this usage of answer_to_use.object_map generates the right source URLs...
-                        if any('qti' in answer_record
-                               for answer_record in answer_to_use.object_map['recordTypeIds']):
-                            feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                        else:
-                            feedback_strings.append(answer_to_use.feedback.text)
-                    except (KeyError, AttributeError):
-                        pass
-                    try:
-                        confused_los += answer_to_use.confused_learning_objective_ids
-                    except (KeyError, AttributeError):
-                        pass
-                elif (autils.is_file_submission(local_data_map) or
-                        autils.is_short_answer(local_data_map)):
-                    # right now assume one "correct" answer with generic feedback
-                    feedback_strings = []
-                    confused_los = []
-                    for answer in answers:
-                        if (correct and
-                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
-                            try:
-                                if any('qti' in answer_record
-                                       for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                                else:
-                                    feedback_strings.append(answer.feedback['text'])
-                            except (KeyError, AttributeError):
-                                pass
-                            try:
-                                confused_los += answer.confused_learning_objective_ids
-                            except (KeyError, AttributeError):
-                                pass
-                            # only take the first feedback / confused LO for now
-                            break
-                elif autils.is_inline_choice(local_data_map):
-                    answer_match = autils.match_submission_to_answer(answers, local_data_map)
-                    try:
-                        if any('qti' in answer_record
-                               for answer_record in answer_match.object_map['recordTypeIds']):
-                            feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                        else:
-                            feedback_strings.append(answer_match.feedback['text'])
-                    except (KeyError, AttributeError):
-                        pass
-                    try:
-                        confused_los += answer_match.confused_learning_objective_ids
-                    except (KeyError, AttributeError):
-                        pass
-                elif autils.is_numeric_response(local_data_map):
-                    feedback_strings = []
-                    confused_los = []
-                    for answer in answers:
-                        if ((correct and
-                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)) or (
-                                not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
-                            try:
-                                if any('qti' in answer_record
-                                       for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                                else:
-                                    feedback_strings.append(answer.feedback['text'])
-                            except (KeyError, AttributeError):
-                                pass
-                            try:
-                                confused_los += answer.confused_learning_objective_ids
-                            except (KeyError, AttributeError):
-                                pass
-                            # only take the first feedback / confused LO for now
-                            break
-                elif autils.is_drag_and_drop(local_data_map):
-                    item = first_section._get_item(question.ident)
-                    try:
-                        feedback = item.get_feedback_for_response(response)
-                    except (NotFound, IllegalState):
-                        pass
-                    else:
-                        # Need to wrap the feedback in <?xml> and also as a single block
-                        # to make this work with OEA player
-                        feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback.text)
-                        feedback_soup = BeautifulSoup(feedback_wrapped, 'xml')
-                        feedback_strings.append(feedback_soup.prettify())
             if len(feedback_strings) > 0:
                 return_data.update({
                     'feedback': feedback_strings[0]
