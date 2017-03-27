@@ -26,6 +26,8 @@ from urllib import unquote, quote
 import utilities
 
 EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
+EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx-numeric-response-item'])
+
 NUMERIC_RESPONSE_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_ANSWER_RECORD_TYPE = Type(**ANSWER_RECORD_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-response-edx'])
@@ -787,9 +789,9 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertEqual(
-            data['feedback'],
-            payload['answers'][0]['feedback']
+        self.assertIn(
+            payload['answers'][0]['feedback'],
+            data['feedback']
         )
 
     # removed functionality for performance
@@ -7331,7 +7333,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             bank_id = utilities.clean_id(bank_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE])
+        form = bank.get_item_form_for_create([EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE])
         form.display_name = 'a test item!'
         form.description = 'for testing with'
         form.set_genus_type(NUMERIC_RESPONSE_ITEM_GENUS_TYPE)
