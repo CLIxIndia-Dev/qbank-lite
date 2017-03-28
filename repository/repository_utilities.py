@@ -142,11 +142,12 @@ def add_media_description_to_asset(repo, asset_id, media_description):
         repo.update_asset_content(form)
 
 
-def add_vtt_file_to_asset(repo, asset_id, file_data, locale='en'):
+def add_vtt_file_to_asset(repo, asset_id, file_name, file_data, locale='en'):
     asset_contents = repo.get_asset_contents_by_genus_type_for_asset(VTT_ASSET_CONTENT_GENUS_TYPE,
                                                                      asset_id)
     if asset_contents.available() > 0:
         data = DataInputStream(file_data)
+        data.name = file_name
         locale = utilities.convert_two_digit_lang_code_to_locale_object(locale).language_type
         asset_content = asset_contents.next()
         form = repo.get_asset_content_form_for_update(asset_content.ident)

@@ -513,6 +513,7 @@ class AssetDetails(utilities.BaseClass):
                 file_name = vtt_input_file['vttFile'].filename
                 rutils.add_vtt_file_to_asset(repo,
                                              utilities.clean_id(asset_id),
+                                             file_name,
                                              vtt_file,
                                              locale)
 

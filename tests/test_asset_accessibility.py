@@ -658,14 +658,95 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
     def test_can_set_transcript_file_locale_on_asset_create(self):
         self.fail('finish writing the test')
 
-    def test_can_update_vtt_file_with_new_language(self):
-        self.fail('finsih writing the test')
+    def test_can_add_vtt_file_with_new_language(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[1],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
 
     def test_can_update_transcript_file_with_new_language(self):
         self.fail("finish writing the test")
 
     def test_can_replace_existing_vtt_file_language(self):
-        self.fail('finish writing the test')
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        original_asset_id = data['assetContents'][1]['fileIds']['ENG']['assetId']
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertNotEqual(vtt_files['assetId'], original_asset_id)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
 
     def test_can_replace_existing_transcript_file_language(self):
         self.fail("finish writing the test")
@@ -714,6 +795,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 0)
 
     def test_can_remove_vtt_file_by_language(self):
+
         self.fail('finish writing the test')
 
     def test_can_remove_transcript_file_by_language(self):
