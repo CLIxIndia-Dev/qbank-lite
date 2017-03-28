@@ -339,7 +339,7 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_file_as_asset_content(repository, asset, file_name, input_file, params)
 
             # need to get the updated asset with Contents
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
