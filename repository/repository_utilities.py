@@ -31,6 +31,7 @@ ALT_TEXT_ASSET_CONTENT_RECORD_TYPE = Type(**registry.ASSET_CONTENT_RECORD_TYPES[
 MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['media-description'])
 MEDIA_DESCRIPTION_ASSET_CONTENT_RECORD_TYPE = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language-media-descriptions'])
 VTT_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['vtt'])
+VTT_ASSET_CONTENT_RECORD_TYPE = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language-vtt-files'])
 TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['transcript'])
 MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
@@ -98,6 +99,29 @@ def append_text_as_asset_content(repo, asset, text, display_name, genus_type):
     return repo.get_asset(asset.ident), ac
 
 
+def append_vtt_file_as_asset_content(repo, asset, file_name, file_data, locale='en'):
+    asset_content_type_list = get_asset_content_records(repo)
+    asset_content_type_list.append(VTT_ASSET_CONTENT_RECORD_TYPE)
+
+    acfc = repo.get_asset_content_form_for_create(asset.ident,
+                                                  asset_content_type_list)
+    acfc.set_genus_type(VTT_ASSET_CONTENT_GENUS_TYPE)
+
+    try:
+        acfc.add_display_name(utilities.create_display_text(file_name))
+    except AttributeError:
+        acfc.display_name = file_name
+
+    data = DataInputStream(file_data)
+    data.name = file_name
+
+    locale = utilities.convert_two_digit_lang_code_to_locale_object(locale).language_type
+
+    acfc.add_vtt_file(data,
+                      locale)
+    repo.create_asset_content(acfc)
+
+
 def add_alt_text_to_asset(repo, asset_id, text):
     asset_contents = repo.get_asset_contents_by_genus_type_for_asset(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
                                                                      asset_id)
@@ -118,6 +142,21 @@ def add_media_description_to_asset(repo, asset_id, media_description):
         repo.update_asset_content(form)
 
 
+def add_vtt_file_to_asset(repo, asset_id, file_data, locale='en'):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(VTT_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        data = DataInputStream(file_data)
+        locale = utilities.convert_two_digit_lang_code_to_locale_object(locale).language_type
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        if locale in form._my_map['fileIds']:
+            form.edit_vtt_file(data, locale)
+        else:
+            form.add_vtt_file(data, locale)
+        repo.update_asset_content(form)
+
+
 def clear_alt_texts(repo, asset_id):
     asset_contents = repo.get_asset_contents_by_genus_type_for_asset(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
                                                                      asset_id)
@@ -135,6 +174,16 @@ def clear_media_descriptions(repo, asset_id):
         asset_content = asset_contents.next()
         form = repo.get_asset_content_form_for_update(asset_content.ident)
         form.clear_media_descriptions()
+        repo.update_asset_content(form)
+
+
+def clear_vtt_files(repo, asset_id):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(VTT_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.clear_vtt_files()
         repo.update_asset_content(form)
 
 

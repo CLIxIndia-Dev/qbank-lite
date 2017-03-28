@@ -26,6 +26,7 @@ SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing
 MULTI_LANGUAGE_ASSET_CONTENTS = Type(**ASSET_CONTENT_RECORD_TYPES['multi-language'])
 ALT_TEXT_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['alt-text'])
 MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['media-description'])
+VTT_FILE_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['vtt'])
 
 
 class BaseAccessibilityTestCase(BaseTestCase):
@@ -136,6 +137,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
         self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
         self._image_upload_test_file = open('{0}/tests/files/green_dot.png'.format(ABS_PATH), 'r')
+        self._transcript_test_file = open('{0}/tests/files/transcript.txt'.format(ABS_PATH), 'r')
 
         self._hindi_text = {
             'text': u'हिंदी',
@@ -158,6 +160,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self._video_upload_test_file.close()
         self._caption_upload_test_file.close()
         self._image_upload_test_file.close()
+        self._transcript_test_file.close()
 
     def test_can_create_asset_with_alt_text(self):
         # should add the alt-text as an asset content
@@ -602,47 +605,125 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(self._hindi_text['text'],
                       data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
-    # def test_can_send_vtt_file_on_asset_create(self):
-    #     self.fail('finish writing hte test')
-    #
-    # def test_can_send_transcript_file_on_asset_create(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_set_vtt_file_locale_on_asset_create(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_set_transcript_file_locale_on_asset_create(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_update_vtt_file_with_new_language(self):
-    #     self.fail('finsih writing the test')
-    #
-    # def test_can_update_transcript_file_with_new_language(self):
-    #     self.fail("finish writing the test")
-    #
-    # def test_can_replace_existing_vtt_file_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_replace_existing_transcript_file_language(self):
-    #     self.fail("finish writing the test")
-    #
-    # def test_can_clear_all_transcript_files(self):
-    #     self.fail('finish writign the test')
-    #
-    # def test_can_clear_all_vtt_files(self):
-    #     self.fail('finish writing hte test')
-    #
-    # def test_can_remove_vtt_file_by_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_remove_transcript_file_by_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_video_track_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_audio_transcript_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_video_transcript_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')
+    def test_can_send_vtt_file_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_send_transcript_file_on_asset_create(self):
+        self.fail('finish writing the test')
+
+    def test_can_set_vtt_file_locale_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_set_transcript_file_locale_on_asset_create(self):
+        self.fail('finish writing the test')
+
+    def test_can_update_vtt_file_with_new_language(self):
+        self.fail('finsih writing the test')
+
+    def test_can_update_transcript_file_with_new_language(self):
+        self.fail("finish writing the test")
+
+    def test_can_replace_existing_vtt_file_language(self):
+        self.fail('finish writing the test')
+
+    def test_can_replace_existing_transcript_file_language(self):
+        self.fail("finish writing the test")
+
+    def test_can_clear_all_transcript_files(self):
+        self.fail('finish writign the test')
+
+    def test_can_clear_all_vtt_files(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        payload = {
+            'clearVTTFiles': False
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        payload = {
+            'clearVTTFiles': True
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 0)
+
+    def test_can_remove_vtt_file_by_language(self):
+        self.fail('finish writing the test')
+
+    def test_can_remove_transcript_file_by_language(self):
+        self.fail('finish writing the test')
+
+    def test_video_caption_track_shows_up_in_requested_language(self):
+        self.fail('finish writing the test')
+
+    def test_audio_transcript_shows_up_in_requested_language(self):
+        self.fail('finish writing the test')
+
+    def test_video_transcript_shows_up_in_requested_language(self):
+        self.fail('finish writing the test')
