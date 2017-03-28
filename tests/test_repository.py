@@ -11,7 +11,8 @@ from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
 from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
 from urllib import unquote, quote
 
-from records.registry import ASSESSMENT_RECORD_TYPES, ASSET_CONTENT_RECORD_TYPES
+from records.registry import ASSESSMENT_RECORD_TYPES,\
+    ASSET_CONTENT_RECORD_TYPES, ASSET_CONTENT_GENUS_TYPES
 
 import utilities
 
@@ -20,6 +21,8 @@ ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 MULTI_LANGUAGE_ASSET_CONTENTS = Type(**ASSET_CONTENT_RECORD_TYPES['multi-language'])
+ALT_TEXT_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['alt-text'])
+MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['media-description'])
 
 
 class BaseRepositoryTestCase(BaseTestCase):
