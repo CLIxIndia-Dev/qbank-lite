@@ -499,7 +499,6 @@ class AssetDetails(utilities.BaseClass):
 
             # Now handle the vtt and transcript uploaded files
 
-
             form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
             form = utilities.set_form_basics(form, params)
 
