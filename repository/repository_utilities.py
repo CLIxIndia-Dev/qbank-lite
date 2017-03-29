@@ -26,10 +26,16 @@ MP3_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['mp3'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['png'])
 SVG_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['svg'])
 WAV_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['wav'])
+ALT_TEXT_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['alt-text'])
+ALT_TEXT_ASSET_CONTENT_RECORD_TYPE = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language-alt-texts'])
+MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['media-description'])
+MEDIA_DESCRIPTION_ASSET_CONTENT_RECORD_TYPE = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language-media-descriptions'])
+VTT_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['vtt'])
+TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE = Type(**registry.ASSET_CONTENT_GENUS_TYPES['transcript'])
 MULTI_LANGUAGE_ASSET_CONTENT = Type(**registry.ASSET_CONTENT_RECORD_TYPES['multi-language'])
 
 
-def append_asset_contents(repo, asset, file_name, file_data, basics=None):
+def append_file_as_asset_content(repo, asset, file_name, file_data, basics=None):
     asset_content_type_list = get_asset_content_records(repo)
 
     acfc = repo.get_asset_content_form_for_create(asset.ident,
@@ -61,6 +67,75 @@ def append_asset_contents(repo, asset, file_name, file_data, basics=None):
     repo.update_asset_content(acfu)
 
     return repo.get_asset(asset.ident), ac
+
+
+def append_text_as_asset_content(repo, asset, text, display_name, genus_type):
+    asset_content_type_list = get_asset_content_records(repo)
+
+    if genus_type == 'alt-text':
+        genus_type = ALT_TEXT_ASSET_CONTENT_GENUS_TYPE
+        asset_content_type_list.append(ALT_TEXT_ASSET_CONTENT_RECORD_TYPE)
+    elif genus_type == 'mediaDescription':
+        genus_type = MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE
+        asset_content_type_list.append(MEDIA_DESCRIPTION_ASSET_CONTENT_RECORD_TYPE)
+
+    acfc = repo.get_asset_content_form_for_create(asset.ident,
+                                                  asset_content_type_list)
+    acfc.set_genus_type(genus_type)
+
+    try:
+        acfc.add_display_name(utilities.create_display_text(display_name))
+    except AttributeError:
+        acfc.display_name = display_name
+
+    if genus_type == ALT_TEXT_ASSET_CONTENT_GENUS_TYPE:
+        acfc.add_alt_text(utilities.create_display_text(text))
+    elif genus_type == MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE:
+        acfc.add_media_description(utilities.create_display_text(text))
+
+    ac = repo.create_asset_content(acfc)
+
+    return repo.get_asset(asset.ident), ac
+
+
+def add_alt_text_to_asset(repo, asset_id, text):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.add_alt_text(utilities.create_display_text(text))
+        repo.update_asset_content(form)
+
+
+def add_media_description_to_asset(repo, asset_id, media_description):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.add_media_description(utilities.create_display_text(media_description))
+        repo.update_asset_content(form)
+
+
+def clear_alt_texts(repo, asset_id):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.clear_alt_texts()
+        repo.update_asset_content(form)
+
+
+def clear_media_descriptions(repo, asset_id):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.clear_media_descriptions()
+        repo.update_asset_content(form)
 
 
 def convert_ac_name_to_label(asset_content):
@@ -171,6 +246,30 @@ def match_asset_content_by_name(asset_content_list, name):
         if asset_content.display_name.text == name:
             return asset_content
     return None
+
+
+def remove_alt_text_language(repo, asset_id, language_type):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        if isinstance(language_type, basestring):
+            language_type = Type(language_type)
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.remove_alt_text_language(language_type)
+        repo.update_asset_content(form)
+
+
+def remove_media_description_language(repo, asset_id, language_type):
+    asset_contents = repo.get_asset_contents_by_genus_type_for_asset(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE,
+                                                                     asset_id)
+    if asset_contents.available() > 0:
+        if isinstance(language_type, basestring):
+            language_type = Type(language_type)
+        asset_content = asset_contents.next()
+        form = repo.get_asset_content_form_for_update(asset_content.ident)
+        form.remove_media_description_language(language_type)
+        repo.update_asset_content(form)
 
 
 def update_asset_map_with_content_url(rm, asset_map):

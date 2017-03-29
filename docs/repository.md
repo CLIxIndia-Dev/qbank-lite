@@ -145,6 +145,14 @@ url parameters (optional):
   - description. Edit the `asset` `description` text.
   - license. Edit the `license` string.
   - copyright. Edit the `copyright` string.
+  - altText. Edit an existing `alt-text` `assetContent` or creates one in a new language.
+             Expects a `DisplayText` object.
+  - mediaDescription. Edit a `mediaDescription` `assetContent` or creates one in a new
+                      language. Expects a `DisplayText` object.
+  - clearAltTexts. Remove all `alt-texts`, but does not delete the `assetContent`.
+  - clearMediaDescriptions. Remove all `mediaDescriptions`, but does not delete the `assetContent`.
+  - removeAltTextLanguage. Removes the matching `languageTypeId` `alt-text`.
+  - removeMediaDescriptionLanguage. Removes the matching `languageTypeId` `mediaDescription`.
 
 returns:
   - `Asset` object.
@@ -177,6 +185,9 @@ form data (required):
                           This can be found at `result.assetContents[0].url`.
   - license (optional). Set the `license` string.
   - copyright (optional). Set the `copyright` string.
+  - altText (optional). Create an `alt-text` `assetContent` from a `DisplayText` object.
+  - mediaDescription (optional). Create a `mediaDescription` `assetContent` from a
+                                 `DisplayText` object.
 
 returns:
   - `Asset` object.
