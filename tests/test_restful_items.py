@@ -5074,6 +5074,228 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
 
+    def test_submitting_to_image_sequence_with_exact_wrong_answer_match_works(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": ['id127df214-2a19-44da-894a-853948313dae',
+                              'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                              'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                              'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">Try again.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertIn('Try again.', data['feedback'])
+
+    def test_submitting_wrong_answer_to_image_sequence_returns_generic_incorrect_feedback(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": [],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">Try again.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': 'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertIn('Try again', data['feedback'])
+
     def test_can_create_numeric_response_question_via_rest(self):
         url = '{0}/items'.format(self.url)
 
