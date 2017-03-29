@@ -197,6 +197,7 @@ def always_right(question_map):
             is_survey(question_map) or
             is_short_answer(question_map))
 
+
 def answer_is_default_incorrect(answer):
     answer_choice_ids = list(answer.get_choice_ids())
     if (str(answer.genus_type) == str(WRONG_ANSWER) and
