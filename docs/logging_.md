@@ -64,7 +64,7 @@ Get, edit, or delete a log entry
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -121,7 +121,7 @@ Get, edit, or delete a specific `log`.
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 

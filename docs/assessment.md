@@ -117,7 +117,7 @@ from the system first. Currently, no convenience method exists to do this in bul
 calls are required to the `AssessmentTakenDetails` endpoint.
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -222,20 +222,20 @@ headers (expected):
 form data for file submission type questions (moveable words sandbox, audio record tool, and generic
 file upload):
   - type. One of the following values:
-            `answer-type%3Aqti-upload-interaction-audio%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-upload-interaction-generic%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-order-interaction-mw-sandbox%40ODL.MIT.EDU`
+    - `answer-type%3Aqti-upload-interaction-audio%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-upload-interaction-generic%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-order-interaction-mw-sandbox%40ODL.MIT.EDU`
   - submission. The file the student is submitting as their response.
 
 form data for multiple choice (single or multi response), reflection, moveable words sentence,
 or image sequence questions:
   - type. One of the following values:
-            `answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-choice-interaction-survey%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU`,
-            `answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU`
+    - `answer-type%3Aqti-choice-interaction%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-choice-interaction-multi-select%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-choice-interaction-survey%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-order-interaction-mw-sentence%40ODL.MIT.EDU`,
+    - `answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU`
   - choiceIds. List of `choiceId`s. Order matters for moveable words sentence, but not for the others.
 
 form data for short response / text answer:
@@ -312,7 +312,7 @@ headers (expected):
                  in the format student@clix.edu, or some unplatform sessionId.
 
 returns:
-  - dictionary of {success: True}
+  - dictionary of `{success: True}`
 
 ### AssessmentTakenDetails
 
@@ -323,7 +323,7 @@ of individual student records / deleting `AssessmentOffered`s.
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -392,7 +392,7 @@ be thrown if you attempt to remove them all.
 Remove a single `bankId`.
 
 returns:
-  - 202.
+  - `202`.
 
 ### AssessmentAssignedBankIds
 
@@ -411,7 +411,7 @@ form data (required):
                      Example: ["assessment.Bank%3A5877df4e71e482663913eefc%40ODL.MIT.EDU"]
 
 returns:
-  - 202.
+  - `202`.
 
 
 ### AssessmentItemDetails
@@ -424,7 +424,7 @@ Note that this does **not** delete the `item` from the system, it only "unlinks"
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 ### AssessmentItemsList
 
@@ -459,7 +459,7 @@ Get, edit, or delete a specific `assessment`
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -578,7 +578,7 @@ Get, edit, or delete a single `item`
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -866,7 +866,7 @@ Shows details for, edit, or delete a specific assessment `bank`.
 #### DELETE
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
@@ -937,7 +937,7 @@ Note that this only removes the `bank` as a root `bank` -- the `bank` is **not**
 from the system.
 
 returns:
-  - 202.
+  - `202`.
 
 #### GET
 
