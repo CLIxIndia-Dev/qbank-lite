@@ -5981,3 +5981,140 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+    def test_submitting_to_mw_sandbox_correct_even_if_no_answers(self):
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r04__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "id14a6824a-79f2-4c00-ac6a-b41cbb64db45",
+                    "text": """<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
+<p class=\"noun\">the bus</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id969e920d-6d22-4d06-b4ac-40a821e350c6",
+                    "text": """<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
+<p class=\"noun\">the airport</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id820fae90-3794-40d1-bee0-daa36da223b3",
+                    "text": """<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
+<p class=\"noun\">the bags</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60",
+                    "text": """<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
+<p class=\"verb\">are</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idf1583dac-fb7a-4365-aa0d-f64e5ab61029",
+                    "text": """<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
+<p class=\"adverb\">under</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idd8449f3e-820f-46f8-9529-7e019fceaaa6",
+                    "text": """<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
+<p class=\"prep\">on</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddd689e9d-0cd0-478d-9d37-2856f866a757",
+                    "text": """<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
+<p class=\"adverb\">on top of</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf",
+                    "text": """<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
+<p class=\"noun\">Raju's</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id41288bb9-e76e-4313-bf57-2101edfe3a76",
+                    "text": """<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
+<p class=\"verb\">left</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id4435ccd8-df65-45e7-8d82-6c077473d8d4",
+                    "text": """<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
+<p class=\"noun\">the seat</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1",
+                    "text": """<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
+<p class=\"noun\">the city</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id472afb75-4aa9-4daa-a163-075798ee57ab",
+                    "text": """<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
+<p class=\"noun\">the bicycle</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id8c68713f-8e39-446b-a6c8-df25dfb8118e",
+                    "text": """<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
+<p class=\"verb\">dropped</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+                "shuffle": True,
+                "fileIds": {},
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 360
+                }
+            }
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        self._diamond_image.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission',
+                                           self._filename(self._diamond_image),
+                                           self._diamond_image.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
