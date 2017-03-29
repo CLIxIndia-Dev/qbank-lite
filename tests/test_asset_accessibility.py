@@ -1008,7 +1008,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
     def test_image_alt_tag_defaults_eng_if_requested_lang_not_exist(self):
         data = self.upload_image_with_hindi_alt_text()
-        self.remove_alt_text_language(data, 'hi')
+        data = self.remove_alt_text_language(data, 'hi')
         item = self.create_mc_item_with_image(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1025,7 +1025,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
     def test_image_alt_tag_uses_first_available_if_default_lang_not_exist(self):
         data = self.upload_image_with_hindi_alt_text()
-        self.remove_alt_text_language(data, 'en')
+        data = self.remove_alt_text_language(data, 'en')
         item = self.create_mc_item_with_image(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1409,7 +1409,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
 
-        self.remove_transcript_language(data, 'en')
+        data = self.remove_transcript_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
 
@@ -1605,8 +1605,6 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('<transcript', choice_text_with_video)
         self.assertNotIn('transcriptWrapper', choice_text_with_video)
-        self.assertNotIn('transcript', choice_text_with_video)
-        self.assertNotIn('Transcript', choice_text_with_video)
         self.assertNotIn('This is a test transcript.', choice_text_with_video)
 
         req = self.app.get(url,
@@ -1646,8 +1644,6 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('<transcript', choice_text_with_audio)
         self.assertNotIn('transcriptWrapper', choice_text_with_audio)
-        self.assertNotIn('transcript', choice_text_with_audio)
-        self.assertNotIn('Transcript', choice_text_with_audio)
         self.assertNotIn('This is a test transcript.', choice_text_with_audio)
 
         req = self.app.get(url,
@@ -1790,16 +1786,16 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
         self.assertNotIn('srclang="en"', choice_with_media)
         self.assertNotIn('label="English"', choice_with_media)
-        self.assertIn('srclang="hi"', choice_with_media)
-        self.assertIn('label="Hindi"', choice_with_media)
-        self.assertNotIn('srclang="te"', choice_with_media)
-        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertIn('srclang="te"', choice_with_media)
+        self.assertIn('label="Telugu"', choice_with_media)
         self.assertIn('/stream', choice_with_media)
         self.assertNotIn('AssetContent:', choice_with_media)
 
     def test_get_default_lang_transcript_for_video_when_requested_lang_not_there(self):
         data = self.upload_video_with_caption_and_transcripts()
-        self.remove_transcript_language(data, 'hi')
+        data = self.remove_transcript_language(data, 'hi')
         item = self.create_mc_item_with_video_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1838,7 +1834,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
     def test_get_first_transcript_for_video_when_default_lang_not_there(self):
         data = self.upload_video_with_caption_and_transcripts()
-        self.remove_transcript_language(data, 'en')
+        data = self.remove_transcript_language(data, 'en')
         item = self.create_mc_item_with_video_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1858,7 +1854,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
     def test_get_default_lang_transcript_for_audio_when_requested_lang_not_there(self):
         data = self.upload_audio_with_transcripts()
-        self.remove_transcript_language(data, 'hi')
+        data = self.remove_transcript_language(data, 'hi')
         item = self.create_mc_item_with_audio_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1898,7 +1894,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
 
     def test_get_first_transcript_for_audio_when_default_lang_not_there(self):
         data = self.upload_audio_with_transcripts()
-        self.remove_transcript_language(data, 'en')
+        data = self.remove_transcript_language(data, 'en')
         item = self.create_mc_item_with_audio_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
