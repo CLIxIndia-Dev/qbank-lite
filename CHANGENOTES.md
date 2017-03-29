@@ -1,3 +1,6 @@
+3.6.0:
+  - Convenience methods for adding media alt-text and descriptions.
+
 3.5.2:
   - Refactor item response validation.
 

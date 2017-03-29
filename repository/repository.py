@@ -95,7 +95,10 @@ class AssetsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, repository_id):
         try:
-            x = web.input(inputFile={})
+            main_input_file = web.input(inputFile={})
+            vtt_input_file = web.input(vttFile={})
+            transcript_input_file = web.input(transcriptFile={})
+
             rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository.use_isolated_repository_view()
@@ -103,10 +106,16 @@ class AssetsList(utilities.BaseClass):
             # we are doing this in memory, so the file pointer changes
             # once we read in a file
             # https://docs.python.org/2/library/zipfile.html
-
             params = self.data()
+            locale = 'en'
+            if 'locale' in params:
+                locale = params['locale']
+
+            if locale not in ['en', 'hi', 'te']:
+                raise TypeError("The 'locale' parameter must be one of: 'en', 'hi', or 'te'")
+
             try:
-                input_file = x['inputFile'].file
+                input_file = main_input_file['inputFile'].file
             except AttributeError:
                 form = repository.get_asset_form_for_create([])
                 form = utilities.set_form_basics(form, params)
@@ -123,7 +132,7 @@ class AssetsList(utilities.BaseClass):
                 # In this case, the "filename" / asset displayName.text is `ee_u1l01a01v01`.
                 # If that already exists, add the input_file as an asset content.
                 # If that asset does not exist, create it.
-                file_name = x['inputFile'].filename
+                file_name = main_input_file['inputFile'].filename
 
                 if 'createNew' in params.keys() and params['createNew']:
                     asset = rutils.create_asset(repository, file_name)
@@ -143,7 +152,39 @@ class AssetsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
-                rutils.append_asset_contents(repository, asset, file_name, input_file)
+                rutils.append_file_as_asset_content(repository, asset, file_name, input_file)
+
+            # Check if transcripts or VTT files are included
+            try:
+                vtt_file = vtt_input_file['vttFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = vtt_input_file['vttFile'].filename
+                basic_info = {
+                    'description': locale,
+                    'genusTypeId': rutils.VTT_ASSET_CONTENT_GENUS_TYPE
+                }
+                rutils.append_file_as_asset_content(repository,
+                                                    asset,
+                                                    file_name,
+                                                    vtt_file,
+                                                    basic_info)
+            try:
+                transcript_file = transcript_input_file['transcriptFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = transcript_input_file['transcriptFile'].filename
+                basic_info = {
+                    'description': locale,
+                    'genusTypeId': rutils.TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE
+                }
+                rutils.append_file_as_asset_content(repository,
+                                                    asset,
+                                                    file_name,
+                                                    transcript_file,
+                                                    basic_info)
 
             if 'license' in params.keys() or 'copyright' in params.keys():
                 form = repository.get_asset_form_for_update(asset.ident)
@@ -153,6 +194,20 @@ class AssetsList(utilities.BaseClass):
                     form.set_copyright(params['copyright'])
                 asset = repository.update_asset(form)
 
+            # Handle the alt-text for images
+            if 'altText' in params.keys():
+                rutils.append_text_as_asset_content(repository,
+                                                    asset,
+                                                    params['altText'],
+                                                    'Alt text',
+                                                    'alt-text')
+            if 'mediaDescription' in params.keys():
+                rutils.append_text_as_asset_content(repository,
+                                                    asset,
+                                                    params['mediaDescription'],
+                                                    'Description',
+                                                    'mediaDescription')
+
             # need to get the updated asset with Contents
             asset = repository.get_asset(asset.ident)
             asset_map = json.loads(utilities.convert_dl_object(asset))
@@ -160,7 +215,7 @@ class AssetsList(utilities.BaseClass):
                 asset_map = rutils.update_asset_map_with_content_url(rm, asset_map)
 
             return json.dumps(asset_map)
-        except (PermissionDenied, InvalidId) as ex:
+        except (PermissionDenied, InvalidId, TypeError) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -286,7 +341,7 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_file_as_asset_content(repository, asset, file_name, input_file, params)
 
             # need to get the updated asset with Contents
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
@@ -413,9 +468,40 @@ class AssetDetails(utilities.BaseClass):
         try:
             rm = rutils.get_repository_manager()
             repo = rm.get_repository(utilities.clean_id(repository_id))
-            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
-
             params = self.data()
+
+            # update the asset contents here, for convenience
+            if 'clearAltTexts' in params and params['clearAltTexts']:
+                rutils.clear_alt_texts(repo,
+                                       utilities.clean_id(asset_id))
+            if 'altText' in params:
+                # find the right asset content by genus type. Grab its ID
+                # then get the asset content update form
+                # call form.add_display_name(new alt text)
+                # update form
+                rutils.add_alt_text_to_asset(repo,
+                                             utilities.clean_id(asset_id),
+                                             params['altText'])
+            if 'removeAltTextLanguage' in params:
+                rutils.remove_alt_text_language(repo,
+                                                utilities.clean_id(asset_id),
+                                                params['removeAltTextLanguage'])
+
+            if 'clearMediaDescriptions' in params and params['clearMediaDescriptions']:
+                rutils.clear_media_descriptions(repo,
+                                                utilities.clean_id(asset_id))
+            if 'mediaDescription' in params:
+                rutils.add_media_description_to_asset(repo,
+                                                      utilities.clean_id(asset_id),
+                                                      params['mediaDescription'])
+            if 'removeMediaDescriptionLanguage' in params:
+                rutils.remove_media_description_language(repo,
+                                                         utilities.clean_id(asset_id),
+                                                         params['removeMediaDescriptionLanguage'])
+
+            # Now handle the vtt and transcript uploaded files
+
+            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
             form = utilities.set_form_basics(form, params)
 
             if 'license' in params.keys():
