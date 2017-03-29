@@ -1987,6 +1987,9 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             response = bank.get_response(first_section.ident, question.ident)
             correct = response.is_correct()
 
+            if autils.always_right(local_data_map):
+                correct = True
+
             feedback = "No feedback available."
             return_data = {
                 'correct': correct,

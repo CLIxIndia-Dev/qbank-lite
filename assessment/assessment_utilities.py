@@ -191,6 +191,12 @@ def add_files_to_form(form, files):
     return form
 
 
+def always_right(question_map):
+    return (is_file_submission(question_map) or
+            is_mw_sandbox(question_map) or
+            is_survey(question_map) or
+            is_short_answer(question_map))
+
 def answer_is_default_incorrect(answer):
     answer_choice_ids = list(answer.get_choice_ids())
     if (str(answer.genus_type) == str(WRONG_ANSWER) and

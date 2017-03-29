@@ -5799,3 +5799,76 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertNotIn('&gt;', data['feedback'])
         self.assertIn('<p>', data['feedback'])
         self.assertIn('</p>', data['feedback'])
+
+    def test_short_answer_submission_correct_even_if_no_right_answer(self):
+        media_files = [self._shapes_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04bd-94f0-a53d-94c5c97ab6e6">
+     Which of the following figure(s) is/are parallelogram(s)? Give a reason for your choice.
+    </span>
+<br/>
+</strong>
+</p>
+<p>
+<strong>
+<img alt="A set of four shapes." height="204" src="AssetContent:shapes_png" width="703"/>
+</strong>
+</p>
+</itemBody>""",
+                "maxStrings": 300,
+                "expectedLength": 100,
+                "expectedLines": 5,
+                "genusTypeId": str(QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS),
+                "fileIds": {}
+            }
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'text': 'foo'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
