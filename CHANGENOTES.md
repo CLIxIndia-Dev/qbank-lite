@@ -1,3 +1,9 @@
+## [3.7.0] - 2017-03-29:
+### Added
+  - Convenience methods for adding VTT and transcript files.
+  - VTT and transcript files appear in items when the `src` tags
+    are applied correctly.
+
 3.6.0:
   - Convenience methods for adding media alt-text and descriptions.
 
@@ -131,3 +137,5 @@
 1.2.1:
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
+
+[3.7.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.6.0...v3.7.0
