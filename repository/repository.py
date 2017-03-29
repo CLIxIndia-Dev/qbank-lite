@@ -161,30 +161,22 @@ class AssetsList(utilities.BaseClass):
                 pass
             else:
                 file_name = vtt_input_file['vttFile'].filename
-                basic_info = {
-                    'description': locale,
-                    'genusTypeId': rutils.VTT_ASSET_CONTENT_GENUS_TYPE
-                }
-                rutils.append_file_as_asset_content(repository,
-                                                    asset,
-                                                    file_name,
-                                                    vtt_file,
-                                                    basic_info)
+                rutils.append_vtt_file_as_asset_content(repository,
+                                                        asset,
+                                                        file_name,
+                                                        vtt_file,
+                                                        locale)
             try:
                 transcript_file = transcript_input_file['transcriptFile'].file
             except AttributeError:
                 pass
             else:
                 file_name = transcript_input_file['transcriptFile'].filename
-                basic_info = {
-                    'description': locale,
-                    'genusTypeId': rutils.TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE
-                }
-                rutils.append_file_as_asset_content(repository,
-                                                    asset,
-                                                    file_name,
-                                                    transcript_file,
-                                                    basic_info)
+                rutils.append_transcript_file_as_asset_content(repository,
+                                                               asset,
+                                                               file_name,
+                                                               transcript_file,
+                                                               locale)
 
             if 'license' in params.keys() or 'copyright' in params.keys():
                 form = repository.get_asset_form_for_update(asset.ident)
@@ -464,9 +456,17 @@ class AssetDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, repository_id, asset_id):
         try:
+            main_input_file = web.input(inputFile={})
+            vtt_input_file = web.input(vttFile={})
+            transcript_input_file = web.input(transcriptFile={})
+
             rm = rutils.get_repository_manager()
             repo = rm.get_repository(utilities.clean_id(repository_id))
             params = self.data()
+
+            locale = 'en'
+            if 'locale' in params:
+                locale = params['locale']
 
             # update the asset contents here, for convenience
             if 'clearAltTexts' in params and params['clearAltTexts']:
@@ -498,6 +498,55 @@ class AssetDetails(utilities.BaseClass):
                                                          params['removeMediaDescriptionLanguage'])
 
             # Now handle the vtt and transcript uploaded files
+            if 'clearVTTFiles' in params and params['clearVTTFiles']:
+                rutils.clear_vtt_files(repo,
+                                       utilities.clean_id(asset_id))
+            try:
+                vtt_file = vtt_input_file['vttFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = vtt_input_file['vttFile'].filename
+                rutils.add_vtt_file_to_asset(repo,
+                                             utilities.clean_id(asset_id),
+                                             file_name,
+                                             vtt_file,
+                                             locale)
+            if 'removeVTTFileLanguage' in params:
+                rutils.remove_vtt_file_language(repo,
+                                                utilities.clean_id(asset_id),
+                                                params['removeVTTFileLanguage'])
+
+            if 'clearTranscriptFiles' in params and params['clearTranscriptFiles']:
+                rutils.clear_transcript_files(repo,
+                                              utilities.clean_id(asset_id))
+            try:
+                transcript_file = transcript_input_file['transcriptFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = transcript_input_file['transcriptFile'].filename
+                rutils.add_transcript_file_to_asset(repo,
+                                                    utilities.clean_id(asset_id),
+                                                    file_name,
+                                                    transcript_file,
+                                                    locale)
+            if 'removeTranscriptFileLanguage' in params:
+                rutils.remove_transcript_file_language(repo,
+                                                       utilities.clean_id(asset_id),
+                                                       params['removeTranscriptFileLanguage'])
+
+            # also handle updating the main asset content (image or video or audio)
+            try:
+                main_file = main_input_file['inputFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = main_input_file['inputFile'].filename
+                rutils.replace_asset_main_content(repo,
+                                                  utilities.clean_id(asset_id),
+                                                  file_name,
+                                                  main_file)
 
             form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
             form = utilities.set_form_basics(form, params)

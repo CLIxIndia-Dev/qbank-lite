@@ -827,6 +827,7 @@ class AssetCRUDTests(BaseRepositoryTestCase):
 
         self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
         self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+        self._image_2_test_file = open('{0}/tests/files/Picture2.png'.format(ABS_PATH), 'r')
 
     def tearDown(self):
         """
@@ -838,6 +839,7 @@ class AssetCRUDTests(BaseRepositoryTestCase):
 
         self._video_upload_test_file.close()
         self._caption_upload_test_file.close()
+        self._image_2_test_file.close()
 
     def test_can_upload_video_files_to_repository(self):
         self._video_upload_test_file.seek(0)
@@ -1144,3 +1146,27 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             asset_content.get_url(),
             data['assetContents'][0]['url']
         )
+
+    def test_can_replace_main_media_element_in_asset(self):
+        # using the convenience method
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url, data['id'])
+        self._image_2_test_file.seek(0)
+        req = self.app.put(url,
+                           upload_files=[('inputFile',
+                                          self._filename(self._image_2_test_file),
+                                          self._image_2_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 1)
+        image_url = data['assetContents'][0]['url']
+        req = self.app.get(image_url)
+        self.code(req, 206)
+        self._image_2_test_file.seek(0)
+        self.assertEqual(req.body,
+                         self._image_2_test_file.read())
