@@ -26,6 +26,8 @@ SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing
 MULTI_LANGUAGE_ASSET_CONTENTS = Type(**ASSET_CONTENT_RECORD_TYPES['multi-language'])
 ALT_TEXT_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['alt-text'])
 MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['media-description'])
+VTT_FILE_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['vtt'])
+TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['transcript'])
 
 
 class BaseAccessibilityTestCase(BaseTestCase):
@@ -82,6 +84,58 @@ class BaseAccessibilityTestCase(BaseTestCase):
 
 
 class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
+    def clear_alt_texts(self, data, value):
+        payload = {
+            'clearAltTexts': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def clear_media_descriptions(self, data, value):
+        payload = {
+            'clearMediaDescriptions': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def clear_transcript_files(self, data, value):
+        payload = {
+            'clearTranscriptFiles': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def clear_vtt_files(self, data, value):
+        payload = {
+            'clearVTTFiles': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
     def create_mc_item_with_image(self, asset):
         url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
 
@@ -128,14 +182,321 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
                                        params=json.dumps(payload),
                                        headers={'content-type': 'application/json'}))
 
+    def create_mc_item_with_video(self, asset, vtt_blank=False):
+        url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
+
+        choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <video width="640" height="480" controls>
+    <source src="AssetContent:cat_mp4" />
+    <track src="AssetContent:vtt_file_vtt" kind="subtitles" srclang="en" label="English" />
+  </video>
+</p>
+</simpleChoice>"""
+
+        if vtt_blank:
+            choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <video width="640" height="480" controls>
+    <source src="AssetContent:cat_mp4" />
+    <track src="" kind="subtitles" srclang="en" label="English" />
+  </video>
+</p>
+</simpleChoice>"""
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": choice_text}, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {
+                    'cat_mp4': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][0]['id'],
+                        'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+                    },
+                    'vtt_file_vtt': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][1]['id'],
+                        'assetContentTypeId': asset['assetContents'][1]['genusTypeId']
+                    }
+                }
+            },
+            "answers": []
+        }
+
+        return self.json(self.app.post(url,
+                                       params=json.dumps(payload),
+                                       headers={'content-type': 'application/json'}))
+
+    def create_mc_item_with_video_and_transcript(self, asset, transcript_blank=False):
+        url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
+
+        choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <video width="640" height="480" controls>
+    <source src="AssetContent:cat_mp4" />
+    <track src="AssetContent:vtt_file_vtt" kind="subtitles" srclang="en" label="English" />
+  </video>
+  <transcript src="AssetContent:transcript_txt" />
+</p>
+</simpleChoice>"""
+
+        if transcript_blank:
+            choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <video width="640" height="480" controls>
+    <source src="AssetContent:cat_mp4" />
+    <track src="AssetContent:vtt_file_vtt" kind="subtitles" srclang="en" label="English" />
+  </video>
+  <transcript src="" />
+</p>
+</simpleChoice>"""
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": choice_text
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {
+                    'cat_mp4': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][0]['id'],
+                        'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+                    },
+                    'vtt_file_vtt': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][1]['id'],
+                        'assetContentTypeId': asset['assetContents'][1]['genusTypeId']
+                    },
+                    'transcript_txt': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][2]['id'],
+                        'assetContentTypeId': asset['assetContents'][2]['genusTypeId']
+                    }
+                }
+            },
+            "answers": []
+        }
+
+        return self.json(self.app.post(url,
+                                       params=json.dumps(payload),
+                                       headers={'content-type': 'application/json'}))
+
+    def create_mc_item_with_audio(self, asset):
+        url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <audio controls>
+    <source src="AssetContent:cat_mp3" />
+    <p>Description</p>
+  </audio>
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {
+                    'cat_mp3': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][0]['id'],
+                        'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+                    }
+                }
+            },
+            "answers": []
+        }
+
+        return self.json(self.app.post(url,
+                                       params=json.dumps(payload),
+                                       headers={'content-type': 'application/json'}))
+
+    def create_mc_item_with_audio_and_transcript(self, asset, transcript_blank=False):
+        url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
+
+        choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <audio controls>
+    <source src="AssetContent:cat_mp3" />
+    <p>Description</p>
+  </audio>
+  <transcript src="AssetContent:transcript_txt" />
+</p>
+</simpleChoice>"""
+
+        if transcript_blank:
+            choice_text = """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <audio controls>
+    <source src="AssetContent:cat_mp3" />
+    <p>Description</p>
+  </audio>
+  <transcript src="" />
+</p>
+</simpleChoice>"""
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": choice_text
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {
+                    'cat_mp3': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][0]['id'],
+                        'assetContentTypeId': asset['assetContents'][0]['genusTypeId']
+                    },
+                    'transcript_txt': {
+                        'assetId': asset['id'],
+                        'assetContentId': asset['assetContents'][1]['id'],
+                        'assetContentTypeId': asset['assetContents'][1]['genusTypeId']
+                    }
+                }
+            },
+            "answers": []
+        }
+
+        return self.json(self.app.post(url,
+                                       params=json.dumps(payload),
+                                       headers={'content-type': 'application/json'}))
+
+    def remove_alt_text_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeAltTextLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def remove_media_description_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeMediaDescriptionLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def remove_transcript_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeTranscriptFileLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def remove_vtt_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeVTTFileLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
     def setUp(self):
         super(AssetAccessibilityCRUDTests, self).setUp()
         self.url = '{0}/repositories/{1}/assets'.format(self.url,
                                                         unquote(str(self._repo.ident)))
 
         self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
+        self._audio_upload_test_file = open('{0}/tests/files/audioTestFile_.mp3'.format(ABS_PATH), 'r')
         self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
         self._image_upload_test_file = open('{0}/tests/files/green_dot.png'.format(ABS_PATH), 'r')
+        self._transcript_test_file = open('{0}/tests/files/transcript.txt'.format(ABS_PATH), 'r')
+        self._transcript_hi_test_file = open('{0}/tests/files/transcript_hi.txt'.format(ABS_PATH), 'r')
+        self._transcript_te_test_file = open('{0}/tests/files/transcript_te.txt'.format(ABS_PATH), 'r')
 
         self._hindi_text = {
             'text': u'हिंदी',
@@ -156,8 +517,134 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         super(AssetAccessibilityCRUDTests, self).tearDown()
 
         self._video_upload_test_file.close()
+        self._audio_upload_test_file.close()
         self._caption_upload_test_file.close()
         self._image_upload_test_file.close()
+        self._transcript_test_file.close()
+        self._transcript_hi_test_file.close()
+        self._transcript_te_test_file.close()
+
+    def upload_audio_with_transcripts(self):
+        self._audio_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', self._filename(self._audio_upload_test_file), self._audio_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        self._transcript_te_test_file.seek(0)
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
+        return data
+
+    def upload_image_with_hindi_alt_text(self):
+        self._image_upload_test_file.seek(0)
+        alt_text = "a green dot!"
+        req = self.app.post(self.url,
+                            params={"altText": alt_text},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        payload = {
+            'altText': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
+        return data
+
+    def upload_video_with_captions(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
+        return data
+
+    def upload_video_with_caption_and_transcripts(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 1)
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 2)
+
+        self._transcript_te_test_file.seek(0)
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 3)
+        return data
 
     def test_can_create_asset_with_alt_text(self):
         # should add the alt-text as an asset content
@@ -211,25 +698,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
 
     def test_can_update_alt_text_with_new_language(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
@@ -249,7 +718,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
         self.assertEqual(
             data['assetContents'][1]['altText']['text'],
-            alt_text
+            'a green dot!'
         )
 
     def test_can_update_existing_alt_text_language(self):
@@ -379,37 +848,12 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
 
     def test_can_remove_alt_text_by_language_type(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
 
-        payload = {
-            'removeAltTextLanguage': self._english_language_type
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.remove_alt_text_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
         self.assertEqual(data['assetContents'][1]['genusTypeId'],
@@ -455,14 +899,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 2)
 
-        payload = {
-            'removeMediaDescriptionLanguage': self._english_language_type
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.remove_media_description_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
         self.assertEqual(data['assetContents'][1]['genusTypeId'],
@@ -495,27 +932,11 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
 
-        payload = {
-            'clearAltTexts': False
-        }
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_alt_texts(data, False)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
 
-        payload = {
-            'clearAltTexts': True
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_alt_texts(data, True)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 0)
 
@@ -530,50 +951,16 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
 
-        payload = {
-            'clearMediaDescriptions': False
-        }
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_media_descriptions(data, False)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
 
-        payload = {
-            'clearMediaDescriptions': True
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_media_descriptions(data, True)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 0)
 
     def test_image_alt_tag_shows_up_in_requested_language(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
@@ -602,47 +989,951 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(self._hindi_text['text'],
                       data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
-    # def test_can_send_vtt_file_on_asset_create(self):
+    def test_image_alt_tag_empty_string_if_none_exist(self):
+        data = self.upload_image_with_hindi_alt_text()
+        self.clear_alt_texts(data, True)
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('alt=""', choice_text)
+        self.assertNotIn('a green dot!', choice_text)
+        self.assertNotIn(self._hindi_text['text'], choice_text)
+
+    def test_image_alt_tag_defaults_eng_if_requested_lang_not_exist(self):
+        data = self.upload_image_with_hindi_alt_text()
+        data = self.remove_alt_text_language(data, 'hi')
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertIn('a green dot!',
+                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+        self.assertNotIn(self._hindi_text['text'],
+                         data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+
+    def test_image_alt_tag_uses_first_available_if_default_lang_not_exist(self):
+        data = self.upload_image_with_hindi_alt_text()
+        data = self.remove_alt_text_language(data, 'en')
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertNotIn('a green dot!',
+                         data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+        self.assertIn(self._hindi_text['text'],
+                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+
+    def test_can_send_vtt_file_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_send_transcript_file_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        transcript_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', transcript_files)
+        self.assertIn('assetContentId', transcript_files)
+        self.assertIn('assetContentTypeId', transcript_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_set_vtt_file_locale_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_set_transcript_file_locale_on_asset_create(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        transcript_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', transcript_files)
+        self.assertIn('assetContentId', transcript_files)
+        self.assertIn('assetContentTypeId', transcript_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_add_vtt_file_with_new_language(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[1],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_update_transcript_file_with_new_language(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[1],
+            'ENG'
+        )
+        transcript_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', transcript_files)
+        self.assertIn('assetContentId', transcript_files)
+        self.assertIn('assetContentTypeId', transcript_files)
+        transcript_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', transcript_files)
+        self.assertIn('assetContentId', transcript_files)
+        self.assertIn('assetContentTypeId', transcript_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_replace_existing_vtt_file_language(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        original_asset_id = data['assetContents'][1]['fileIds']['ENG']['assetId']
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertNotEqual(vtt_files['assetId'], original_asset_id)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_replace_existing_transcript_file_language(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        original_asset_id = data['assetContents'][1]['fileIds']['ENG']['assetId']
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           upload_files=[('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'ENG'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['ENG']
+        self.assertIn('assetId', vtt_files)
+        self.assertNotEqual(vtt_files['assetId'], original_asset_id)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_clear_all_transcript_files(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        data = self.clear_transcript_files(data, False)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        data = self.clear_transcript_files(data, True)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 0)
+
+    def test_can_clear_all_vtt_files(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={'locale': 'hi'},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        data = self.clear_vtt_files(data, False)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        data = self.clear_vtt_files(data, True)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 0)
+
+    def test_can_remove_vtt_file_by_language(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self._caption_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        data = self.remove_vtt_language(data, 'en')
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        vtt_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', vtt_files)
+        self.assertIn('assetContentId', vtt_files)
+        self.assertIn('assetContentTypeId', vtt_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_remove_transcript_file_by_language(self):
+        self._video_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self._transcript_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        data = self.remove_transcript_language(data, 'en')
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self.assertEqual(
+            data['assetContents'][1]['fileIds'].keys()[0],
+            'HIN'
+        )
+        transcript_files = data['assetContents'][1]['fileIds']['HIN']
+        self.assertIn('assetId', transcript_files)
+        self.assertIn('assetContentId', transcript_files)
+        self.assertIn('assetContentTypeId', transcript_files)
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_video_caption_track_shows_up_in_requested_language(self):
+        data = self.upload_video_with_captions()
+        item = self.create_mc_item_with_video(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('/stream', choice_with_media)
+        self.assertNotIn('AssetContent:"', choice_with_media)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertNotIn('srclang="en"', choice_with_media)
+        self.assertNotIn('label="English"', choice_with_media)
+        self.assertIn('srclang="hi"', choice_with_media)
+        self.assertIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('/stream', choice_with_media)
+        self.assertNotIn('AssetContent:"', choice_with_media)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertNotIn('srclang="en"', choice_with_media)
+        self.assertNotIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertIn('srclang="te"', choice_with_media)
+        self.assertIn('label="Telugu"', choice_with_media)
+        self.assertIn('/stream', choice_with_media)
+        self.assertNotIn('AssetContent:"', choice_with_media)
+
+    def test_audio_transcript_shows_up_in_requested_language(self):
+        data = self.upload_audio_with_transcripts()
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_audio)
+        self.assertIn('transcriptWrapper', choice_text_with_audio)
+        self.assertIn('transcript', choice_text_with_audio)
+        self.assertIn('Transcript', choice_text_with_audio)
+        self.assertIn('This is a test transcript.', choice_text_with_audio)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_audio)
+        self.assertIn('transcriptWrapper', choice_text_with_audio)
+        self.assertIn(u'वीडियो प्रतिलेख', choice_text_with_audio)
+        self.assertIn(u'वीडियो प्रतिलेख', choice_text_with_audio)
+        self.assertIn(u'यह एक परीक्षण प्रतिलेख है.', choice_text_with_audio)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_audio)
+        self.assertIn('transcriptWrapper', choice_text_with_audio)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_audio)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_audio)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_audio)
+
+    def test_video_transcript_shows_up_in_requested_language(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn('transcript', choice_text_with_video)
+        self.assertIn('Transcript', choice_text_with_video)
+        self.assertIn('This is a test transcript.', choice_text_with_video)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn(u'वीडियो प्रतिलेख', choice_text_with_video)
+        self.assertIn(u'वीडियो प्रतिलेख', choice_text_with_video)
+        self.assertIn(u'यह एक परीक्षण प्रतिलेख है.', choice_text_with_video)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
+
+    def test_can_get_video_question_even_if_transcript_src_blank(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 1)
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 2)
+
+        self._transcript_te_test_file.seek(0)
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 3)
+
+        item = self.create_mc_item_with_video_and_transcript(data, transcript_blank=True)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_video)
+        self.assertNotIn('transcriptWrapper', choice_text_with_video)
+        self.assertNotIn('This is a test transcript.', choice_text_with_video)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_video)
+        self.assertNotIn('transcriptWrapper', choice_text_with_video)
+        self.assertNotIn(u'वीडियो प्रतिलेख', choice_text_with_video)
+        self.assertNotIn(u'वीडियो प्रतिलेख', choice_text_with_video)
+        self.assertNotIn(u'यह एक परीक्षण प्रतिलेख है.', choice_text_with_video)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_video)
+        self.assertNotIn('transcriptWrapper', choice_text_with_video)
+        self.assertNotIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertNotIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertNotIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
+
+    def test_can_get_audio_question_even_if_transcript_src_blank(self):
+        data = self.upload_audio_with_transcripts()
+        item = self.create_mc_item_with_audio_and_transcript(data, transcript_blank=True)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_audio)
+        self.assertNotIn('transcriptWrapper', choice_text_with_audio)
+        self.assertNotIn('This is a test transcript.', choice_text_with_audio)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_audio)
+        self.assertNotIn('transcriptWrapper', choice_text_with_audio)
+        self.assertNotIn(u'वीडियो प्रतिलेख', choice_text_with_audio)
+        self.assertNotIn(u'वीडियो प्रतिलेख', choice_text_with_audio)
+        self.assertNotIn(u'यह एक परीक्षण प्रतिलेख है.', choice_text_with_audio)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_audio)
+        self.assertNotIn('transcriptWrapper', choice_text_with_audio)
+        self.assertNotIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_audio)
+        self.assertNotIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_audio)
+        self.assertNotIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_audio)
+
+    def test_can_get_video_question_even_if_vtt_track_blank(self):
+        data = self.upload_video_with_captions()
+        item = self.create_mc_item_with_video(data, vtt_blank=True)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('src=""', choice_with_media)
+        self.assertNotIn('AssetContent:', choice_with_media)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('src=""', choice_with_media)
+        self.assertNotIn('AssetContent:', choice_with_media)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('src=""', choice_with_media)
+        self.assertNotIn('AssetContent:', choice_with_media)
+
+    def test_get_default_lang_vtt_file_when_requested_lang_not_there(self):
+        data = self.upload_video_with_captions()
+        self.remove_vtt_language(data, 'hi')
+        item = self.create_mc_item_with_video(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('/stream', choice_with_media)
+        self.assertNotIn('AssetContent:', choice_with_media)
+
+    def test_no_replacement_when_no_vtt_files(self):
+        data = self.upload_video_with_captions()
+        self.clear_vtt_files(data, True)
+        item = self.create_mc_item_with_video(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn('srclang="en"', choice_with_media)
+        self.assertIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertNotIn('srclang="te"', choice_with_media)
+        self.assertNotIn('label="Telugu"', choice_with_media)
+        self.assertIn('AssetContent:', choice_with_media)
+
+    def test_get_first_vtt_file_when_default_lang_not_there(self):
+        data = self.upload_video_with_captions()
+        self.remove_vtt_language(data, 'en')
+        item = self.create_mc_item_with_video(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertNotIn('srclang="en"', choice_with_media)
+        self.assertNotIn('label="English"', choice_with_media)
+        self.assertNotIn('srclang="hi"', choice_with_media)
+        self.assertNotIn('label="Hindi"', choice_with_media)
+        self.assertIn('srclang="te"', choice_with_media)
+        self.assertIn('label="Telugu"', choice_with_media)
+        self.assertIn('/stream', choice_with_media)
+        self.assertNotIn('AssetContent:', choice_with_media)
+
+    def test_get_default_lang_transcript_for_video_when_requested_lang_not_there(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        data = self.remove_transcript_language(data, 'hi')
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn('transcript', choice_text_with_video)
+        self.assertIn('Transcript', choice_text_with_video)
+        self.assertIn('This is a test transcript.', choice_text_with_video)
+
+    def test_no_replacement_in_video_question_when_no_transcripts(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        self.clear_transcript_files(data, True)
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_media)
+        self.assertIn('AssetContent:transcript_txt', choice_text_with_media)
+        self.assertNotIn('transcriptWrapper', choice_text_with_media)
+        self.assertNotIn('This is a test transcript.', choice_text_with_media)
+
+    def test_get_first_transcript_for_video_when_default_lang_not_there(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        data = self.remove_transcript_language(data, 'en')
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_video)
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
+
+    def test_get_default_lang_transcript_for_audio_when_requested_lang_not_there(self):
+        data = self.upload_audio_with_transcripts()
+        data = self.remove_transcript_language(data, 'hi')
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_media)
+        self.assertIn('transcript_txt', choice_text_with_media)
+        self.assertIn('transcriptWrapper', choice_text_with_media)
+        self.assertIn('transcript', choice_text_with_media)
+        self.assertIn('Transcript', choice_text_with_media)
+        self.assertIn('This is a test transcript.', choice_text_with_media)
+
+    def test_no_replacement_in_audio_question_when_no_transcripts(self):
+        data = self.upload_audio_with_transcripts()
+        self.clear_transcript_files(data, True)
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_media)
+        self.assertIn('AssetContent:transcript_txt', choice_text_with_media)
+        self.assertNotIn('transcriptWrapper', choice_text_with_media)
+        self.assertNotIn('This is a test transcript.', choice_text_with_media)
+
+    def test_get_first_transcript_for_audio_when_default_lang_not_there(self):
+        data = self.upload_audio_with_transcripts()
+        data = self.remove_transcript_language(data, 'en')
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_media)
+        self.assertIn('transcript_txt', choice_text_with_media)
+        self.assertIn('transcriptWrapper', choice_text_with_media)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_media)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_media)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_media)
+
+    # Not sure what to do with these, how we want to display them on the content side...
+    # Fill in these tests once we figure that out
+    # def test_default_lang_media_description_shows_up_in_audio(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_media_description_shows_up_in_audio_for_requested_lang(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_available_media_description_shows_up_in_audio_when_default_doesnt_exist(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_empty_string_for_description_when_not_provided_audio(self):
     #     self.fail('finish writing hte test')
     #
-    # def test_can_send_transcript_file_on_asset_create(self):
+    # def test_default_lang_media_description_shows_up_in_video(self):
     #     self.fail('finish writing the test')
     #
-    # def test_can_set_vtt_file_locale_on_asset_create(self):
+    # def test_media_description_shows_up_in_video_for_requested_lang(self):
     #     self.fail('finish writing the test')
     #
-    # def test_can_set_transcript_file_locale_on_asset_create(self):
+    # def test_available_media_description_shows_up_in_video_when_default_doesnt_exist(self):
     #     self.fail('finish writing the test')
     #
-    # def test_can_update_vtt_file_with_new_language(self):
-    #     self.fail('finsih writing the test')
-    #
-    # def test_can_update_transcript_file_with_new_language(self):
-    #     self.fail("finish writing the test")
-    #
-    # def test_can_replace_existing_vtt_file_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_replace_existing_transcript_file_language(self):
-    #     self.fail("finish writing the test")
-    #
-    # def test_can_clear_all_transcript_files(self):
-    #     self.fail('finish writign the test')
-    #
-    # def test_can_clear_all_vtt_files(self):
+    # def test_empty_string_for_description_when_not_provided_video(self):
     #     self.fail('finish writing hte test')
-    #
-    # def test_can_remove_vtt_file_by_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_can_remove_transcript_file_by_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_video_track_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_audio_transcript_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')
-    #
-    # def test_video_transcript_shows_up_in_requested_language(self):
-    #     self.fail('finish writing the test')

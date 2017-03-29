@@ -153,6 +153,15 @@ url parameters (optional):
   - clearMediaDescriptions. Remove all `mediaDescriptions`, but does not delete the `assetContent`.
   - removeAltTextLanguage. Removes the matching `languageTypeId` `alt-text`.
   - removeMediaDescriptionLanguage. Removes the matching `languageTypeId` `mediaDescription`.
+  - inputFile. Replace the main (non-VTT, non-transcript, non-alt-text, non-description)
+               `assetContent` data.
+  - locale. Used to indicate `transcriptFile` and `vttFile` language. `en` by default.
+  - transcriptFile. Replace or add a transcript file. Requires usage of `locale` parameter.
+  - vttFile. Replace or add a vtt caption file. Requires usage of `locale` parameter.
+  - removeTranscriptFileLanguage. Removes the matching `languageTypeId` transcript file.
+  - removeVTTFileLanguage. Removes the matching `languageTypeId` vtt file.
+  - clearTranscriptFiles. Removes all transcript files, but does not delete the `assetContent`.
+  - clearVTTFiles. Removes all vtt files, but does not delete the `assetContent`.
 
 returns:
   - `Asset` object.
@@ -188,6 +197,9 @@ form data (required):
   - altText (optional). Create an `alt-text` `assetContent` from a `DisplayText` object.
   - mediaDescription (optional). Create a `mediaDescription` `assetContent` from a
                                  `DisplayText` object.
+  - locale (optional). Used to indicate `transcriptFile` and `vttFile` language. `en` by default.
+  - transcriptFile (optional). Add a transcript file. Requires usage of `locale` parameter.
+  - vttFile (optional). Add a vtt caption file. Requires usage of `locale` parameter.
 
 returns:
   - `Asset` object.
