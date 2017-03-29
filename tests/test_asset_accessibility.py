@@ -1035,9 +1035,9 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         data = self.json(req)
 
         self.assertNotIn('a green dot!',
-                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
-        self.assertIn(self._hindi_text['text'],
                          data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+        self.assertIn(self._hindi_text['text'],
+                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
     def test_can_send_vtt_file_on_asset_create(self):
         self._video_upload_test_file.seek(0)
