@@ -537,6 +537,16 @@ class AssetDetails(utilities.BaseClass):
                                                        params['removeTranscriptFileLanguage'])
 
             # also handle updating the main asset content (image or video or audio)
+            try:
+                main_file = main_input_file['inputFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = main_input_file['inputFile'].filename
+                rutils.replace_asset_main_content(repo,
+                                                  utilities.clean_id(asset_id),
+                                                  file_name,
+                                                  main_file)
 
             form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
             form = utilities.set_form_basics(form, params)

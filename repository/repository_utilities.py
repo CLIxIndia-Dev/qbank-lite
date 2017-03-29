@@ -396,6 +396,29 @@ def remove_vtt_file_language(repo, asset_id, language_type):
         repo.update_asset_content(form)
 
 
+def replace_asset_main_content(repo, asset_id, file_name, file_data):
+    """search for all non-alt / non-description / non-VTT / non-transcript
+    asset contents and pick the first one. Assume that is the main content"""
+    asset = repo.get_asset(asset_id)
+
+    asset_contents = asset.get_asset_contents()
+    if asset_contents.available() > 0:
+        # filter on genusTypeId...grab first non-accessibility one
+        for asset_content in asset_contents:
+            if asset_content.genus_type in [ALT_TEXT_ASSET_CONTENT_GENUS_TYPE,
+                                            MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE,
+                                            TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE,
+                                            VTT_ASSET_CONTENT_GENUS_TYPE]:
+                continue
+
+            form = repo.get_asset_content_form_for_update(asset_content.ident)
+            data = DataInputStream(file_data)
+            data.name = file_name
+            form.set_data(data)
+            repo.update_asset_content(form)
+            break
+
+
 def update_asset_map_with_content_url(rm, asset_map):
     # because we've appended the asset content lookup methods to asset lookup session
     acls = rm.get_asset_lookup_session()

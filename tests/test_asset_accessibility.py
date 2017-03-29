@@ -84,6 +84,45 @@ class BaseAccessibilityTestCase(BaseTestCase):
 
 
 class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
+    def clear_alt_texts(self, data, value):
+        payload = {
+            'clearAltTexts': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def clear_media_descriptions(self, data, value):
+        payload = {
+            'clearMediaDescriptions': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def clear_transcript_files(self, data, value):
+        payload = {
+            'clearTranscriptFiles': value
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
     def clear_vtt_files(self, data, value):
         payload = {
             'clearVTTFiles': value
@@ -311,6 +350,10 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
             "answers": []
         }
 
+        return self.json(self.app.post(url,
+                                       params=json.dumps(payload),
+                                       headers={'content-type': 'application/json'}))
+
     def create_mc_item_with_audio_and_transcript(self, asset, transcript_blank=False):
         url = '/api/v1/assessment/banks/{0}/items'.format(str(self._repo.ident))
 
@@ -374,6 +417,57 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
                                        params=json.dumps(payload),
                                        headers={'content-type': 'application/json'}))
 
+    def remove_alt_text_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeAltTextLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def remove_media_description_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeMediaDescriptionLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
+    def remove_transcript_language(self, data, locale):
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        language_type = self._english_language_type
+        if locale == 'hi':
+            language_type = self._hindi_text['languageTypeId']
+
+        payload = {
+            'removeTranscriptFileLanguage': language_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        return self.json(req)
+
     def remove_vtt_language(self, data, locale):
         url = '{0}/{1}'.format(self.url,
                                data['id'])
@@ -430,6 +524,63 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self._transcript_hi_test_file.close()
         self._transcript_te_test_file.close()
 
+    def upload_audio_with_transcripts(self):
+        self._audio_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', self._filename(self._audio_upload_test_file), self._audio_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
+
+        self._transcript_te_test_file.seek(0)
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
+        return data
+
+    def upload_image_with_hindi_alt_text(self):
+        self._image_upload_test_file.seek(0)
+        alt_text = "a green dot!"
+        req = self.app.post(self.url,
+                            params={"altText": alt_text},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        payload = {
+            'altText': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
+        return data
+
     def upload_video_with_captions(self):
         self._video_upload_test_file.seek(0)
         self._caption_upload_test_file.seek(0)
@@ -459,6 +610,40 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         data = self.json(req)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
+        return data
+
+    def upload_video_with_caption_and_transcripts(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
+                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read()),
+                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 1)
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 2)
+
+        self._transcript_te_test_file.seek(0)
+        req = self.app.put(url,
+                           params={'locale': 'te'},
+                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 3)
+        self.assertEqual(len(data['assetContents'][2]['fileIds']), 3)
         return data
 
     def test_can_create_asset_with_alt_text(self):
@@ -513,25 +698,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
 
     def test_can_update_alt_text_with_new_language(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
@@ -551,7 +718,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
         self.assertEqual(
             data['assetContents'][1]['altText']['text'],
-            alt_text
+            'a green dot!'
         )
 
     def test_can_update_existing_alt_text_language(self):
@@ -681,37 +848,12 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         )
 
     def test_can_remove_alt_text_by_language_type(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
 
-        payload = {
-            'removeAltTextLanguage': self._english_language_type
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.remove_alt_text_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
         self.assertEqual(data['assetContents'][1]['genusTypeId'],
@@ -757,14 +899,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 2)
 
-        payload = {
-            'removeMediaDescriptionLanguage': self._english_language_type
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.remove_media_description_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
         self.assertEqual(data['assetContents'][1]['genusTypeId'],
@@ -797,27 +932,11 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
 
-        payload = {
-            'clearAltTexts': False
-        }
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_alt_texts(data, False)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
 
-        payload = {
-            'clearAltTexts': True
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_alt_texts(data, True)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 0)
 
@@ -832,50 +951,16 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
 
-        payload = {
-            'clearMediaDescriptions': False
-        }
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_media_descriptions(data, False)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
 
-        payload = {
-            'clearMediaDescriptions': True
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_media_descriptions(data, True)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 0)
 
     def test_image_alt_tag_shows_up_in_requested_language(self):
-        self._image_upload_test_file.seek(0)
-        alt_text = "a green dot!"
-        req = self.app.post(self.url,
-                            params={"altText": alt_text},
-                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-
-        payload = {
-            'altText': self._hindi_text
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.upload_image_with_hindi_alt_text()
 
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
@@ -905,13 +990,54 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
                       data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
     def test_image_alt_tag_empty_string_if_none_exist(self):
-        self.fail('finish writing the test')
+        data = self.upload_image_with_hindi_alt_text()
+        self.clear_alt_texts(data, True)
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('alt=""', choice_text)
+        self.assertNotIn('a green dot!', choice_text)
+        self.assertNotIn(self._hindi_text['text'], choice_text)
 
     def test_image_alt_tag_defaults_eng_if_requested_lang_not_exist(self):
-        self.fail('finish writing the test')
+        data = self.upload_image_with_hindi_alt_text()
+        self.remove_alt_text_language(data, 'hi')
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertIn('a green dot!',
+                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+        self.assertNotIn(self._hindi_text['text'],
+                         data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
     def test_image_alt_tag_uses_first_available_if_default_lang_not_exist(self):
-        self.fail('finish writing the test')
+        data = self.upload_image_with_hindi_alt_text()
+        self.remove_alt_text_language(data, 'en')
+        item = self.create_mc_item_with_image(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertNotIn('a green dot!',
+                      data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
+        self.assertIn(self._hindi_text['text'],
+                         data['question']['multiLanguageChoices'][0]['texts'][0]['text'])
 
     def test_can_send_vtt_file_on_asset_create(self):
         self._video_upload_test_file.seek(0)
@@ -1193,31 +1319,11 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
 
-        payload = {
-            'clearTranscriptFiles': False
-        }
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_transcript_files(data, False)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
 
-        payload = {
-            'clearTranscriptFiles': True
-        }
-
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        data = self.clear_transcript_files(data, True)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 0)
 
@@ -1303,14 +1409,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
 
-        payload = {
-            'removeTranscriptFileLanguage': self._english_language_type
-        }
-        req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers={'content-type': 'application/json'})
-        self.ok(req)
-        data = self.json(req)
+        self.remove_transcript_language(data, 'en')
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
 
@@ -1381,36 +1480,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertNotIn('AssetContent:"', choice_with_media)
 
     def test_audio_transcript_shows_up_in_requested_language(self):
-        self._audio_upload_test_file.seek(0)
-        self._transcript_test_file.seek(0)
-        req = self.app.post(self.url,
-                            upload_files=[('inputFile', self._filename(self._audio_upload_test_file), self._audio_upload_test_file.read()),
-                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
-
-        self._transcript_hi_test_file.seek(0)
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params={'locale': 'hi'},
-                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
-
-        self._transcript_te_test_file.seek(0)
-        req = self.app.put(url,
-                           params={'locale': 'te'},
-                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
-
+        data = self.upload_audio_with_transcripts()
         item = self.create_mc_item_with_audio_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1422,8 +1492,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('transcript_txt', choice_text_with_audio)
         self.assertIn('transcriptWrapper', choice_text_with_audio)
-        self.assertIn('video transcript', choice_text_with_audio)
-        self.assertIn('Video Transcript', choice_text_with_audio)
+        self.assertIn('transcript', choice_text_with_audio)
+        self.assertIn('Transcript', choice_text_with_audio)
         self.assertIn('This is a test transcript.', choice_text_with_audio)
 
         req = self.app.get(url,
@@ -1451,38 +1521,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_audio)
 
     def test_video_transcript_shows_up_in_requested_language(self):
-        self._video_upload_test_file.seek(0)
-        self._caption_upload_test_file.seek(0)
-        self._transcript_test_file.seek(0)
-        req = self.app.post(self.url,
-                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read()),
-                                          ('vttFile', 'video-js-test-en.vtt', self._caption_upload_test_file.read()),
-                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 3)
-        self.assertEqual(len(data['assetContents'][2]['fileIds']), 1)
-
-        self._transcript_hi_test_file.seek(0)
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params={'locale': 'hi'},
-                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 3)
-        self.assertEqual(len(data['assetContents'][2]['fileIds']), 2)
-
-        self._transcript_te_test_file.seek(0)
-        req = self.app.put(url,
-                           params={'locale': 'te'},
-                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 3)
-        self.assertEqual(len(data['assetContents'][2]['fileIds']), 3)
-
+        data = self.upload_video_with_caption_and_transcripts()
         item = self.create_mc_item_with_video_and_transcript(data)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1494,8 +1533,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('transcript_txt', choice_text_with_video)
         self.assertIn('transcriptWrapper', choice_text_with_video)
-        self.assertIn('video transcript', choice_text_with_video)
-        self.assertIn('Video Transcript', choice_text_with_video)
+        self.assertIn('transcript', choice_text_with_video)
+        self.assertIn('Transcript', choice_text_with_video)
         self.assertIn('This is a test transcript.', choice_text_with_video)
 
         req = self.app.get(url,
@@ -1521,10 +1560,6 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
-
-    def test_can_replace_main_media_element_in_asset(self):
-        # probably belongs in test_repository.py::AssetCRUDTests
-        self.fail('finish writing the test')
 
     def test_can_get_video_question_even_if_transcript_src_blank(self):
         self._video_upload_test_file.seek(0)
@@ -1570,8 +1605,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('<transcript', choice_text_with_video)
         self.assertNotIn('transcriptWrapper', choice_text_with_video)
-        self.assertNotIn('video transcript', choice_text_with_video)
-        self.assertNotIn('Video Transcript', choice_text_with_video)
+        self.assertNotIn('transcript', choice_text_with_video)
+        self.assertNotIn('Transcript', choice_text_with_video)
         self.assertNotIn('This is a test transcript.', choice_text_with_video)
 
         req = self.app.get(url,
@@ -1599,36 +1634,7 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertNotIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
 
     def test_can_get_audio_question_even_if_transcript_src_blank(self):
-        self._audio_upload_test_file.seek(0)
-        self._transcript_test_file.seek(0)
-        req = self.app.post(self.url,
-                            upload_files=[('inputFile', self._filename(self._audio_upload_test_file), self._audio_upload_test_file.read()),
-                                          ('transcriptFile', 'transcript.txt', self._transcript_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
-
-        self._transcript_hi_test_file.seek(0)
-        url = '{0}/{1}'.format(self.url,
-                               data['id'])
-        req = self.app.put(url,
-                           params={'locale': 'hi'},
-                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
-
-        self._transcript_te_test_file.seek(0)
-        req = self.app.put(url,
-                           params={'locale': 'te'},
-                           upload_files=[('transcriptFile', 'transcript_te.txt', self._transcript_te_test_file.read())])
-        self.ok(req)
-        data = self.json(req)
-        self.assertEqual(len(data['assetContents']), 2)
-        self.assertEqual(len(data['assetContents'][1]['fileIds']), 3)
-
+        data = self.upload_audio_with_transcripts()
         item = self.create_mc_item_with_audio_and_transcript(data, transcript_blank=True)
 
         url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
@@ -1640,8 +1646,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
         self.assertIn('<transcript', choice_text_with_audio)
         self.assertNotIn('transcriptWrapper', choice_text_with_audio)
-        self.assertNotIn('video transcript', choice_text_with_audio)
-        self.assertNotIn('Video Transcript', choice_text_with_audio)
+        self.assertNotIn('transcript', choice_text_with_audio)
+        self.assertNotIn('Transcript', choice_text_with_audio)
         self.assertNotIn('This is a test transcript.', choice_text_with_audio)
 
         req = self.app.get(url,
@@ -1792,43 +1798,146 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertNotIn('AssetContent:', choice_with_media)
 
     def test_get_default_lang_transcript_for_video_when_requested_lang_not_there(self):
-        self.fail('finish writing the test')
+        data = self.upload_video_with_caption_and_transcripts()
+        self.remove_transcript_language(data, 'hi')
+        item = self.create_mc_item_with_video_and_transcript(data)
 
-    def test_get_empty_string_in_video_question_when_no_transcripts(self):
-        self.fail('finish writing the test')
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn('transcript', choice_text_with_video)
+        self.assertIn('Transcript', choice_text_with_video)
+        self.assertIn('This is a test transcript.', choice_text_with_video)
+
+    def test_no_replacement_in_video_question_when_no_transcripts(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        self.clear_transcript_files(data, True)
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_media)
+        self.assertIn('AssetContent:transcript_txt', choice_text_with_media)
+        self.assertNotIn('transcriptWrapper', choice_text_with_media)
+        self.assertNotIn('This is a test transcript.', choice_text_with_media)
 
     def test_get_first_transcript_for_video_when_default_lang_not_there(self):
-        self.fail('finish writing the test')
+        data = self.upload_video_with_caption_and_transcripts()
+        self.remove_transcript_language(data, 'en')
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_video)
+        self.assertIn('transcript_txt', choice_text_with_video)
+        self.assertIn('transcriptWrapper', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
 
     def test_get_default_lang_transcript_for_audio_when_requested_lang_not_there(self):
-        self.fail('finish writing the test')
+        data = self.upload_audio_with_transcripts()
+        self.remove_transcript_language(data, 'hi')
+        item = self.create_mc_item_with_audio_and_transcript(data)
 
-    def test_get_empty_string_in_audio_question_when_no_transcripts(self):
-        self.fail('finish writing the test')
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_media)
+        self.assertIn('transcript_txt', choice_text_with_media)
+        self.assertIn('transcriptWrapper', choice_text_with_media)
+        self.assertIn('transcript', choice_text_with_media)
+        self.assertIn('Transcript', choice_text_with_media)
+        self.assertIn('This is a test transcript.', choice_text_with_media)
+
+    def test_no_replacement_in_audio_question_when_no_transcripts(self):
+        data = self.upload_audio_with_transcripts()
+        self.clear_transcript_files(data, True)
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertIn('<transcript', choice_text_with_media)
+        self.assertIn('AssetContent:transcript_txt', choice_text_with_media)
+        self.assertNotIn('transcriptWrapper', choice_text_with_media)
+        self.assertNotIn('This is a test transcript.', choice_text_with_media)
 
     def test_get_first_transcript_for_audio_when_default_lang_not_there(self):
-        self.fail('finish writing the test')
+        data = self.upload_audio_with_transcripts()
+        self.remove_transcript_language(data, 'en')
+        item = self.create_mc_item_with_audio_and_transcript(data)
 
-    def test_default_lang_media_description_shows_up_in_audio(self):
-        self.fail('finish writing the test')
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
 
-    def test_media_description_shows_up_in_audio_for_requested_lang(self):
-        self.fail('finish writing the test')
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
 
-    def test_available_media_description_shows_up_in_audio_when_default_doesnt_exist(self):
-        self.fail('finish writing the test')
+        choice_text_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        self.assertNotIn('<transcript', choice_text_with_media)
+        self.assertIn('transcript_txt', choice_text_with_media)
+        self.assertIn('transcriptWrapper', choice_text_with_media)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_media)
+        self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_media)
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_media)
 
-    def test_empty_string_for_description_when_not_provided_audio(self):
-        self.fail('finish writing hte test')
-
-    def test_default_lang_media_description_shows_up_in_video(self):
-        self.fail('finish writing the test')
-
-    def test_media_description_shows_up_in_video_for_requested_lang(self):
-        self.fail('finish writing the test')
-
-    def test_available_media_description_shows_up_in_video_when_default_doesnt_exist(self):
-        self.fail('finish writing the test')
-
-    def test_empty_string_for_description_when_not_provided_video(self):
-        self.fail('finish writing hte test')
+    # Not sure what to do with these, how we want to display them on the content side...
+    # Fill in these tests once we figure that out
+    # def test_default_lang_media_description_shows_up_in_audio(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_media_description_shows_up_in_audio_for_requested_lang(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_available_media_description_shows_up_in_audio_when_default_doesnt_exist(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_empty_string_for_description_when_not_provided_audio(self):
+    #     self.fail('finish writing hte test')
+    #
+    # def test_default_lang_media_description_shows_up_in_video(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_media_description_shows_up_in_video_for_requested_lang(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_available_media_description_shows_up_in_video_when_default_doesnt_exist(self):
+    #     self.fail('finish writing the test')
+    #
+    # def test_empty_string_for_description_when_not_provided_video(self):
+    #     self.fail('finish writing hte test')
