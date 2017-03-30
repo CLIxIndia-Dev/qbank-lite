@@ -1,3 +1,12 @@
+## [3.7.5] - 2017-03-30:
+### Fixed
+  - Changed the `mediaDescription` `genusTypeId` to `media-description`
+    for consistency.
+
+## [3.7.4] - 2017-03-30:
+### Fixed
+  - Update the records submodule URL.
+
 ## [3.7.3] - 2017-03-30:
 ### Fixed
   - Make single-language feedbacks also return a DisplayText.
@@ -150,6 +159,8 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.7.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.4...v3.7.5
+[3.7.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.3...v3.7.4
 [3.7.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.2...v3.7.3
 [3.7.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.1...v3.7.2
 [3.7.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.0...v3.7.1
