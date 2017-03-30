@@ -2008,11 +2008,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             else:
                 # Need to wrap the feedback in <?xml> and also as a single block
                 # to make this work with OEA player
-                try:
-                    feedback_wrapped = feedback.text
-                except AttributeError:
-                    # This is for legacy questions...
-                    feedback_wrapped = feedback['text']
+                feedback_wrapped = feedback.text
                 if u'<modalFeedback' not in feedback_wrapped:
                     feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback_wrapped)
 
