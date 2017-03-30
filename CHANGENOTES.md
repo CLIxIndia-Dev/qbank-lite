@@ -1,3 +1,7 @@
+## [3.7.3] - 2017-03-30:
+### Fixed
+  - Make single-language feedbacks also return a DisplayText.
+
 ## [3.7.2] - 2017-03-30:
 ### Added
   - New tests for image sequence submissions.
@@ -146,6 +150,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.7.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.2...v3.7.3
 [3.7.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.1...v3.7.2
 [3.7.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.0...v3.7.1
 [3.7.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.6.0...v3.7.0
