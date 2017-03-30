@@ -1,3 +1,6 @@
+## [3.7.1] - 2017-03-30:
+  - Fix for always-correct question types.
+
 ## [3.7.0] - 2017-03-29:
 ### Added
   - Convenience methods for adding VTT and transcript files.
@@ -138,4 +141,5 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.7.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.0...v3.7.1
 [3.7.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.6.0...v3.7.0
