@@ -12,3 +12,6 @@ settings.py
 .cache/
 htmlcov/
 .DS_Store
+interface_maps/
+package_maps/
+pattern_maps/

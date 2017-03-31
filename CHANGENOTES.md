@@ -1,3 +1,9 @@
+## [3.7.6] - 2017-03-31:
+### Fixed
+  - Updated test config to use filesystem.
+  - Updated dlkit to fix bugs when deleting asset contents when using
+    filesystem.
+
 ## [3.7.5] - 2017-03-30:
 ### Fixed
   - Changed the `mediaDescription` `genusTypeId` to `media-description`
@@ -159,6 +165,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.7.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.5...v3.7.6
 [3.7.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.4...v3.7.5
 [3.7.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.3...v3.7.4
 [3.7.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.2...v3.7.3
