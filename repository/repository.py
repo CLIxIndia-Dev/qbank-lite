@@ -76,11 +76,19 @@ class AssetsList(utilities.BaseClass):
             if repository_id is None:
                 raise PermissionDenied
             rm = rutils.get_repository_manager()
-            repository = rm.get_repository(utilities.clean_id(repository_id))
-            assets = repository.get_assets()
+
+            params = web.input()
+
+            if 'allAssets' in params:
+                als = rm.get_asset_lookup_session()
+                als.use_federated_repository_view()
+                assets = als.get_assets()
+            else:
+                repository = rm.get_repository(utilities.clean_id(repository_id))
+                assets = repository.get_assets()
             data = utilities.extract_items(assets)
 
-            if 'fullUrls' in web.input():
+            if 'fullUrls' in params:
                 data = json.loads(data)
                 updated_data = []
                 for asset in data:
@@ -286,6 +294,7 @@ class AssetContentStream(utilities.BaseClass):
                 starting_bytes += bytes_to_read
                 yield buf
 
+            asset_content_data.close()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

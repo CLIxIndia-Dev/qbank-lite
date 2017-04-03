@@ -177,6 +177,7 @@ Return list of `asset`s in the given `repository`, or create a new
 url parameters (optional):
   - fullUrls. If included, the `url` values for each `asset`'s `assetContents` will point
               to a resolve-able URL, so you can preview the file / image / etc.
+  - allAssets. Returns all `asset`s in the system, regardless of `repository`.
 
 returns:
   - list of `Asset` objects.
