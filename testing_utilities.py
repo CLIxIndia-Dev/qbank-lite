@@ -388,8 +388,13 @@ def get_fixture_repository():
 
 
 def get_super_authz_user_request():
-    import settings
-    return get_managers(username=settings.AUTHZ_USER)
+    try:
+        import settings
+    except ImportError:
+        authz_user = os.environ.get('AUTHZ_USER')
+    else:
+        authz_user = settings.AUTHZ_USER
+    return get_managers(username=authz_user)
 
 
 def get_managers(username='student@tiss.edu'):
