@@ -864,7 +864,6 @@ class AssetQueryTests(BaseRepositoryTestCase):
         )
 
 
-
 class AssetCRUDTests(BaseRepositoryTestCase):
     def setUp(self):
         super(AssetCRUDTests, self).setUp()
