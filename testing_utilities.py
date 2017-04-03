@@ -350,7 +350,7 @@ def create_new_bank():
 
 
 def create_test_repository():
-    # from authorization_utilities import get_vault
+    from authorization.authorization_utilities import get_vault
     rm = get_managers()['rm']
     form = rm.get_repository_form_for_create([])
     form.display_name = 'a repository'
@@ -362,10 +362,10 @@ def create_test_repository():
     # set_trace()
     # create_super_authz_authorizations(get_vault())
     #
-    # create_user_authorizations(get_vault(),
-    #                            username="clix-authz@tiss.edu",
-    #                            new_catalogs=[new_repo.ident.identifier])
-    # create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
+    create_user_authorizations(get_vault(),
+                               username="student@tiss.edu",
+                               new_catalogs=[new_repo.ident.identifier])
+    create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
 
     return new_repo
 

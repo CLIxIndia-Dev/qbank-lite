@@ -8,7 +8,8 @@ from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
 from dlkit_runtime.errors import NotFound
 from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
 
-from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
+from testing_utilities import BaseTestCase, get_fixture_repository,\
+    get_managers, create_test_repository
 from urllib import unquote, quote
 
 from records.registry import ASSESSMENT_RECORD_TYPES,\
@@ -817,6 +818,51 @@ class AssetQueryTests(BaseRepositoryTestCase):
                 asset_content_obj.get_url(),
                 asset_content['url']
             )
+
+    def test_can_get_assets_from_all_repositories(self):
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        new_repo = create_test_repository()
+        url = '/api/v1/repository/repositories/{0}/assets'.format(str(new_repo.ident))
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'new_file.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+
+        url = '{0}?fullUrls&allAssets'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data), 2)
+        asset_1 = data[0]
+        self.assertEqual(
+            len(asset_1['assetContents']),
+            1
+        )
+        self.assertEqual(
+            asset_1['assetContents'][0]['genusTypeId'],
+            'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
+        )
+        asset_2 = data[1]
+        self.assertEqual(
+            len(asset_2['assetContents']),
+            1
+        )
+        self.assertEqual(
+            asset_2['assetContents'][0]['genusTypeId'],
+            'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
+        )
+        self.assertNotEqual(
+            asset_1['assignedRepositoryIds'][0],
+            asset_2['assignedRepositoryIds'][0]
+        )
+
 
 
 class AssetCRUDTests(BaseRepositoryTestCase):
