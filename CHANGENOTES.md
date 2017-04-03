@@ -1,3 +1,7 @@
+## [3.7.7] - 2017-04-03:
+### Added
+  - Close the file pointer after streaming the asset content.
+
 ## [3.7.6] - 2017-03-31:
 ### Fixed
   - Updated test config to use filesystem.
@@ -165,6 +169,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.7.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.6...v3.7.7
 [3.7.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.5...v3.7.6
 [3.7.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.4...v3.7.5
 [3.7.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.3...v3.7.4
