@@ -1,3 +1,7 @@
+## [3.8.0] - 2017-04-03:
+### Added
+  - `allAssets` flag to get all `assets` in the system.
+
 ## [3.7.7] - 2017-04-03:
 ### Added
   - Close the file pointer after streaming the asset content.
@@ -169,6 +173,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.8.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.7...v3.8.0
 [3.7.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.6...v3.7.7
 [3.7.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.5...v3.7.6
 [3.7.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.4...v3.7.5
