@@ -845,22 +845,28 @@ class AssetQueryTests(BaseRepositoryTestCase):
             len(asset_1['assetContents']),
             1
         )
-        self.assertEqual(
+        possible_ac_types = ['asset-content-genus-type%3Amp4%40ODL.MIT.EDU',
+                             'asset-content-genus-type%3Avtt%40ODL.MIT.EDU']
+        self.assertIn(
             asset_1['assetContents'][0]['genusTypeId'],
-            'asset-content-genus-type%3Amp4%40ODL.MIT.EDU'
+            possible_ac_types
         )
         asset_2 = data[1]
         self.assertEqual(
             len(asset_2['assetContents']),
             1
         )
-        self.assertEqual(
+        self.assertIn(
             asset_2['assetContents'][0]['genusTypeId'],
-            'asset-content-genus-type%3Avtt%40ODL.MIT.EDU'
+            possible_ac_types
         )
         self.assertNotEqual(
             asset_1['assignedRepositoryIds'][0],
             asset_2['assignedRepositoryIds'][0]
+        )
+        self.assertNotEqual(
+            asset_1['assetContents'][0]['genusTypeId'],
+            asset_2['assetContents'][0]['genusTypeId']
         )
 
 
