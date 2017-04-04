@@ -9,7 +9,7 @@ from dlkit_runtime.errors import NotFound
 from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
 
 from testing_utilities import BaseTestCase, get_fixture_repository,\
-    get_managers, create_test_repository
+    get_managers
 from urllib import unquote, quote
 
 from records.registry import ASSESSMENT_RECORD_TYPES,\
@@ -820,6 +820,7 @@ class AssetQueryTests(BaseRepositoryTestCase):
             )
 
     def test_can_get_assets_from_all_repositories(self):
+        from testing_utilities import create_test_repository
         self._video_upload_test_file.seek(0)
         req = self.app.post(self.url,
                             upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
