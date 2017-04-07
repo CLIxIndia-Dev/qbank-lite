@@ -7695,6 +7695,9 @@ class NumericAnswerTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
+        if not data['correct']:
+            import pdb
+            pdb.set_trace()
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
 

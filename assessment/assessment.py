@@ -1990,6 +1990,9 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
 
             response = bank.get_response(first_section.ident, question.ident)
             correct = response.is_correct()
+            if not correct:
+                import pdb
+                pdb.set_trace()
 
             if autils.always_right(local_data_map):
                 correct = True
