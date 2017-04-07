@@ -61,6 +61,14 @@ FILESYSTEM_ADAPTER_1 = {
                 {'value': STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
             ]
         },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the JSONClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
+            ]
+        },
         'urlHostname': {
             'syntax': 'STRING',
             'displayName': 'Hostname config for serving files over the network',
@@ -439,6 +447,14 @@ TEST_FILESYSTEM_ADAPTER_1 = {
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': TEST_STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
+            ]
+        },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the JSONClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
             ]
         },
         'urlHostname': {
