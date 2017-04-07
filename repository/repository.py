@@ -235,6 +235,10 @@ class AssetContentStream(utilities.BaseClass):
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
+
+            if asset_content.genus_type == rutils.TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE:
+                yield asset_content.get_transcript_text()
+
             asset_content_data = asset_content.get_data()
 
             filespace_path = ''
