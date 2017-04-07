@@ -1909,9 +1909,6 @@ def update_question_form(question, form, create=False):
             except AttributeError:
                 # to support legacy data
                 form.set_text(u'{0}'.format(question['questionString']).encode('utf8'))
-        elif 'updatedQuestionString' in question:
-            updated_text = utilities.create_display_text(question['updatedQuestionString'])
-            form.edit_text(updated_text)
         elif remove_language_type(question):
             language_type = get_language_to_remove_as_type(question)
             form.remove_text_language(language_type)
