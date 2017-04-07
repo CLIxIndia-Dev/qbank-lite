@@ -1,3 +1,7 @@
+## [3.8.3] - 2017-04-07:
+### Fixed
+  - Reverted 3.7.7 to test server IOError fix.
+
 ## [3.8.2] - 2017-04-04:
 ### Fixed
   - Change the `create_test_repository` import.
@@ -181,6 +185,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.8.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.7.7...v3.8.0
