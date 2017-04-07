@@ -1,3 +1,7 @@
+## [3.9.1] - 2017-04-07:
+### Fixed
+  - Changed `get_asset_id()` method name to prevent overriding.
+
 ## [3.9.0] - 2017-04-07:
 ### Added
   - Question string support for drag-and-drop.
@@ -203,6 +207,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.9.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.0...v3.9.1
 [3.9.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.6...v3.9.0
 [3.8.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.5...v3.8.6
 [3.8.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.4...v3.8.5

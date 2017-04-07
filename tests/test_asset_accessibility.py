@@ -1912,6 +1912,17 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_media)
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_media)
 
+    def test_can_still_get_all_assets_when_audio_with_transcripts_present(self):
+        item = self.upload_audio_with_transcripts()
+        url = '{0}?allAssets&fullUrls'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 4)  # audio with 3 transcripts
+
+        orig_item = [i for i in data if i['id'] == item['id']][0]
+        self.assertEqual(len(orig_item['assetContents']), 2)
+
     # Not sure what to do with these, how we want to display them on the content side...
     # Fill in these tests once we figure that out
     # def test_default_lang_media_description_shows_up_in_audio(self):
