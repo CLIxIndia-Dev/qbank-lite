@@ -1,3 +1,8 @@
+## [3.8.4] - 2017-04-07:
+### Fixed
+  - Account for drag-and-drop questions when getting taken
+    questions with `?qti` flag.
+
 ## [3.8.3] - 2017-04-07:
 ### Fixed
   - Reverted 3.7.7 to test server IOError fix.
@@ -185,6 +190,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.8.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.3...v3.8.4
 [3.8.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.0...v3.8.1
