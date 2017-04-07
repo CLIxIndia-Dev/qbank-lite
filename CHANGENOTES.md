@@ -1,3 +1,7 @@
+## [3.10.0] - 2017-04-07:
+### Added
+  - Support the `/stream` endpoint for transcript and VTT text.
+
 ## [3.9.2] - 2017-04-07:
 ### Fixed
   - Apply float formatting to numeric response to prevent
@@ -212,6 +216,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.10.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.2...v3.10.0
 [3.9.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.1...v3.9.2
 [3.9.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.0...v3.9.1
 [3.9.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.6...v3.9.0
