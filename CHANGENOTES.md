@@ -1,3 +1,7 @@
+## [3.9.0] - 2017-04-07:
+### Added
+  - Question string support for drag-and-drop.
+
 ## [3.8.6] - 2017-04-07:
 ### Fixed
   - Honor format for float numeric response questions.
@@ -199,6 +203,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.9.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.6...v3.9.0
 [3.8.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.5...v3.8.6
 [3.8.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.4...v3.8.5
 [3.8.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.3...v3.8.4
