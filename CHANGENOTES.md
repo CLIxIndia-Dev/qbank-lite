@@ -1,3 +1,8 @@
+## [3.8.5] - 2017-04-07:
+### Changed
+  - Only save asset content files once; do filename replacement
+    in the `filesystem_adapter`.
+
 ## [3.8.4] - 2017-04-07:
 ### Fixed
   - Account for drag-and-drop questions when getting taken
@@ -190,6 +195,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.8.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.4...v3.8.5
 [3.8.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.3...v3.8.4
 [3.8.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.1...v3.8.2
