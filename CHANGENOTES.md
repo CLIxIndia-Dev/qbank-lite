@@ -1,3 +1,8 @@
+## [3.9.2] - 2017-04-07:
+### Fixed
+  - Apply float formatting to numeric response to prevent
+    sympy precision resulting in "incorrect" evaluations.
+
 ## [3.9.1] - 2017-04-07:
 ### Fixed
   - Changed `get_asset_id()` method name to prevent overriding.
@@ -207,6 +212,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.9.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.1...v3.9.2
 [3.9.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.0...v3.9.1
 [3.9.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.6...v3.9.0
 [3.8.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.8.5...v3.8.6
