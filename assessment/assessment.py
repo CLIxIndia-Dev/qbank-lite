@@ -1820,8 +1820,12 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             if 'qti' in web.input():
                 data = []
                 for question in questions:
-                    # do this first, to not mess up unrandomized choices
-                    question_qti = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    try:
+                        # do this first, to not mess up unrandomized choices
+                        question_qti = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    except AttributeError:
+                        # drag and drop doesn't support QTI
+                        question_qti = None
                     question_map = question.object_map
                     question_map.update({
                         'qti': question_qti
