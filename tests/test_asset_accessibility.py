@@ -493,6 +493,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
         self._audio_upload_test_file = open('{0}/tests/files/audioTestFile_.mp3'.format(ABS_PATH), 'r')
         self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+        self._caption_hi_upload_test_file = open('{0}/tests/files/video-js-test-hi.vtt'.format(ABS_PATH), 'r')
+        self._caption_te_upload_test_file = open('{0}/tests/files/video-js-test-te.vtt'.format(ABS_PATH), 'r')
         self._image_upload_test_file = open('{0}/tests/files/green_dot.png'.format(ABS_PATH), 'r')
         self._transcript_test_file = open('{0}/tests/files/transcript.txt'.format(ABS_PATH), 'r')
         self._transcript_hi_test_file = open('{0}/tests/files/transcript_hi.txt'.format(ABS_PATH), 'r')
@@ -519,6 +521,8 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self._video_upload_test_file.close()
         self._audio_upload_test_file.close()
         self._caption_upload_test_file.close()
+        self._caption_hi_upload_test_file.close()
+        self._caption_te_upload_test_file.close()
         self._image_upload_test_file.close()
         self._transcript_test_file.close()
         self._transcript_hi_test_file.close()
@@ -592,20 +596,21 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
 
-        self._caption_upload_test_file.seek(0)
+        self._caption_hi_upload_test_file.seek(0)
         url = '{0}/{1}'.format(self.url,
                                data['id'])
         req = self.app.put(url,
                            params={'locale': 'hi'},
-                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_hi_upload_test_file.read())])
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['assetContents']), 2)
         self.assertEqual(len(data['assetContents'][1]['fileIds']), 2)
 
+        self._caption_te_upload_test_file.seek(0)
         req = self.app.put(url,
                            params={'locale': 'te'},
-                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_upload_test_file.read())])
+                           upload_files=[('vttFile', 'video-js-test-te.vtt', self._caption_te_upload_test_file.read())])
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['assetContents']), 2)
@@ -1723,6 +1728,24 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn('src=""', choice_with_media)
         self.assertNotIn('AssetContent:', choice_with_media)
 
+    def test_get_default_lang_vtt_text_when_requested_lang_not_there(self):
+        data = self.upload_video_with_captions()
+        self.remove_vtt_language(data, 'hi')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = req.body
+
+        self.assertIn('Can I use webVTT?', data)
+
     def test_get_default_lang_vtt_file_when_requested_lang_not_there(self):
         data = self.upload_video_with_captions()
         self.remove_vtt_language(data, 'hi')
@@ -1771,6 +1794,23 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertNotIn('label="Telugu"', choice_with_media)
         self.assertIn('AssetContent:', choice_with_media)
 
+    def test_get_first_vtt_text_when_default_lang_not_there(self):
+        data = self.upload_video_with_captions()
+        self.remove_vtt_language(data, 'en')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = req.body.decode('utf8')
+
+        self.assertIn(u'నేను webVTT ఉపయోగించవచ్చా?', data)
+
     def test_get_first_vtt_file_when_default_lang_not_there(self):
         data = self.upload_video_with_captions()
         self.remove_vtt_language(data, 'en')
@@ -1792,6 +1832,24 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn('label="Telugu"', choice_with_media)
         self.assertIn('/stream', choice_with_media)
         self.assertNotIn('AssetContent:', choice_with_media)
+
+    def test_get_default_lang_transcript_stream_for_video_when_requested_lang_not_there(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        data = self.remove_transcript_language(data, 'hi')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = req.body
+
+        self.assertIn('This is a test transcript.', data)
 
     def test_get_default_lang_transcript_for_video_when_requested_lang_not_there(self):
         data = self.upload_video_with_caption_and_transcripts()
@@ -1832,6 +1890,23 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertNotIn('transcriptWrapper', choice_text_with_media)
         self.assertNotIn('This is a test transcript.', choice_text_with_media)
 
+    def test_get_first_transcript_stream_for_video_when_default_lang_not_there(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        data = self.remove_transcript_language(data, 'en')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = req.body.decode('utf8')
+
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', data)
+
     def test_get_first_transcript_for_video_when_default_lang_not_there(self):
         data = self.upload_video_with_caption_and_transcripts()
         data = self.remove_transcript_language(data, 'en')
@@ -1851,6 +1926,24 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
+
+    def test_get_default_lang_transcript_stream_for_audio_when_requested_lang_not_there(self):
+        data = self.upload_audio_with_transcripts()
+        data = self.remove_transcript_language(data, 'hi')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = req.body
+
+        self.assertIn('This is a test transcript.', data)
 
     def test_get_default_lang_transcript_for_audio_when_requested_lang_not_there(self):
         data = self.upload_audio_with_transcripts()
@@ -1891,6 +1984,23 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn('AssetContent:transcript_txt', choice_text_with_media)
         self.assertNotIn('transcriptWrapper', choice_text_with_media)
         self.assertNotIn('This is a test transcript.', choice_text_with_media)
+
+    def test_get_first_transcript_stream_for_audio_when_default_lang_not_there(self):
+        data = self.upload_audio_with_transcripts()
+        data = self.remove_transcript_language(data, 'en')
+
+        transcript_ac = [ac
+                         for ac in data['assetContents']
+                         if ac['genusTypeId'] == str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+
+        url = '{0}/{1}/contents/{2}/stream'.format(self.url,
+                                                   data['id'],
+                                                   transcript_ac['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = req.body.decode('utf8')
+
+        self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', data)
 
     def test_get_first_transcript_for_audio_when_default_lang_not_there(self):
         data = self.upload_audio_with_transcripts()
