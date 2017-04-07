@@ -3767,3 +3767,35 @@ class SingleTargetTakingTests(BaseDragAndDropTestCase):
         for droppable in data['droppables']:
             self.assertIn('/api/v1/repository/repositories', droppable['text'])
             self.assertIn('/stream', droppable['text'])
+
+    def test_can_get_question_when_using_qti_flag(self):
+        item = self.create_item_with_question_and_answers()
+        droppable_0_id = item['question']['multiLanguageDroppables'][0]['id']
+        target_0_id = item['question']['multiLanguageTargets'][0]['id']
+
+        taken = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions?qti'.format(str(self._bank.ident),
+                                                                                       str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)['data'][0]
+        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(str(self._bank.ident),
+                                                                                   str(taken.ident))
+
+        submit_url = '{0}/{1}/submit'.format(url, data['id'])
+        payload = {
+            'coordinateConditions': [{
+                'droppableId': droppable_0_id,
+                'containerId': target_0_id,
+                'coordinateValues': [200, 200]
+            }]
+        }
+
+        req = self.app.post(submit_url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertEqual('No feedback available.', data['feedback'])

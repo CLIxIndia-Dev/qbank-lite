@@ -293,8 +293,6 @@ class AssetContentStream(utilities.BaseClass):
                 bytes_read += bytes_to_read
                 starting_bytes += bytes_to_read
                 yield buf
-
-            asset_content_data.close()
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
