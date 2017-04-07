@@ -48,6 +48,7 @@ class BaseDragAndDropTestCase(BaseTestCase):
 
     def _question_payload(self):
         payload = {
+            'questionString': 'Put the hats on the ball',
             'targets': [{
                 'text': '<p><img src="AssetContent:drag_and_drop_input_DPP-Concpt-BlkonRmp-Trgt_png" alt="Ramp" /></p>',
                 'name': 'Image of ramp',
@@ -277,6 +278,12 @@ class CreateTests(BaseDragAndDropTestCase):
         question = data['question']
         self.assertEqual(data['genusTypeId'], str(DRAG_AND_DROP_ITEM_GENUS_TYPE))
         self.assertEqual(question['genusTypeId'], str(DRAG_AND_DROP_QUESTION_GENUS_TYPE))
+
+        # make sure the question string made it
+        self.assertEqual(
+            question['text']['text'],
+            'Put the hats on the ball'
+        )
 
         # make sure no QTI record types
         self.assertTrue(not any('qti' in r for r in data['recordTypeIds']))
@@ -583,6 +590,146 @@ class CreateTests(BaseDragAndDropTestCase):
 
 class UpdateTests(BaseDragAndDropTestCase):
     """Can edit the drag and drop RESTfully"""
+    def test_can_add_question_string_in_new_language(self):
+        item = self.create_item_with_question_and_answers()
+
+        hindi_question = {
+            'text': u'एक भूरा खरगोश',
+            'formatTypeId': self._format_type,
+            'languageTypeId': self._hi_language_type,
+            'scriptTypeId': self._hi_script_type
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               item['id'])
+
+        payload = {
+            'question': {
+                'questionString': hindi_question
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(len(question['texts']), 2)
+
+        self.assertEqual(
+            question['texts'][1]['text'],
+            hindi_question['text']
+        )
+
+        self.assertEqual(
+            question['texts'][1]['languageTypeId'],
+            hindi_question['languageTypeId']
+        )
+
+        self.assertEqual(
+            question['texts'][1]['scriptTypeId'],
+            hindi_question['scriptTypeId']
+        )
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(
+            question['text']['text'],
+            hindi_question['text']
+        )
+
+        self.assertEqual(
+            question['text']['languageTypeId'],
+            hindi_question['languageTypeId']
+        )
+
+        self.assertEqual(
+            question['text']['scriptTypeId'],
+            hindi_question['scriptTypeId']
+        )
+
+    def test_can_edit_question_string(self):
+        item = self.create_item_with_question_and_answers()
+
+        new_question = 'does this monkey have a banana?'
+
+        url = '{0}/{1}'.format(self.url,
+                               item['id'])
+
+        payload = {
+            'question': {
+                'questionString': new_question
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(len(question['texts']), 1)
+
+        self.assertEqual(
+            question['text']['text'],
+            new_question
+        )
+
+    def test_can_remove_question_string_language(self):
+        item = self.create_item_with_question_and_answers()
+
+        hindi_question = {
+            'text': u'एक भूरा खरगोश',
+            'formatTypeId': self._format_type,
+            'languageTypeId': self._hi_language_type,
+            'scriptTypeId': self._hi_script_type
+        }
+
+        url = '{0}/{1}'.format(self.url,
+                               item['id'])
+
+        payload = {
+            'question': {
+                'questionString': hindi_question
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(len(question['texts']), 2)
+
+        payload = {
+            'question': {
+                'removeLanguageType': self._en_language_type
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        question = data['question']
+
+        self.assertEqual(len(question['texts']), 1)
+
+        self.assertEqual(
+            question['text']['text'],
+            hindi_question['text']
+        )
+
     def test_can_add_question_to_existing_item(self):
         item = self.create_item_without_question_or_answers()
 
