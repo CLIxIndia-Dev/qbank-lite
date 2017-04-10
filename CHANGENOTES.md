@@ -1,6 +1,10 @@
+## [3.11.1] - 2017-04-10:
+### Fixed
+  - Account for response map when inherits from feedback record.
+
 ## [3.11.0] - 2017-04-10:
 ### Added
-  - `additionalResponses` flag to get all user responses in
+  - `additionalAttempts` flag to get all user responses in
     offered results.
 
 ## [3.10.0] - 2017-04-07:
@@ -221,6 +225,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.11.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.0...v3.11.1
 [3.11.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.2...v3.10.0
 [3.9.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.1...v3.9.2
