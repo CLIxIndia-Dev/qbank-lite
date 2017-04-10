@@ -1,3 +1,8 @@
+## [3.11.0] - 2017-04-10:
+### Added
+  - `additionalResponses` flag to get all user responses in
+    offered results.
+
 ## [3.10.0] - 2017-04-07:
 ### Added
   - Support the `/stream` endpoint for transcript and VTT text.
@@ -216,6 +221,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.11.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.2...v3.10.0
 [3.9.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.1...v3.9.2
 [3.9.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.0...v3.9.1
