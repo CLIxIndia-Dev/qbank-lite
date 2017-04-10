@@ -1609,7 +1609,6 @@ class AssessmentOfferedResults(utilities.BaseClass):
     Get the class results for an assessment offered (all the takens)
     api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/results
 
-
     GET
     GET to view a specific offering
     """
@@ -1618,7 +1617,10 @@ class AssessmentOfferedResults(utilities.BaseClass):
         def taken_map(_taken):
             t_map = _taken.object_map
             t_map.update({
-                'sections': autils.get_taken_section_map(_taken, update=False)
+                'sections': autils.get_taken_section_map(_taken,
+                                                         update=False,
+                                                         bank=bank,
+                                                         with_additional_attempts=with_additional_attempts)
             })
             return t_map
 
@@ -1626,6 +1628,11 @@ class AssessmentOfferedResults(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             params = self.data()
+
+            with_additional_attempts = False
+            if 'additionalAttempts' in params:
+                with_additional_attempts = True
+
             if 'agentId' in params:
                 querier = bank.get_assessment_taken_query()
                 agent_id = utilities.create_agent_id(params['agentId'])

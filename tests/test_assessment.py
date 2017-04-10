@@ -3450,6 +3450,67 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             []
         )
 
+    def test_can_get_results_with_all_responses_for_offered(self):
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+        taken_questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                          taken_id)
+        req = self.app.get(taken_questions_url)
+        self.ok(req)
+        data = self.json(req)['data']
+        question_1 = data[0]
+        question_1_id = question_1['id']
+
+        url = '{0}/{1}/submit'.format(taken_questions_url,
+                                      question_1_id)
+        choices = question_1['choices']
+        wrong_answer = [c for c in choices if c['name'] == 'Choice 2'][0]
+        right_answer = [c for c in choices if c['name'] == 'Choice 1'][0]
+
+        payload = {
+            'choiceIds': [wrong_answer['id']]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+
+        payload = {
+            'choiceIds': [right_answer['id']]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+
+        results_url = '{0}/assessmentsoffered/{1}/results?additionalAttempts'.format(self.url,
+                                                                                     unquote(self.offered['id']))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        for index, question in enumerate(data[0]['sections'][0]['questions']):
+            self.assertIn('additionalAttempts', question)
+            self.assertEqual(
+                len(question['additionalAttempts']),
+                1
+            )
+            self.assertTrue(question['response']['isCorrect'])
+            self.assertFalse(question['additionalAttempts'][0]['isCorrect'])
+
 
 class BankTests(BaseAssessmentTestCase):
     def setUp(self):

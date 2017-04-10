@@ -100,7 +100,11 @@ aggregates all the `AssessmentTaken`s and returns the questions + responses.
 #### GET
 
 url parameters (optional):
-  - None currently supported
+  - agentId. Get the results for a specific `agentId`. Do NOT put this into OSID format.
+             i.e. `student@tiss.edu` is valid.
+  - additionalAttempts. Also retrieve each additional attempt the user made. The most
+                        recent attempt appears in the `response` field, and previous attempts
+                        appear in `additionalAttempts`.
 
 returns:
   - list of `AssessmentTaken`s.

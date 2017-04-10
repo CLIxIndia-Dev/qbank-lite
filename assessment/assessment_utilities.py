@@ -792,7 +792,7 @@ def get_spatial_unit_as_spatial_unit(object_map):
     return None
 
 
-def get_taken_section_map(taken, update=False, with_files=False, bank=None):
+def get_taken_section_map(taken, update=False, with_files=False, bank=None, with_additional_attempts=False):
     # let's get the questions first ... we need to inject that information into
     # the response, so that UI side we can match on the original, canonical itemId
     # also need to include the questions's learningObjectiveIds
@@ -800,6 +800,24 @@ def get_taken_section_map(taken, update=False, with_files=False, bank=None):
         s_map = _section.object_map
         s_map['id'] = str(_section.ident)
         s_map['type'] = 'AssessmentSection'
+
+        if with_additional_attempts:
+            # convenience method for Tejas
+            for index, response in enumerate(bank.get_responses(_section.ident)):
+                s_map['questions'][index]['additionalAttempts'] = []
+                for additional_attempt in response.get_additional_attempts():
+                    attempt_map = additional_attempt.object_map
+                    if 'submissionTime' in attempt_map and attempt_map['submissionTime'] is not None:
+                        attempt_map['submissionTime'] = {
+                            'year': attempt_map['submissionTime'].year,
+                            'month': attempt_map['submissionTime'].month,
+                            'day': attempt_map['submissionTime'].day,
+                            'hour': attempt_map['submissionTime'].hour,
+                            'minute': attempt_map['submissionTime'].minute,
+                            'second': attempt_map['submissionTime'].second,
+                            'microsecond': attempt_map['submissionTime'].microsecond
+                        }
+                    s_map['questions'][index]['additionalAttempts'].append(attempt_map)
 
         if update:
             # this should get called only when "taking" assessments, and not for results
