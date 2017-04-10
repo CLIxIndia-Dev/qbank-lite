@@ -1,6 +1,6 @@
 ## [3.11.0] - 2017-04-10:
 ### Added
-  - `additionalResponses` flag to get all user responses in
+  - `additionalAttempts` flag to get all user responses in
     offered results.
 
 ## [3.10.0] - 2017-04-07:
