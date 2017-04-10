@@ -3059,11 +3059,14 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
-    def create_item(self):
+    def create_item(self, with_feedback=False):
         items_endpoint = self.url + '/items'
 
         # Use POST to create an item
         payload = self.item_payload()
+        if with_feedback:
+            payload = self.item_payload_with_feedback()
+
         req = self.app.post(items_endpoint,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
@@ -3112,6 +3115,61 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
                 "choiceId": 1
             }],
         }
+
+    def item_payload_with_feedback(self):
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <img src="AssetContent:green_dot_png" alt="image 1" width="20" height="20" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id32b596f4-d970-4d1e-a667-3ca762c002c5",
+                    "text": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+  <img src="AssetContent:h1i_png" alt="image 2" width="26" height="24" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["idc561552b-ed48-46c3-b20d-873150dfd4a2"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>""",
+                "fileIds": {}
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p>
+    <strong>
+      <span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">Please try again!</span>
+      <br />
+    </strong>
+  </p>
+</modalFeedback>""",
+                'fileIds': {}
+            }]
+        }
+        return payload
 
     def link_item_to_assessment(self, item, assessment):
         assessment_items_endpoint = '{0}/assessments/{1}/items'.format(self.url,
@@ -3450,8 +3508,12 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             []
         )
 
-    def test_can_get_results_with_all_responses_for_offered(self):
-        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(self.offered['id']))
+    def test_can_get_results_with_all_attempts_for_offered(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
         test_student = 'student@tiss.edu'  # this is what we have authz set up for
         # Can POST to create a new taken
         assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
@@ -3473,11 +3535,11 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         url = '{0}/{1}/submit'.format(taken_questions_url,
                                       question_1_id)
         choices = question_1['choices']
-        wrong_answer = [c for c in choices if c['name'] == 'Choice 2'][0]
-        right_answer = [c for c in choices if c['name'] == 'Choice 1'][0]
+        wrong_answer_id = 'foo'
+        right_answer_id = 'idc561552b-ed48-46c3-b20d-873150dfd4a2'
 
         payload = {
-            'choiceIds': [wrong_answer['id']]
+            'choiceIds': [wrong_answer_id]
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3487,7 +3549,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
 
         payload = {
-            'choiceIds': [right_answer['id']]
+            'choiceIds': [right_answer_id]
         }
         req = self.app.post(url,
                             params=json.dumps(payload),
@@ -3497,7 +3559,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.assertTrue(data['correct'])
 
         results_url = '{0}/assessmentsoffered/{1}/results?additionalAttempts'.format(self.url,
-                                                                                     unquote(self.offered['id']))
+                                                                                     unquote(offered['id']))
         req = self.app.get(results_url)
         self.ok(req)
         data = self.json(req)

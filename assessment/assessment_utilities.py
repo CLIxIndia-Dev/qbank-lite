@@ -806,7 +806,10 @@ def get_taken_section_map(taken, update=False, with_files=False, bank=None, with
             for index, response in enumerate(bank.get_responses(_section.ident)):
                 s_map['questions'][index]['additionalAttempts'] = []
                 for additional_attempt in response.get_additional_attempts():
-                    attempt_map = additional_attempt.object_map
+                    # have to use ._my_answer here because feedback record calls
+                    # osid_objects.OsidObject.object_map, which expects an OsidObject
+                    # not a Rule
+                    attempt_map = additional_attempt._my_answer.object_map
                     if 'submissionTime' in attempt_map and attempt_map['submissionTime'] is not None:
                         attempt_map['submissionTime'] = {
                             'year': attempt_map['submissionTime'].year,
