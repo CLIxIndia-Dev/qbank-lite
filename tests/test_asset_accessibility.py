@@ -1484,6 +1484,56 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn('/stream', choice_with_media)
         self.assertNotIn('AssetContent:"', choice_with_media)
 
+    def test_video_caption_track_url_shows_with_right_asset_content_id(self):
+        data = self.upload_video_with_captions()
+        vtt_asset_content = [ac for ac in data['assetContents']
+                             if ac['genusTypeId'] == str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE)][0]
+        item = self.create_mc_item_with_video(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn(vtt_asset_content['id'], choice_with_media)
+
+        soup = BeautifulSoup(choice_with_media, 'xml')
+        src = soup.source['src']
+        req = self.app.get(src)
+        self.code(req, 206)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'hi'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn(vtt_asset_content['id'], choice_with_media)
+
+        soup = BeautifulSoup(choice_with_media, 'xml')
+        src = soup.source['src']
+        req = self.app.get(src)
+        self.code(req, 206)
+
+        req = self.app.get(url,
+                           headers={'x-api-locale': 'te'})
+        self.ok(req)
+        data = self.json(req)
+
+        choice_with_media = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+
+        self.assertIn(vtt_asset_content['id'], choice_with_media)
+
+        # Need to make sure this file is streamable / GET == 200 response
+        soup = BeautifulSoup(choice_with_media, 'xml')
+        src = soup.source['src']
+        req = self.app.get(src)
+        self.code(req, 206)
+
     def test_audio_transcript_shows_up_in_requested_language(self):
         data = self.upload_audio_with_transcripts()
         item = self.create_mc_item_with_audio_and_transcript(data)
