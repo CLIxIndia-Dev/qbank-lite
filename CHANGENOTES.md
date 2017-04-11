@@ -1,3 +1,9 @@
+## [3.11.2] - 2017-04-11:
+### Changed
+  - For VTT asset contents, return the wrapper url instead of
+    a language-specific url, when embedding the VTT file inside
+    of an item.
+
 ## [3.11.1] - 2017-04-10:
 ### Fixed
   - Account for response map when inherits from feedback record.
@@ -225,6 +231,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.11.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.1...v3.11.2
 [3.11.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.0...v3.11.1
 [3.11.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.10.0...v3.11.0
 [3.10.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.9.2...v3.10.0
