@@ -685,6 +685,14 @@ TEST_JSON_1 = {
                 {'value': True, 'priority': 1}
             ]
         },
+        'repositoryCatalogingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Repository Cataloging Provider Implementation',
+            'description': 'Cataloging Provider Implementation for Repository service',
+            'values': [
+                {'value': 'TEST_JSON_1', 'priority': 1}
+            ]
+        },
     }
 }
 

@@ -101,7 +101,7 @@ class LogCrUDTests(BaseLoggingTestCase):
         )
         self.assertEqual(
             log['description']['text'],
-            'Orchestrated Log for the assessment service'
+            'Orchestrated assessment Log'
         )
         self.assertEqual(
             self.assessment_bank.ident.identifier,
