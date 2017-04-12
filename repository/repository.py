@@ -76,11 +76,19 @@ class AssetsList(utilities.BaseClass):
             if repository_id is None:
                 raise PermissionDenied
             rm = rutils.get_repository_manager()
-            repository = rm.get_repository(utilities.clean_id(repository_id))
-            assets = repository.get_assets()
+
+            params = web.input()
+
+            if 'allAssets' in params:
+                als = rm.get_asset_lookup_session()
+                als.use_federated_repository_view()
+                assets = als.get_assets()
+            else:
+                repository = rm.get_repository(utilities.clean_id(repository_id))
+                assets = repository.get_assets()
             data = utilities.extract_items(assets)
 
-            if 'fullUrls' in web.input():
+            if 'fullUrls' in params:
                 data = json.loads(data)
                 updated_data = []
                 for asset in data:
@@ -95,7 +103,10 @@ class AssetsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, repository_id):
         try:
-            x = web.input(inputFile={})
+            main_input_file = web.input(inputFile={})
+            vtt_input_file = web.input(vttFile={})
+            transcript_input_file = web.input(transcriptFile={})
+
             rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository.use_isolated_repository_view()
@@ -103,10 +114,16 @@ class AssetsList(utilities.BaseClass):
             # we are doing this in memory, so the file pointer changes
             # once we read in a file
             # https://docs.python.org/2/library/zipfile.html
-
             params = self.data()
+            locale = 'en'
+            if 'locale' in params:
+                locale = params['locale']
+
+            if locale not in ['en', 'hi', 'te']:
+                raise TypeError("The 'locale' parameter must be one of: 'en', 'hi', or 'te'")
+
             try:
-                input_file = x['inputFile'].file
+                input_file = main_input_file['inputFile'].file
             except AttributeError:
                 form = repository.get_asset_form_for_create([])
                 form = utilities.set_form_basics(form, params)
@@ -123,7 +140,7 @@ class AssetsList(utilities.BaseClass):
                 # In this case, the "filename" / asset displayName.text is `ee_u1l01a01v01`.
                 # If that already exists, add the input_file as an asset content.
                 # If that asset does not exist, create it.
-                file_name = x['inputFile'].filename
+                file_name = main_input_file['inputFile'].filename
 
                 if 'createNew' in params.keys() and params['createNew']:
                     asset = rutils.create_asset(repository, file_name)
@@ -143,7 +160,31 @@ class AssetsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
-                rutils.append_asset_contents(repository, asset, file_name, input_file)
+                rutils.append_file_as_asset_content(repository, asset, file_name, input_file)
+
+            # Check if transcripts or VTT files are included
+            try:
+                vtt_file = vtt_input_file['vttFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = vtt_input_file['vttFile'].filename
+                rutils.append_vtt_file_as_asset_content(repository,
+                                                        asset,
+                                                        file_name,
+                                                        vtt_file,
+                                                        locale)
+            try:
+                transcript_file = transcript_input_file['transcriptFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = transcript_input_file['transcriptFile'].filename
+                rutils.append_transcript_file_as_asset_content(repository,
+                                                               asset,
+                                                               file_name,
+                                                               transcript_file,
+                                                               locale)
 
             if 'license' in params.keys() or 'copyright' in params.keys():
                 form = repository.get_asset_form_for_update(asset.ident)
@@ -153,6 +194,20 @@ class AssetsList(utilities.BaseClass):
                     form.set_copyright(params['copyright'])
                 asset = repository.update_asset(form)
 
+            # Handle the alt-text for images
+            if 'altText' in params.keys():
+                rutils.append_text_as_asset_content(repository,
+                                                    asset,
+                                                    params['altText'],
+                                                    'Alt text',
+                                                    'alt-text')
+            if 'mediaDescription' in params.keys():
+                rutils.append_text_as_asset_content(repository,
+                                                    asset,
+                                                    params['mediaDescription'],
+                                                    'Description',
+                                                    'mediaDescription')
+
             # need to get the updated asset with Contents
             asset = repository.get_asset(asset.ident)
             asset_map = json.loads(utilities.convert_dl_object(asset))
@@ -160,7 +215,7 @@ class AssetsList(utilities.BaseClass):
                 asset_map = rutils.update_asset_map_with_content_url(rm, asset_map)
 
             return json.dumps(asset_map)
-        except (PermissionDenied, InvalidId) as ex:
+        except (PermissionDenied, InvalidId, TypeError) as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -180,63 +235,70 @@ class AssetContentStream(utilities.BaseClass):
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
-            asset_content_data = asset_content.get_data()
 
-            filespace_path = ''
-            try:
-                config = asset._runtime.get_configuration()
-                parameter_id = utilities.clean_id('parameter:dataStoreFullPath@mongo')
-                filespace_path = config.get_value_by_parameter(parameter_id).get_string_value()
-            except (AttributeError, KeyError):
-                pass
+            if asset_content.genus_type == rutils.TRANSCRIPT_ASSET_CONTENT_GENUS_TYPE:
+                web.header('Content-Type', 'text/plain')
+                yield asset_content.get_transcript_text()
+            elif asset_content.genus_type == rutils.VTT_ASSET_CONTENT_GENUS_TYPE:
+                web.header('Content-Type', 'text/plain')
+                yield asset_content.get_vtt_text()
+            else:
+                asset_content_data = asset_content.get_data()
 
-            # the asset_url is relative, so add in the path
-            asset_content_path = '{0}/{1}'.format(filespace_path,
-                                                  asset_content_data.name)
-            web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
-            web.header('Accept-Ranges', 'bytes')
-            # The algorithm below for streaming partial content was based off of this
-            # post:
-            # https://benramsey.com/blog/2008/05/206-partial-content-and-range-requests/
+                filespace_path = ''
+                try:
+                    config = asset._runtime.get_configuration()
+                    parameter_id = utilities.clean_id('parameter:dataStoreFullPath@mongo')
+                    filespace_path = config.get_value_by_parameter(parameter_id).get_string_value()
+                except (AttributeError, KeyError):
+                    pass
 
-            continue_with_stream = True
-            byte_range = rutils.get_byte_ranges()
-            total_bytes_to_read = os.path.getsize(asset_content_data.name)
-            content_length = os.path.getsize(asset_content_data.name)
-            bytes_to_throw_away = 0
-            if byte_range is not None:
-                bytes_to_throw_away = int(byte_range[0])
-                if bytes_to_throw_away > total_bytes_to_read or bytes_to_throw_away < 0:
-                    web.ctx.status = '416 Requested Range Not Satisfiable'
-                    continue_with_stream = False
-                    yield ''
-                asset_content_data.read(bytes_to_throw_away)
-                total_bytes_to_read = os.path.getsize(asset_content_data.name) - bytes_to_throw_away
-                if byte_range[1] != '':
-                    total_bytes_to_read = int(byte_range[1]) - bytes_to_throw_away
+                # the asset_url is relative, so add in the path
+                asset_content_path = '{0}/{1}'.format(filespace_path,
+                                                      asset_content_data.name)
+                web.header('Content-Type', mimetypes.guess_type(asset_content_path)[0])
+                web.header('Accept-Ranges', 'bytes')
+                # The algorithm below for streaming partial content was based off of this
+                # post:
+                # https://benramsey.com/blog/2008/05/206-partial-content-and-range-requests/
 
-            bytes_read = 0
+                continue_with_stream = True
+                byte_range = rutils.get_byte_ranges()
+                total_bytes_to_read = os.path.getsize(asset_content_data.name)
+                content_length = os.path.getsize(asset_content_data.name)
+                bytes_to_throw_away = 0
+                if byte_range is not None:
+                    bytes_to_throw_away = int(byte_range[0])
+                    if bytes_to_throw_away > total_bytes_to_read or bytes_to_throw_away < 0:
+                        web.ctx.status = '416 Requested Range Not Satisfiable'
+                        continue_with_stream = False
+                        yield ''
+                    asset_content_data.read(bytes_to_throw_away)
+                    total_bytes_to_read = os.path.getsize(asset_content_data.name) - bytes_to_throw_away
+                    if byte_range[1] != '':
+                        total_bytes_to_read = int(byte_range[1]) - bytes_to_throw_away
 
-            num_bytes_to_read = 1024 * 8
-            starting_bytes = bytes_to_throw_away
-            web.ctx.status = '206 Partial Content'
+                bytes_read = 0
 
-            while continue_with_stream:
-                remaining_bytes = total_bytes_to_read - bytes_read
-                bytes_to_read = min(num_bytes_to_read, remaining_bytes)
-                buf = asset_content_data.read(bytes_to_read)
-                if not buf:
-                    break
+                num_bytes_to_read = 1024 * 8
+                starting_bytes = bytes_to_throw_away
+                web.ctx.status = '206 Partial Content'
 
-                # web.header('Content-Length', str(bytes_to_read))
-                web.header('Content-Range', 'bytes {0}-{1}/{2}'.format(str(starting_bytes),
-                                                                       str(starting_bytes + bytes_to_read),
-                                                                       str(content_length)))
+                while continue_with_stream:
+                    remaining_bytes = total_bytes_to_read - bytes_read
+                    bytes_to_read = min(num_bytes_to_read, remaining_bytes)
+                    buf = asset_content_data.read(bytes_to_read)
+                    if not buf:
+                        break
 
-                bytes_read += bytes_to_read
-                starting_bytes += bytes_to_read
-                yield buf
+                    # web.header('Content-Length', str(bytes_to_read))
+                    web.header('Content-Range', 'bytes {0}-{1}/{2}'.format(str(starting_bytes),
+                                                                           str(starting_bytes + bytes_to_read),
+                                                                           str(content_length)))
 
+                    bytes_read += bytes_to_read
+                    starting_bytes += bytes_to_read
+                    yield buf
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 
@@ -284,7 +346,7 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_asset_contents(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_file_as_asset_content(repository, asset, file_name, input_file, params)
 
             # need to get the updated asset with Contents
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
@@ -409,11 +471,99 @@ class AssetDetails(utilities.BaseClass):
     @utilities.format_response
     def PUT(self, repository_id, asset_id):
         try:
+            main_input_file = web.input(inputFile={})
+            vtt_input_file = web.input(vttFile={})
+            transcript_input_file = web.input(transcriptFile={})
+
             rm = rutils.get_repository_manager()
             repo = rm.get_repository(utilities.clean_id(repository_id))
-            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
-
             params = self.data()
+
+            locale = 'en'
+            if 'locale' in params:
+                locale = params['locale']
+
+            # update the asset contents here, for convenience
+            if 'clearAltTexts' in params and params['clearAltTexts']:
+                rutils.clear_alt_texts(repo,
+                                       utilities.clean_id(asset_id))
+            if 'altText' in params:
+                # find the right asset content by genus type. Grab its ID
+                # then get the asset content update form
+                # call form.add_display_name(new alt text)
+                # update form
+                rutils.add_alt_text_to_asset(repo,
+                                             utilities.clean_id(asset_id),
+                                             params['altText'])
+            if 'removeAltTextLanguage' in params:
+                rutils.remove_alt_text_language(repo,
+                                                utilities.clean_id(asset_id),
+                                                params['removeAltTextLanguage'])
+
+            if 'clearMediaDescriptions' in params and params['clearMediaDescriptions']:
+                rutils.clear_media_descriptions(repo,
+                                                utilities.clean_id(asset_id))
+            if 'mediaDescription' in params:
+                rutils.add_media_description_to_asset(repo,
+                                                      utilities.clean_id(asset_id),
+                                                      params['mediaDescription'])
+            if 'removeMediaDescriptionLanguage' in params:
+                rutils.remove_media_description_language(repo,
+                                                         utilities.clean_id(asset_id),
+                                                         params['removeMediaDescriptionLanguage'])
+
+            # Now handle the vtt and transcript uploaded files
+            if 'clearVTTFiles' in params and params['clearVTTFiles']:
+                rutils.clear_vtt_files(repo,
+                                       utilities.clean_id(asset_id))
+            try:
+                vtt_file = vtt_input_file['vttFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = vtt_input_file['vttFile'].filename
+                rutils.add_vtt_file_to_asset(repo,
+                                             utilities.clean_id(asset_id),
+                                             file_name,
+                                             vtt_file,
+                                             locale)
+            if 'removeVTTFileLanguage' in params:
+                rutils.remove_vtt_file_language(repo,
+                                                utilities.clean_id(asset_id),
+                                                params['removeVTTFileLanguage'])
+
+            if 'clearTranscriptFiles' in params and params['clearTranscriptFiles']:
+                rutils.clear_transcript_files(repo,
+                                              utilities.clean_id(asset_id))
+            try:
+                transcript_file = transcript_input_file['transcriptFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = transcript_input_file['transcriptFile'].filename
+                rutils.add_transcript_file_to_asset(repo,
+                                                    utilities.clean_id(asset_id),
+                                                    file_name,
+                                                    transcript_file,
+                                                    locale)
+            if 'removeTranscriptFileLanguage' in params:
+                rutils.remove_transcript_file_language(repo,
+                                                       utilities.clean_id(asset_id),
+                                                       params['removeTranscriptFileLanguage'])
+
+            # also handle updating the main asset content (image or video or audio)
+            try:
+                main_file = main_input_file['inputFile'].file
+            except AttributeError:
+                pass
+            else:
+                file_name = main_input_file['inputFile'].filename
+                rutils.replace_asset_main_content(repo,
+                                                  utilities.clean_id(asset_id),
+                                                  file_name,
+                                                  main_file)
+
+            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
             form = utilities.set_form_basics(form, params)
 
             if 'license' in params.keys():

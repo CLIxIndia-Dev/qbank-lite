@@ -8,10 +8,12 @@ from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
 from dlkit_runtime.errors import NotFound
 from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
 
-from testing_utilities import BaseTestCase, get_fixture_repository, get_managers
+from testing_utilities import BaseTestCase, get_fixture_repository,\
+    get_managers
 from urllib import unquote, quote
 
-from records.registry import ASSESSMENT_RECORD_TYPES, ASSET_CONTENT_RECORD_TYPES
+from records.registry import ASSESSMENT_RECORD_TYPES,\
+    ASSET_CONTENT_RECORD_TYPES, ASSET_CONTENT_GENUS_TYPES
 
 import utilities
 
@@ -20,6 +22,8 @@ ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 
 SIMPLE_SEQUENCE_RECORD = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 MULTI_LANGUAGE_ASSET_CONTENTS = Type(**ASSET_CONTENT_RECORD_TYPES['multi-language'])
+ALT_TEXT_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['alt-text'])
+MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['media-description'])
 
 
 class BaseRepositoryTestCase(BaseTestCase):
@@ -815,6 +819,57 @@ class AssetQueryTests(BaseRepositoryTestCase):
                 asset_content['url']
             )
 
+    def test_can_get_assets_from_all_repositories(self):
+        from testing_utilities import create_test_repository
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        new_repo = create_test_repository()
+        url = '/api/v1/repository/repositories/{0}/assets'.format(str(new_repo.ident))
+
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile', 'new_file.vtt', self._caption_upload_test_file.read())])
+        self.ok(req)
+
+        url = '{0}?fullUrls&allAssets'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data), 2)
+        asset_1 = data[0]
+        self.assertEqual(
+            len(asset_1['assetContents']),
+            1
+        )
+        possible_ac_types = ['asset-content-genus-type%3Amp4%40ODL.MIT.EDU',
+                             'asset-content-genus-type%3Avtt%40ODL.MIT.EDU']
+        self.assertIn(
+            asset_1['assetContents'][0]['genusTypeId'],
+            possible_ac_types
+        )
+        asset_2 = data[1]
+        self.assertEqual(
+            len(asset_2['assetContents']),
+            1
+        )
+        self.assertIn(
+            asset_2['assetContents'][0]['genusTypeId'],
+            possible_ac_types
+        )
+        self.assertNotEqual(
+            asset_1['assignedRepositoryIds'][0],
+            asset_2['assignedRepositoryIds'][0]
+        )
+        self.assertNotEqual(
+            asset_1['assetContents'][0]['genusTypeId'],
+            asset_2['assetContents'][0]['genusTypeId']
+        )
+
 
 class AssetCRUDTests(BaseRepositoryTestCase):
     def setUp(self):
@@ -824,6 +879,7 @@ class AssetCRUDTests(BaseRepositoryTestCase):
 
         self._video_upload_test_file = open('{0}/tests/files/video-js-test.mp4'.format(ABS_PATH), 'r')
         self._caption_upload_test_file = open('{0}/tests/files/video-js-test-en.vtt'.format(ABS_PATH), 'r')
+        self._image_2_test_file = open('{0}/tests/files/Picture2.png'.format(ABS_PATH), 'r')
 
     def tearDown(self):
         """
@@ -835,6 +891,7 @@ class AssetCRUDTests(BaseRepositoryTestCase):
 
         self._video_upload_test_file.close()
         self._caption_upload_test_file.close()
+        self._image_2_test_file.close()
 
     def test_can_upload_video_files_to_repository(self):
         self._video_upload_test_file.seek(0)
@@ -1141,3 +1198,27 @@ class AssetCRUDTests(BaseRepositoryTestCase):
             asset_content.get_url(),
             data['assetContents'][0]['url']
         )
+
+    def test_can_replace_main_media_element_in_asset(self):
+        # using the convenience method
+        self._video_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url, data['id'])
+        self._image_2_test_file.seek(0)
+        req = self.app.put(url,
+                           upload_files=[('inputFile',
+                                          self._filename(self._image_2_test_file),
+                                          self._image_2_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 1)
+        image_url = data['assetContents'][0]['url']
+        req = self.app.get(image_url)
+        self.code(req, 206)
+        self._image_2_test_file.seek(0)
+        self.assertEqual(req.body,
+                         self._image_2_test_file.read())

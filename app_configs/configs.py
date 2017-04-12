@@ -61,6 +61,14 @@ FILESYSTEM_ADAPTER_1 = {
                 {'value': STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
             ]
         },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the JSONClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
+            ]
+        },
         'urlHostname': {
             'syntax': 'STRING',
             'displayName': 'Hostname config for serving files over the network',
@@ -253,7 +261,7 @@ JSON_1 = {
             'displayName': 'Flag to use memcached for authz qualifier_ids or not',
             'description': 'Flag to use memcached for authz qualifier_ids or not',
             'values': [
-                {'value': True, 'priority': 1}
+                {'value': False, 'priority': 1}
             ]
         },
         'dataStorePath': {
@@ -277,7 +285,7 @@ JSON_1 = {
             'displayName': 'Use the filesystem instead of MongoDB',
             'description': 'Use the filesystem instead of MongoDB',
             'values': [
-                {'value': False, 'priority': 1}
+                {'value': True, 'priority': 1}
             ]
         },
     }
@@ -439,6 +447,14 @@ TEST_FILESYSTEM_ADAPTER_1 = {
             'description': 'Filesystem path for setting the MongoClient host.',
             'values': [
                 {'value': TEST_STUDENT_RESPONSE_DATA_STORE_PATH, 'priority': 1}  # Mac
+            ]
+        },
+        'dataStoreFullPath': {
+            'syntax': 'STRING',
+            'displayName': 'Full path to local filesystem datastore',
+            'description': 'Filesystem path for setting the JSONClient host.',
+            'values': [
+                {'value': ABS_PATH, 'priority': 1}
             ]
         },
         'urlHostname': {
@@ -666,7 +682,7 @@ TEST_JSON_1 = {
             'displayName': 'Use the filesystem instead of MongoDB',
             'description': 'Use the filesystem instead of MongoDB',
             'values': [
-                {'value': False, 'priority': 1}
+                {'value': True, 'priority': 1}
             ]
         },
     }

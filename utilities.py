@@ -6,7 +6,7 @@ import os
 
 from urllib import quote
 
-from dlkit.json import types
+from dlkit.json_ import types
 
 from dlkit_runtime import PROXY_SESSION, RUNTIME
 from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
@@ -74,17 +74,7 @@ def create_display_text(text_string, language_code=None):
     else:
         language_code = language_code.lower()
         if language_code in ['en', 'hi', 'te']:
-            if language_code == 'en':
-                language_code = 'ENG'
-                script_code = 'LATN'
-            elif language_code == 'hi':
-                language_code = 'HIN'
-                script_code = 'DEVA'
-            else:
-                language_code = 'TEL'
-                script_code = 'TELU'
-            locale = InitializableLocale(language_type_identifier=language_code,
-                                         script_type_identifier=script_code)
+            locale = convert_two_digit_lang_code_to_locale_object(language_code)
             language_type_id = locale.language_type
             script_type_id = locale.script_type
         else:
@@ -253,6 +243,22 @@ def convert_dl_object(obj):
         return json.dumps(obj.object_map)
     except:
         return json.dumps(obj)
+
+
+def convert_two_digit_lang_code_to_locale_object(language_code):
+    if language_code in ['en', 'hi', 'te']:
+        if language_code == 'en':
+            language_code = 'ENG'
+            script_code = 'LATN'
+        elif language_code == 'hi':
+            language_code = 'HIN'
+            script_code = 'DEVA'
+        else:
+            language_code = 'TEL'
+            script_code = 'TELU'
+        return InitializableLocale(language_type_identifier=language_code,
+                                   script_type_identifier=script_code)
+    return None
 
 
 def extract_items(item_list):

@@ -17,6 +17,8 @@ from dlkit_runtime.utilities import impl_key_dict
 from main import app
 from records.registry import LOG_ENTRY_RECORD_TYPES
 
+from urllib import unquote
+
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
 TEST_DATA_STORE_PATH = 'test_datastore'
@@ -348,7 +350,7 @@ def create_new_bank():
 
 
 def create_test_repository():
-    # from authorization_utilities import get_vault
+    from authorization.authorization_utilities import get_vault
     rm = get_managers()['rm']
     form = rm.get_repository_form_for_create([])
     form.display_name = 'a repository'
@@ -360,10 +362,10 @@ def create_test_repository():
     # set_trace()
     # create_super_authz_authorizations(get_vault())
     #
-    # create_user_authorizations(get_vault(),
-    #                            username="clix-authz@tiss.edu",
-    #                            new_catalogs=[new_repo.ident.identifier])
-    # create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
+    create_user_authorizations(get_vault(),
+                               username="student@tiss.edu",
+                               new_catalogs=[new_repo.ident.identifier])
+    create_user_authorizations(get_vault(), new_catalogs=[new_repo.ident.identifier])
 
     return new_repo
 
@@ -386,8 +388,13 @@ def get_fixture_repository():
 
 
 def get_super_authz_user_request():
-    import settings
-    return get_managers(username=settings.AUTHZ_USER)
+    try:
+        import settings
+    except ImportError:
+        authz_user = os.environ.get('AUTHZ_USER')
+    else:
+        authz_user = settings.AUTHZ_USER
+    return get_managers(username=authz_user)
 
 
 def get_managers(username='student@tiss.edu'):
@@ -434,6 +441,10 @@ class BaseTestCase(TestCase):
     @staticmethod
     def _filename(file_object):
         return file_object.name.split('/')[-1]
+
+    @staticmethod
+    def _label(text):
+        return text.replace('.', '_')
 
     def code(self, _req, _code):
         self.assertEqual(_req.status, _code)
@@ -489,6 +500,8 @@ class BaseTestCase(TestCase):
         shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
                         '{0}/repository'.format(TEST_DATA_STORE_PATH))
 
+        self._bank = get_fixture_bank()
+
     def setup_entry(self, log_id, data):
         logm = get_managers()['logm']
 
@@ -511,3 +524,14 @@ class BaseTestCase(TestCase):
         envoy.run('mongo test_qbank_lite_logging --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_relationship --eval "db.dropDatabase()"')
         envoy.run('mongo test_qbank_lite_repository --eval "db.dropDatabase()"')
+
+    def upload_media_file(self, file_handle):
+        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
+        file_handle.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('inputFile',
+                                           self._filename(file_handle),
+                                           file_handle.read())])
+        self.ok(req)
+        data = self.json(req)
+        return data

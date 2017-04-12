@@ -100,7 +100,11 @@ aggregates all the `AssessmentTaken`s and returns the questions + responses.
 #### GET
 
 url parameters (optional):
-  - None currently supported
+  - agentId. Get the results for a specific `agentId`. Do NOT put this into OSID format.
+             i.e. `student@tiss.edu` is valid.
+  - additionalAttempts. Also retrieve each additional attempt the user made. The most
+                        recent attempt appears in the `response` field, and previous attempts
+                        appear in `additionalAttempts`.
 
 returns:
   - list of `AssessmentTaken`s.
@@ -701,6 +705,18 @@ form data (multi-language, optional):
                  is present in the `questionString`.
     - timeValue. A dictionary with (optional) keys `hours`, `minutes`, `seconds`, to set a
                  time value on the question, for example a limit of audio recording time.
+    - droppables. A list of `droppable` objects, each with a `name`, `text` (which should
+                  be HTML markup), `reuse` (integer), and `dropBehaviorType`. Optional `order`
+                  flag to set the order.
+    - targets. A list of `target` objects, each with a `name`, `text`, and
+               `dropBehaviorType`. Optional `order` flag to set the order.
+    - zones. A list of `zone` objects, each with `name`, `description`, `spatialUnit`,
+             `containerId` (targetId), `visible` (boolean), `reuse` (integer), and
+             `dropBehaviorType`. On create, you can provide an index for `containerId`.
+             Optional `order` flag to set the order.
+    - shuffleDroppables. Boolean to shuffle the droppables on taking or not.
+    - shuffleTargets. Boolean to shuffle the targets on taking or not.
+    - shuffleZones. Boolean to shuffle the zones on taking or not.
   - answers. A list of answer objects (correct or incorrect). Correctness is indicated in the
              `genusTypeId` property, and the exact format of the answer object depends
              on the type of question. With this endpoint, you can add, remove, or edit
@@ -734,6 +750,16 @@ form data (multi-language, optional):
         words sentence, order matters. This replaces all existing `choiceIds`.
     - region (for fill-in-the-blank). Must also be used in conjunction with `choiceIds`. Specifies
         the specific "blank" that the choices are being submitted for.
+    - coordinateConditions. A list of drag-and-drop coordinate conditions. Used for submitting
+                            a student response. Each condition should include a
+                            `droppableId`, a `containerId`, and a `coordinate`. If the ids
+                            are unknown, indices can be used instead.
+    - spatialUnitConditions. Used when authoring to define a spatial-zone. Each condition
+                             should include a `droppableId`, a `containerId`, and a
+                             `spatialUnit`. If the ids are unknown, indices can be used instead.
+    - zoneConditions. Used when authoring to define a spatial-zone. Each condition
+                      should include a `droppableId` and a `zoneId`. If unknown, an index
+                      can be used instead.
 
 returns:
   - the updated `Item` object. For convenience, wrong answers are also included in the response.
@@ -754,9 +780,10 @@ url parameters (optional):
   - qti. Include the QTI 1 XML in the response objects.
   - isolated. Only check the current `bankId` for `item`s. Do **not** check child `bank`s.
   - wronganswers. Get the "wrong" answers for each `item`.
+  - unshuffled. Get the choices in unshuffled order. Useful when authoring.
 
 returns:
-  - list of `Item` objects. Note that wrong answers are **not** included.
+  - list of `Item` objects. Note that wrong answers are **not** included by default.
 
 #### POST
 
@@ -764,7 +791,7 @@ You can either submit a valid, supported QTI *.zip file, or create items via RES
 
 Note that when creating `item`s via REST, you **must** first upload all associated
 files, via the `repository` endpoint for `asset`s. This is demonstrated in
-`tests/test_assessment.py` in the class `QTIEndpointTests` method called `upload_media_file`.
+`tests/test_qti.py` in the class `QTIEndpointTests` method called `upload_media_file`.
 
 Full RESTful documentation is probably best done by example, in viewing the tests.
 You can see the RESTful tests in `tests.test_assessment.py`, specifically the
@@ -773,12 +800,14 @@ to upload text without the QTI-specific wrappers like `<itemBody>` and `<simpleC
 That way the questions can easily be reformatted to other standards.
 You can also refer to `ItemDetails` `PUT` above for more details.
 
-Useful tests to reference are:
+Useful tests to reference in tests/test_assessment.py are:
   - test_item_body_and_inline_choice_tags_provided_inline_choice
   - test_item_body_and_simple_choice_tags_provided_multiple_choice
   - test_item_body_and_simple_choice_tags_provided_order_interaction
   - test_item_body_provided_audio_upload
   - test_item_body_provided_numeric_response
+
+Useful tests to reference in tests/test_restful_items.py are:
   - test_can_create_audio_record_tool_question_via_rest
   - test_can_create_fill_in_the_blank_question_via_rest
   - test_can_create_generic_file_upload_question_via_rest
@@ -791,6 +820,8 @@ Useful tests to reference are:
   - test_can_create_reflection_multi_answer_question_via_rest
   - test_can_create_reflection_single_answer_question_via_rest
   - test_can_create_short_answer_question_via_rest
+
+All the tests in tests/test_drag_and_drop.py can help with that question type.
 
 Supported `item` `genusTypeId`s are:
   - item-genus-type%3Aqti-choice-interaction%40ODL.MIT.EDU
@@ -805,6 +836,7 @@ Supported `item` `genusTypeId`s are:
   - item-genus-type%3Aqti-extended-text-interaction%40ODL.MIT.EDU
   - item-genus-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU
   - item-genus-type%3Aqti-numeric-response%40ODL.MIT.EDU
+  - item-genus-type%3Adrag-and-drop%40ODL.MIT.EDU
 
 Supported `question` `genusTypeId`s are:
   - question-type%3Aqti-choice-interaction%40ODL.MIT.EDU
@@ -819,6 +851,7 @@ Supported `question` `genusTypeId`s are:
   - question-type%3Aqti-extended-text-interaction%40ODL.MIT.EDU
   - question-type%3Aqti-inline-choice-interaction-mw-fill-in-the-blank%40ODL.MIT.EDU
   - question-type%3Aqti-numeric-response%40ODL.MIT.EDU
+  - question-type%3Adrag-and-drop%40ODL.MIT.EDU
 
 Supported `answer` `genusTypeId`s are:
   - answer-type%3Aright-answer%40ODL.MIT.EDU

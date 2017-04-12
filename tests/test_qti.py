@@ -58,10 +58,6 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         numeric_choice_line_str = _stringify(numeric_choice_wrapper)
         return numeric_choice_line_str[3:numeric_choice_line_str.index('=')].strip()  # skip the opening <p> tag
 
-    @staticmethod
-    def _label(text):
-        return text.replace('.', '_')
-
     def create_assessment_offered_for_item(self, bank_id, item_id):
         if isinstance(bank_id, basestring):
             bank_id = utilities.clean_id(bank_id)
@@ -103,7 +99,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
                                                answer_record_types=[QTI_ANSWER_RECORD,
                                                                     MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD,
                                                                     FILES_ANSWER_RECORD])
-        form.load_from_qti_item(self._test_xml)
+        form.load_from_qti_item(self._test_xml, correct=True)
         bank.create_answer(form)
 
         return bank.get_item(new_item.ident)
@@ -219,22 +215,11 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         self._picture3.close()
         self._picture4.close()
 
-    def upload_media_file(self, file_handle):
-        url = '/api/v1/repository/repositories/{0}/assets'.format(unquote(str(self._bank.ident)))
-        file_handle.seek(0)
-        req = self.app.post(url,
-                            upload_files=[('inputFile',
-                                           self._filename(file_handle),
-                                           file_handle.read())])
-        self.ok(req)
-        data = self.json(req)
-        return data
-
     def test_can_get_item_qti_with_answers(self):
         url = '{0}/items/{1}/qti'.format(self.url,
                                          unquote(str(self._item.ident)))
         req = self.app.get(url)
-        qti_xml = BeautifulSoup(req.body, 'lxml-xml')
+        qti_xml = BeautifulSoup(req.body, 'xml')
         item = qti_xml.assessmentItem
         self.assertTrue(item.itemBody.choiceInteraction)
         self.assertTrue(item.responseDeclaration)
@@ -571,12 +556,10 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             item['answers'][1]['genusTypeId'],
             str(WRONG_ANSWER_GENUS)
         )
-
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
@@ -1248,9 +1231,8 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 

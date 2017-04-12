@@ -26,6 +26,8 @@ from urllib import unquote, quote
 import utilities
 
 EDX_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx_item'])
+EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE = Type(**ITEM_RECORD_TYPES['edx-numeric-response-item'])
+
 NUMERIC_RESPONSE_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_ANSWER_RECORD_TYPE = Type(**ANSWER_RECORD_TYPES['numeric-response-edx'])
 NUMERIC_RESPONSE_QUESTION_RECORD_TYPE = Type(**QUESTION_RECORD_TYPES['numeric-response-edx'])
@@ -171,7 +173,6 @@ class BaseAssessmentTestCase(BaseTestCase):
     def setUp(self):
         super(BaseAssessmentTestCase, self).setUp()
         self.url = '/api/v1/assessment'
-        self._bank = get_fixture_bank()
         self._repo = get_fixture_repository()
 
     def tearDown(self):
@@ -788,56 +789,57 @@ class AnswerTypeTests(BaseAssessmentTestCase):
         self.ok(req)
         data = self.json(req)
         self.assertFalse(data['correct'])
-        self.assertEqual(
-            data['feedback'],
-            payload['answers'][0]['feedback']
+        self.assertIn(
+            payload['answers'][0]['feedback'],
+            data['feedback']
         )
 
-    def test_solution_returned_when_student_submits_right_answer(self):
-        payload = self.item_payload()
-        payload['solution'] = 'basket weaving'
-
-        req = self.app.post(self.url,
-                            params=json.dumps(payload),
-                            headers={'content-type': 'application/json'})
-        self.ok(req)
-        item = self.json(req)
-
-        self.assertEqual(
-            item['texts']['solution']['text'],
-            payload['solution']
-        )
-
-        item_id = item['id']
-        right_choice_id = item['question']['choices'][1]['id']
-
-        taken, offered = self.create_taken_for_item(self._bank.ident, item_id)
-
-        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(unquote(str(self._bank.ident)),
-                                                                                   unquote(str(taken.ident)))
-        req = self.app.get(url)
-        self.ok(req)
-        data = self.json(req)
-        question_id = data['data'][0]['id']
-
-        url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions/{2}/submit'.format(unquote(str(self._bank.ident)),
-                                                                                              unquote(str(taken.ident)),
-                                                                                              unquote(question_id))
-        right_answer_payload = {
-            'choiceIds': [right_choice_id]
-        }
-
-        req = self.app.post(url,
-                            params=json.dumps(right_answer_payload),
-                            headers={'content-type': 'application/json'})
-
-        self.ok(req)
-        data = self.json(req)
-        self.assertTrue(data['correct'])
-        self.assertEqual(
-            data['feedback']['text'],
-            payload['solution']
-        )
+    # removed functionality for performance
+    # def test_solution_returned_when_student_submits_right_answer(self):
+    #     payload = self.item_payload()
+    #     payload['solution'] = 'basket weaving'
+    #
+    #     req = self.app.post(self.url,
+    #                         params=json.dumps(payload),
+    #                         headers={'content-type': 'application/json'})
+    #     self.ok(req)
+    #     item = self.json(req)
+    #
+    #     self.assertEqual(
+    #         item['texts']['solution']['text'],
+    #         payload['solution']
+    #     )
+    #
+    #     item_id = item['id']
+    #     right_choice_id = item['question']['choices'][1]['id']
+    #
+    #     taken, offered = self.create_taken_for_item(self._bank.ident, item_id)
+    #
+    #     url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions'.format(unquote(str(self._bank.ident)),
+    #                                                                                unquote(str(taken.ident)))
+    #     req = self.app.get(url)
+    #     self.ok(req)
+    #     data = self.json(req)
+    #     question_id = data['data'][0]['id']
+    #
+    #     url = '/api/v1/assessment/banks/{0}/assessmentstaken/{1}/questions/{2}/submit'.format(unquote(str(self._bank.ident)),
+    #                                                                                           unquote(str(taken.ident)),
+    #                                                                                           unquote(question_id))
+    #     right_answer_payload = {
+    #         'choiceIds': [right_choice_id]
+    #     }
+    #
+    #     req = self.app.post(url,
+    #                         params=json.dumps(right_answer_payload),
+    #                         headers={'content-type': 'application/json'})
+    #
+    #     self.ok(req)
+    #     data = self.json(req)
+    #     self.assertTrue(data['correct'])
+    #     self.assertEqual(
+    #         data['feedback']['text'],
+    #         payload['solution']
+    #     )
 
     def test_can_add_confused_learning_objectives_to_wrong_answer(self):
         payload = self.item_payload()
@@ -3057,11 +3059,14 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         return self.json(req)
 
-    def create_item(self):
+    def create_item(self, with_feedback=False):
         items_endpoint = self.url + '/items'
 
         # Use POST to create an item
         payload = self.item_payload()
+        if with_feedback:
+            payload = self.item_payload_with_feedback()
+
         req = self.app.post(items_endpoint,
                             params=json.dumps(payload),
                             headers={'content-type': 'application/json'})
@@ -3110,6 +3115,61 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
                 "choiceId": 1
             }],
         }
+
+    def item_payload_with_feedback(self):
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Which of the following is a circle?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "idc561552b-ed48-46c3-b20d-873150dfd4a2",
+                    "text": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
+<p>
+  <img src="AssetContent:green_dot_png" alt="image 1" width="20" height="20" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ida86a26e0-a563-4e48-801a-ba9d171c24f7",
+                    "text": """<simpleChoice identifier="ida86a26e0-a563-4e48-801a-ba9d171c24f7">
+<p>|__|</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id32b596f4-d970-4d1e-a667-3ca762c002c5",
+                    "text": """<simpleChoice identifier="id32b596f4-d970-4d1e-a667-3ca762c002c5">
+<p>
+  <img src="AssetContent:h1i_png" alt="image 2" width="26" height="24" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "choiceIds": ["idc561552b-ed48-46c3-b20d-873150dfd4a2"],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">You are correct! A square has the properties of both a rectangle, and a rhombus. Hence, it can also occupy the shaded region.</p>
+</modalFeedback>""",
+                "fileIds": {}
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback506508014" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p>
+    <strong>
+      <span id="docs-internal-guid-46f83555-04cc-d077-5f2e-58f80bf813e2">Please try again!</span>
+      <br />
+    </strong>
+  </p>
+</modalFeedback>""",
+                'fileIds': {}
+            }]
+        }
+        return payload
 
     def link_item_to_assessment(self, item, assessment):
         assessment_items_endpoint = '{0}/assessments/{1}/items'.format(self.url,
@@ -3447,6 +3507,71 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             data[0]['sections'][0]['questions'][0]['learningObjectiveIds'],
             []
         )
+
+    def test_can_get_results_with_all_attempts_for_offered(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        taken_id = unquote(taken['id'])
+        taken_questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                          taken_id)
+        req = self.app.get(taken_questions_url)
+        self.ok(req)
+        data = self.json(req)['data']
+        question_1 = data[0]
+        question_1_id = question_1['id']
+
+        url = '{0}/{1}/submit'.format(taken_questions_url,
+                                      question_1_id)
+        choices = question_1['choices']
+        wrong_answer_id = 'foo'
+        right_answer_id = 'idc561552b-ed48-46c3-b20d-873150dfd4a2'
+
+        payload = {
+            'choiceIds': [wrong_answer_id]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+
+        payload = {
+            'choiceIds': [right_answer_id]
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+
+        results_url = '{0}/assessmentsoffered/{1}/results?additionalAttempts'.format(self.url,
+                                                                                     unquote(offered['id']))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        for index, question in enumerate(data[0]['sections'][0]['questions']):
+            self.assertIn('additionalAttempts', question)
+            self.assertEqual(
+                len(question['additionalAttempts']),
+                1
+            )
+            self.assertTrue(question['response']['isCorrect'])
+            self.assertFalse(question['additionalAttempts'][0]['isCorrect'])
 
 
 class BankTests(BaseAssessmentTestCase):
@@ -5885,6 +6010,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
         self.assertIn('You did it!', data['feedback'])
         self.assertIn('', data['feedback'])
         self.assertIn(expected_content_id, data['feedback'])
+        self.assertIn('/stream', data['feedback'])
         self.assertNotIn('Sorry, bad choice', data['feedback'])
 
     def test_images_in_incorrect_feedback_are_converted_to_urls(self):
@@ -5974,7 +6100,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6103,7 +6229,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -6307,7 +6433,7 @@ class MultipleChoiceAndMWTests(BaseAssessmentTestCase):
                 different_order_count += 1
         self.assertTrue(different_order_count == 0)
 
-        url = '{0}/items?unordered'.format(self.url)
+        url = '{0}/items?unshuffled'.format(self.url)
 
         different_order_count = 0
         for i in range(0, 10):
@@ -7330,7 +7456,7 @@ class NumericAnswerTests(BaseAssessmentTestCase):
             bank_id = utilities.clean_id(bank_id)
 
         bank = get_managers()['am'].get_bank(bank_id)
-        form = bank.get_item_form_for_create([EDX_ITEM_RECORD_TYPE])
+        form = bank.get_item_form_for_create([EDX_NUMERIC_RESPONSE_ITEM_RECORD_TYPE])
         form.display_name = 'a test item!'
         form.description = 'for testing with'
         form.set_genus_type(NUMERIC_RESPONSE_ITEM_GENUS_TYPE)
@@ -7692,6 +7818,9 @@ class NumericAnswerTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
+        if not data['correct']:
+            import pdb
+            pdb.set_trace()
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
 

@@ -145,6 +145,23 @@ url parameters (optional):
   - description. Edit the `asset` `description` text.
   - license. Edit the `license` string.
   - copyright. Edit the `copyright` string.
+  - altText. Edit an existing `alt-text` `assetContent` or creates one in a new language.
+             Expects a `DisplayText` object.
+  - mediaDescription. Edit a `mediaDescription` `assetContent` or creates one in a new
+                      language. Expects a `DisplayText` object.
+  - clearAltTexts. Remove all `alt-texts`, but does not delete the `assetContent`.
+  - clearMediaDescriptions. Remove all `mediaDescriptions`, but does not delete the `assetContent`.
+  - removeAltTextLanguage. Removes the matching `languageTypeId` `alt-text`.
+  - removeMediaDescriptionLanguage. Removes the matching `languageTypeId` `mediaDescription`.
+  - inputFile. Replace the main (non-VTT, non-transcript, non-alt-text, non-description)
+               `assetContent` data.
+  - locale. Used to indicate `transcriptFile` and `vttFile` language. `en` by default.
+  - transcriptFile. Replace or add a transcript file. Requires usage of `locale` parameter.
+  - vttFile. Replace or add a vtt caption file. Requires usage of `locale` parameter.
+  - removeTranscriptFileLanguage. Removes the matching `languageTypeId` transcript file.
+  - removeVTTFileLanguage. Removes the matching `languageTypeId` vtt file.
+  - clearTranscriptFiles. Removes all transcript files, but does not delete the `assetContent`.
+  - clearVTTFiles. Removes all vtt files, but does not delete the `assetContent`.
 
 returns:
   - `Asset` object.
@@ -160,6 +177,7 @@ Return list of `asset`s in the given `repository`, or create a new
 url parameters (optional):
   - fullUrls. If included, the `url` values for each `asset`'s `assetContents` will point
               to a resolve-able URL, so you can preview the file / image / etc.
+  - allAssets. Returns all `asset`s in the system, regardless of `repository`.
 
 returns:
   - list of `Asset` objects.
@@ -177,6 +195,12 @@ form data (required):
                           This can be found at `result.assetContents[0].url`.
   - license (optional). Set the `license` string.
   - copyright (optional). Set the `copyright` string.
+  - altText (optional). Create an `alt-text` `assetContent` from a `DisplayText` object.
+  - mediaDescription (optional). Create a `mediaDescription` `assetContent` from a
+                                 `DisplayText` object.
+  - locale (optional). Used to indicate `transcriptFile` and `vttFile` language. `en` by default.
+  - transcriptFile (optional). Add a transcript file. Requires usage of `locale` parameter.
+  - vttFile (optional). Add a vtt caption file. Requires usage of `locale` parameter.
 
 returns:
   - `Asset` object.

@@ -2572,9 +2572,8 @@ class RESTfulTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
@@ -2867,9 +2866,8 @@ class RESTfulTests(BaseAssessmentTestCase):
         )
         self.assertEqual(
             len(item['answers'][1]['choiceIds']),
-            1
+            0
         )
-        self.assertIsNone(item['answers'][1]['choiceIds'][0])
         self.assertIn('feedbacks', item['answers'][1])
         self.assertTrue(len(item['answers'][1]['feedbacks']) == 1)
 
@@ -3153,27 +3151,8 @@ class RESTfulTests(BaseAssessmentTestCase):
             },
             "answers": [{
                 "genusTypeId": str(RIGHT_ANSWER_GENUS),
-                "choiceIds": ['id14a6824a-79f2-4c00-ac6a-b41cbb64db45',
-                              'id969e920d-6d22-4d06-b4ac-40a821e350c6',
-                              'id820fae90-3794-40d1-bee0-daa36da223b3',
-                              'id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60',
-                              'idf1583dac-fb7a-4365-aa0d-f64e5ab61029',
-                              'idd8449f3e-820f-46f8-9529-7e019fceaaa6',
-                              'iddd689e9d-0cd0-478d-9d37-2856f866a757',
-                              'id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf',
-                              'id41288bb9-e76e-4313-bf57-2101edfe3a76',
-                              'id4435ccd8-df65-45e7-8d82-6c077473d8d4',
-                              'idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1',
-                              'id472afb75-4aa9-4daa-a163-075798ee57ab',
-                              'id8c68713f-8e39-446b-a6c8-df25dfb8118e'],
                 "feedback": """  <modalFeedback  identifier="Feedback372632509" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
 <p>Correct Feedback goes here!</p>
-</modalFeedback>"""
-            }, {
-                "genusTypeId": str(WRONG_ANSWER_GENUS),
-                "choiceIds": [None],
-                "feedback": """  <modalFeedback  identifier="Feedback2014412711" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
-<p>Wrong...Feedback goes here!</p>
 </modalFeedback>"""
             }]
         }
@@ -5095,6 +5074,228 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertFalse(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
 
+    def test_submitting_to_image_sequence_with_exact_wrong_answer_match_works(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": ['id127df214-2a19-44da-894a-853948313dae',
+                              'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                              'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                              'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">Try again.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': ['id127df214-2a19-44da-894a-853948313dae',
+                          'iddcbf40ab-782e-4d4f-9020-6b8414699a72',
+                          'idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b',
+                          'ide576c9cc-d20e-4ba3-8881-716100b796a0'],
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertIn('Try again.', data['feedback'])
+
+    def test_submitting_wrong_answer_to_image_sequence_returns_generic_incorrect_feedback(self):
+        url = '{0}/items'.format(self.url)
+
+        media_files = [self._audio_test_file,
+                       self._picture1,
+                       self._picture2,
+                       self._picture3,
+                       self._picture4]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Listen to each audio clip and put the pictures of the story in order.
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:audioTestFile__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b",
+                    "text": """<simpleChoice identifier="idb4f6cd03-cf58-4391-9ca2-44b7bded3d4b">
+<p>
+  <img src="AssetContent:Picture1_png" alt="Picture 1" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id127df214-2a19-44da-894a-853948313dae",
+                    "text": """<simpleChoice identifier="id127df214-2a19-44da-894a-853948313dae">
+<p>
+  <img src="AssetContent:Picture2_png" alt="Picture 2" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddcbf40ab-782e-4d4f-9020-6b8414699a72",
+                    "text": """<simpleChoice identifier="iddcbf40ab-782e-4d4f-9020-6b8414699a72">
+<p>
+  <img src="AssetContent:Picture3_png" alt="Picture 3" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }, {
+                    "id": "ide576c9cc-d20e-4ba3-8881-716100b796a0",
+                    "text": """<simpleChoice identifier="ide576c9cc-d20e-4ba3-8881-716100b796a0">
+<p>
+  <img src="AssetContent:Picture4_png" alt="Picture 4" width="100" height="100" />
+</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS),
+                "shuffle": True,
+                "fileIds": {}
+            },
+            "answers": [{
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "choiceIds": [],
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+  <p id="docs-internal-guid-46f83555-04cc-a70f-2574-1b5c79fe206e" dir="ltr">Try again.</p>
+</modalFeedback>"""
+            }]
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': 'ide576c9cc-d20e-4ba3-8881-716100b796a0',
+            'type': 'answer-type%3Aqti-order-interaction-object-manipulation%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data['correct'])
+        self.assertIn('Try again', data['feedback'])
+
     def test_can_create_numeric_response_question_via_rest(self):
         url = '{0}/items'.format(self.url)
 
@@ -5237,6 +5438,199 @@ class RESTfulTests(BaseAssessmentTestCase):
         var2 = int(expression[expression.index('+') + 1::].strip())
 
         self.assertTrue(1.0 <= var1 <= 10.0)
+        self.assertTrue(1 <= var2 <= 10)
+
+        # make sure the questionId is "magical"
+        self.assertNotEqual(
+            item['id'],
+            item['question']['id']
+        )
+        self.assertNotIn('?', item['question']['id'])
+        self.assertEqual(
+            item['question']['id'].split('%40')[-1],
+            'qti-numeric-response'
+        )
+        self.assertIn('var1', item['question']['id'].split('%3A')[-1].split('%40')[0])
+        self.assertIn('var2', item['question']['id'].split('%3A')[-1].split('%40')[0])
+
+    def test_can_update_numeric_response_variables_via_rest(self):
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Please solve:
+</p>
+<p>
+   <printedVariable identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>""",
+                "variables": [{
+                    "id": "var1",
+                    "format": "%.4f",
+                    "type": "float",
+                    "min": 1.0,
+                    "max": 10.0,
+                    "step": 0.1
+                }, {
+                    "id": "var2",
+                    "type": "integer",
+                    "min": 1,
+                    "max": 10
+                }],
+                "genusTypeId": str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p></p>
+</modalFeedback>"""
+            }, {
+                "genusTypeId": str(WRONG_ANSWER_GENUS),
+                "feedback": """<modalFeedback  identifier="Feedback933928139" outcomeIdentifier="FEEDBACKMODAL" showHide="show">
+<p></p>
+</modalFeedback>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        self.assertEqual(
+            item['genusTypeId'],
+            str(QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertEqual(
+            item['question']['genusTypeId'],
+            str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)
+        )
+
+        self.assertIn('var1', item['question']['variables'])
+        self.assertIn('var2', item['question']['variables'])
+
+        self.assertEqual(
+            item['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['max_value'],
+            10.0
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            item['question']['variables']['var1']['format'],
+            '%.4f'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['min_value'],
+            1
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['max_value'],
+            10
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['type'],
+            'integer'
+        )
+        self.assertEqual(
+            item['question']['variables']['var2']['step'],
+            1
+        )
+
+        self.assertEqual(
+            item['answers'][0]['genusTypeId'],
+            str(RIGHT_ANSWER_GENUS)
+        )
+        self.assertIn('<p></p>', item['answers'][0]['feedbacks'][0]['text'])
+        self.assertIn('<p></p>', item['answers'][1]['feedbacks'][0]['text'])
+
+        self.assertNotEqual(
+            item['id'],
+            str(self._item.ident)
+        )
+
+        payload = {
+            "question": {
+                "variables": [{
+                    "id": "var1",
+                    "format": "%.2f",
+                    "type": "float",
+                    "min": 1.0,
+                    "max": 100.0,
+                    "step": 0.1
+                }]
+            }
+        }
+
+        url = '{0}/{1}'.format(url, unquote(item['id']))
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(
+            data['question']['variables']['var1']['min_value'],
+            1.0
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['max_value'],
+            100.0
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['type'],
+            'float'
+        )
+        self.assertEqual(
+            data['question']['variables']['var1']['format'],
+            '%.2f'
+        )
+
+        url = '{0}/qti'.format(url)
+        req = self.app.get(url)
+        self.ok(req)
+        item_qti = BeautifulSoup(req.body, 'lxml-xml').assessmentItem
+        item_body = item_qti.itemBody
+
+        expected_string = """<itemBody>
+<p>
+   Please solve:
+</p>
+<p>
+   <printedVariable format="%.2f" identifier="var1"/>
+   +
+   <printedVariable identifier="var2"/>
+   =
+   <textEntryInteraction responseIdentifier="RESPONSE"/>
+</p>
+</itemBody>"""
+
+        self.assertNotEqual(
+            str(item_body),
+            expected_string
+        )
+
+        # make sure some random numbers are inserted that meet the requirements
+        expression = self._grab_expression(str(item_body))
+        var1 = float(expression[0:expression.index('+')].strip())
+        var2 = int(expression[expression.index('+') + 1::].strip())
+
+        self.assertTrue(1.0 <= var1 <= 100.0)
         self.assertTrue(1 <= var2 <= 10)
 
         # make sure the questionId is "magical"
@@ -5567,3 +5961,382 @@ class RESTfulTests(BaseAssessmentTestCase):
         item = self.json(req)
         self.assertEqual(item['question']['choices'][0]['text'],
                          payload['question']['choices'][0]['text'])
+
+    def test_feedback_not_escaped_when_does_not_include_modal_feedback_tag(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<div>
+<p>
+  <strong>Introducting a new student</strong>
+</p>
+<p>It's the first day of school after the summer vacations. A new student has joined the class</p>
+<p>Student 1 talks to the new student to make him/her feel comfortable.</p>
+<p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
+</div>""",
+                "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS),
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 100
+                }
+            },
+            "answers": [{
+                "genusTypeId": str(RIGHT_ANSWER_GENUS),
+                "feedback": """<p>Thanks for uploading!</p>"""
+            }]
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident, item['id'])
+
+        questions_url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                                    unquote(str(taken.ident)))
+        req = self.app.get(questions_url)
+        self.ok(req)
+        data = self.json(req)
+        question_id = data['data'][0]['id']
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     unquote(str(taken.ident)),
+                                                                     question_id)
+
+        self._audio_test_file.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission',
+                                           self._filename(self._audio_test_file),
+                                           self._audio_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertNotIn('&lt;', data['feedback'])
+        self.assertNotIn('&gt;', data['feedback'])
+        self.assertIn('<p>', data['feedback'])
+        self.assertIn('</p>', data['feedback'])
+
+    def test_submitting_to_short_answer_correct_even_if_no_right_answer(self):
+        media_files = [self._shapes_image]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04bd-94f0-a53d-94c5c97ab6e6">
+     Which of the following figure(s) is/are parallelogram(s)? Give a reason for your choice.
+    </span>
+<br/>
+</strong>
+</p>
+<p>
+<strong>
+<img alt="A set of four shapes." height="204" src="AssetContent:shapes_png" width="703"/>
+</strong>
+</p>
+</itemBody>""",
+                "maxStrings": 300,
+                "expectedLength": 100,
+                "expectedLines": 5,
+                "genusTypeId": str(QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS),
+                "fileIds": {}
+            }
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'text': 'foo'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
+
+    def test_submitting_to_file_upload_correct_even_if_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+<strong>
+<span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+     Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+    </span>
+<br/>
+</strong>
+</p>
+</itemBody>""",
+                "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)
+            }
+        }
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        self._diamond_image.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission',
+                                           self._filename(self._diamond_image),
+                                           self._diamond_image.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
+
+    def test_submitting_to_survey_correct_even_if_no_answers(self):
+        url = '{0}/items'.format(self.url)
+        payload = {
+            "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody >
+<p>Did you eat breakfast today?</p>
+</itemBody>""",
+                "choices": [{
+                    "id": "id5f1fc52a-a04e-4fa1-b855-51da24967a31",
+                    "text": """<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+<p>Yes</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                    "text": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+<p>No</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id8188b5cd-89b0-4140-b12a-aed5426bd81b",
+                    "text": """<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+<p>I don't remember</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
+                "shuffle": True
+            }
+        }
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        submit_payload = {
+            'choiceIds': 'id8188b5cd-89b0-4140-b12a-aed5426bd81b',
+            'type': 'answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU'
+        }
+        req = self.app.post(url,
+                            params=json.dumps(submit_payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')
+
+    def test_submitting_to_mw_sandbox_correct_even_if_no_answers(self):
+        media_files = [self._mw_sandbox_audio_file]
+
+        assets = {}
+        for media_file in media_files:
+            label = self._label(self._filename(media_file))
+            assets[label] = self.upload_media_file(media_file)
+
+        url = '{0}/items'.format(self.url)
+
+        payload = {
+            "genusTypeId": str(QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+            "name": "Question 1",
+            "description": "For testing",
+            "question": {
+                "questionString": """<itemBody>
+<p>
+   Movable Word Sandbox:
+  </p>
+<p>
+<audio autoplay="autoplay" controls="controls" style="width: 125px">
+<source src="AssetContent:ee_u1l01a01r04__mp3" type="audio/mpeg"/>
+</audio>
+</p>
+
+</itemBody>""",
+                "choices": [{
+                    "id": "id14a6824a-79f2-4c00-ac6a-b41cbb64db45",
+                    "text": """<simpleChoice identifier="id14a6824a-79f2-4c00-ac6a-b41cbb64db45">
+<p class=\"noun\">the bus</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id969e920d-6d22-4d06-b4ac-40a821e350c6",
+                    "text": """<simpleChoice identifier="id969e920d-6d22-4d06-b4ac-40a821e350c6">
+<p class=\"noun\">the airport</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id820fae90-3794-40d1-bee0-daa36da223b3",
+                    "text": """<simpleChoice identifier="id820fae90-3794-40d1-bee0-daa36da223b3">
+<p class=\"noun\">the bags</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60",
+                    "text": """<simpleChoice identifier="id2d13b6d7-87e9-4022-a4b6-dcdbba5c8b60">
+<p class=\"verb\">are</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idf1583dac-fb7a-4365-aa0d-f64e5ab61029",
+                    "text": """<simpleChoice identifier="idf1583dac-fb7a-4365-aa0d-f64e5ab61029">
+<p class=\"adverb\">under</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idd8449f3e-820f-46f8-9529-7e019fceaaa6",
+                    "text": """<simpleChoice identifier="idd8449f3e-820f-46f8-9529-7e019fceaaa6">
+<p class=\"prep\">on</p>
+</simpleChoice>"""
+                }, {
+                    "id": "iddd689e9d-0cd0-478d-9d37-2856f866a757",
+                    "text": """<simpleChoice identifier="iddd689e9d-0cd0-478d-9d37-2856f866a757">
+<p class=\"adverb\">on top of</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf",
+                    "text": """<simpleChoice identifier="id1c0298a6-90ed-4bc9-987a-7fd0165c0fcf">
+<p class=\"noun\">Raju's</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id41288bb9-e76e-4313-bf57-2101edfe3a76",
+                    "text": """<simpleChoice identifier="id41288bb9-e76e-4313-bf57-2101edfe3a76">
+<p class=\"verb\">left</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id4435ccd8-df65-45e7-8d82-6c077473d8d4",
+                    "text": """<simpleChoice identifier="id4435ccd8-df65-45e7-8d82-6c077473d8d4">
+<p class=\"noun\">the seat</p>
+</simpleChoice>"""
+                }, {
+                    "id": "idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1",
+                    "text": """<simpleChoice identifier="idfffc63c0-f227-4ac4-ad0a-2f0b92b28fd1">
+<p class=\"noun\">the city</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id472afb75-4aa9-4daa-a163-075798ee57ab",
+                    "text": """<simpleChoice identifier="id472afb75-4aa9-4daa-a163-075798ee57ab">
+<p class=\"noun\">the bicycle</p>
+</simpleChoice>"""
+                }, {
+                    "id": "id8c68713f-8e39-446b-a6c8-df25dfb8118e",
+                    "text": """<simpleChoice identifier="id8c68713f-8e39-446b-a6c8-df25dfb8118e">
+<p class=\"verb\">dropped</p>
+</simpleChoice>"""
+                }],
+                "genusTypeId": str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS),
+                "shuffle": True,
+                "fileIds": {},
+                "timeValue": {
+                    "hours": 0,
+                    "minutes": 0,
+                    "seconds": 360
+                }
+            }
+        }
+
+        for label, asset in assets.iteritems():
+            payload['question']['fileIds'][label] = {}
+            payload['question']['fileIds'][label]['assetId'] = asset['id']
+            payload['question']['fileIds'][label]['assetContentId'] = asset['assetContents'][0]['id']
+            payload['question']['fileIds'][label]['assetContentTypeId'] = asset['assetContents'][0]['genusTypeId']
+
+        req = self.app.post(url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        item = self.json(req)
+
+        taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                utilities.clean_id(item['id']))
+
+        url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                          str(taken.ident))
+        req = self.app.get(url)
+        self.ok(req)
+        question = self.json(req)['data'][0]
+
+        url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                     str(taken.ident),
+                                                                     question['id'])
+        self._diamond_image.seek(0)
+        req = self.app.post(url,
+                            upload_files=[('submission',
+                                           self._filename(self._diamond_image),
+                                           self._diamond_image.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertTrue(data['correct'])
+        self.assertEqual(data['feedback'], 'No feedback available.')

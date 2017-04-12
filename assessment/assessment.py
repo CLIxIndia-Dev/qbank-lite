@@ -74,6 +74,9 @@ MULTI_LANGUAGE_EXTENDED_TEXT_INTERACTION_QUESTION_RECORD = Type(**QUESTION_RECOR
 MULTI_LANGUAGE_FILE_UPLOAD_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-file-submission'])
 MULTI_LANGUAGE_NUMERIC_RESPONSE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-numeric-response'])
 
+DRAG_AND_DROP_ITEM_GENUS = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
+DRAG_AND_DROP_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['drag-and-drop'])
+
 TIME_VALUE_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['time-value'])
 
 PROVENANCE_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['provenance'])
@@ -423,7 +426,6 @@ class ItemsList(utilities.BaseClass):
                         item_qti = item.get_qti_xml(media_file_root_path=autils.get_media_path(assessment_bank))
                     except AttributeError:
                         pass  # not a qti question
-
                 item_map = item.object_map
 
                 if item_qti is not None:
@@ -431,7 +433,7 @@ class ItemsList(utilities.BaseClass):
 
                 if 'wronganswers' in params:
                     item_map = autils.update_item_json_answers(item, item_map)
-                if 'unordered' in params:
+                if 'unshuffled' in params:
                     item_map = autils.update_item_json_random_choices(assessment_bank, item, item_map)
 
                 results.append(item_map)
@@ -455,11 +457,13 @@ class ItemsList(utilities.BaseClass):
                 uploaded_file = x['qtiFile'].file
             except AttributeError:  # 'dict' object has no attribute 'file'
                 # let's do QTI questions differently
-                if 'genusTypeId' in self.data() and 'qti' in self.data()['genusTypeId']:
+                item_json = self.data()
+
+                if ('genusTypeId' in item_json and
+                        ('qti' in item_json['genusTypeId'] or autils.is_drag_and_drop(item_json))):
                     # do QTI-ish stuff
                     # QTI ID alias check to see if this item exists already
                     # if so, create a new item and provenance it...
-                    item_json = self.data()
                     item_genus = Type(item_json['genusTypeId'])
 
                     if item_genus not in [CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS,
@@ -473,7 +477,8 @@ class ItemsList(utilities.BaseClass):
                                           ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS,
                                           EXTENDED_TEXT_INTERACTION_GENUS,
                                           INLINE_CHOICE_INTERACTION_GENUS,
-                                          NUMERIC_RESPONSE_INTERACTION_GENUS]:
+                                          NUMERIC_RESPONSE_INTERACTION_GENUS,
+                                          DRAG_AND_DROP_ITEM_GENUS]:
                         raise OperationFailed('Item type not supported, or unrecognized')
 
                     add_provenance_parent = False
@@ -514,6 +519,9 @@ class ItemsList(utilities.BaseClass):
                                       ORDER_INTERACTION_MW_SANDBOX_GENUS,
                                       ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS]:
                         items_records_list.append(RANDOMIZED_MULTI_CHOICE_ITEM_RECORD)
+                    if item_genus in [DRAG_AND_DROP_ITEM_GENUS]:
+                        items_records_list.append(DRAG_AND_DROP_ITEM_RECORD)
+                        items_records_list.remove(QTI_ITEM)
 
                     form = bank.get_item_form_for_create(items_records_list)
                     form = utilities.set_form_basics(form, item_json)
@@ -526,6 +534,7 @@ class ItemsList(utilities.BaseClass):
                         autils.archive_item(bank, parent_item)
 
                     new_item = bank.create_item(form)
+                    question = None
 
                     if 'question' in item_json:
                         question = item_json['question']
@@ -546,7 +555,7 @@ class ItemsList(utilities.BaseClass):
                         # need to also handle fileIds / images / media attached to the question
                         q_form = autils.update_question_form_with_files(q_form, question)
 
-                        bank.create_question(q_form)
+                        question = bank.create_question(q_form)
 
                     if 'answers' in item_json:
                         for answer in item_json['answers']:
@@ -565,7 +574,7 @@ class ItemsList(utilities.BaseClass):
                             a_form = autils.update_answer_form_with_files(a_form, answer)
 
                             # set conditions / choiceIds
-                            a_form = autils.update_answer_form(answer, a_form)
+                            a_form = autils.update_answer_form(answer, a_form, question)
 
                             bank.create_answer(a_form)
                 else:
@@ -1211,10 +1220,10 @@ class ItemDetails(utilities.BaseClass):
                 if updated_item.object_map['question'] is not None:
                     existing_question = updated_item.get_question()
                     existing_question_map = existing_question.object_map
-                    q_id = existing_question.ident
 
-                    if 'type' not in question:
-                        question['type'] = existing_question_map['recordTypeIds'][0]
+                    # if 'type' not in question:
+                    #     question['type'] = existing_question_map['recordTypeIds'][0]
+
                     if 'recordTypeIds' not in question:
                         question['recordTypeIds'] = existing_question_map['recordTypeIds']
 
@@ -1238,7 +1247,7 @@ class ItemDetails(utilities.BaseClass):
                 for answer in local_data_map['answers']:
                     if 'id' in answer:
                         a_id = utilities.clean_id(answer['id'])
-                        if 'delete' in answer and answer['delete']:
+                        if autils.object_to_be_deleted(answer):
                             bank.delete_answer(a_id)
                         else:
                             afu = bank.get_answer_form_for_update(a_id)
@@ -1261,8 +1270,9 @@ class ItemDetails(utilities.BaseClass):
                             answer['recordTypeIds'] = [str(t) for t in a_types]
 
                         if (('type' in answer and 'multi-choice' in answer['type']) or
-                                any('multi-choice' in ar for ar in answer['recordTypeIds'])):
-                            # because multiple choice answers need to match to
+                                any('multi-choice' in ar for ar in answer['recordTypeIds']) or
+                                autils.is_drag_and_drop(answer)):
+                            # because multiple choice and drag/drop answers need to match to
                             # the actual MC3 ChoiceIds, NOT the index passed
                             # in by the consumer.
                             # update this here because we need the new question,
@@ -1599,7 +1609,6 @@ class AssessmentOfferedResults(utilities.BaseClass):
     Get the class results for an assessment offered (all the takens)
     api/v2/assessment/banks/<bank_id>/assessmentsoffered/<offered_id>/results
 
-
     GET
     GET to view a specific offering
     """
@@ -1608,7 +1617,10 @@ class AssessmentOfferedResults(utilities.BaseClass):
         def taken_map(_taken):
             t_map = _taken.object_map
             t_map.update({
-                'sections': autils.get_taken_section_map(_taken, update=False)
+                'sections': autils.get_taken_section_map(_taken,
+                                                         update=False,
+                                                         bank=bank,
+                                                         with_additional_attempts=with_additional_attempts)
             })
             return t_map
 
@@ -1616,6 +1628,11 @@ class AssessmentOfferedResults(utilities.BaseClass):
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             params = self.data()
+
+            with_additional_attempts = False
+            if 'additionalAttempts' in params:
+                with_additional_attempts = True
+
             if 'agentId' in params:
                 querier = bank.get_assessment_taken_query()
                 agent_id = utilities.create_agent_id(params['agentId'])
@@ -1804,13 +1821,18 @@ class AssessmentTakenQuestions(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
+            bank.use_isolated_bank_view()
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
-            questions = bank.get_questions(first_section.ident)
+            questions = first_section.get_questions()
             if 'qti' in web.input():
                 data = []
                 for question in questions:
-                    # do this first, to not mess up unrandomized choices
-                    question_qti = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    try:
+                        # do this first, to not mess up unrandomized choices
+                        question_qti = question.get_qti_xml(media_file_root_path=autils.get_media_path(bank))
+                    except AttributeError:
+                        # drag and drop doesn't support QTI
+                        question_qti = None
                     question_map = question.object_map
                     question_map.update({
                         'qti': question_qti
@@ -1819,7 +1841,6 @@ class AssessmentTakenQuestions(utilities.BaseClass):
                 data = json.dumps(data)
             else:
                 data = utilities.extract_items(questions)
-
             return data
         except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -1936,29 +1957,28 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             bank.use_isolated_bank_view()
             first_section = bank.get_first_assessment_section(utilities.clean_id(taken_id))
-            question = bank.get_question(first_section.ident,
-                                         utilities.clean_id(question_id))
+            question = first_section.get_question(utilities.clean_id(question_id))
             response_form = bank.get_response_form(assessment_section_id=first_section.ident,
                                                    item_id=question.ident)
             local_data_map = self.data()
             if 'type' not in local_data_map:
                 # kind of a hack
-                question_map = question.object_map['genusTypeId']
+                q_object_map = question.object_map
+                question_map = q_object_map['genusTypeId']
                 if question_map != 'GenusType%3ADEFAULT%40DLKIT.MIT.EDU':
-                    local_data_map['type'] = question.object_map['genusTypeId']
+                    local_data_map['type'] = q_object_map['genusTypeId']
                     local_data_map['type'] = local_data_map['type'].replace('question-type',
                                                                             'answer-type')
                 else:
-                    local_data_map['type'] = question.object_map['recordTypeIds'][0]
+                    local_data_map['type'] = q_object_map['recordTypeIds'][0]
                     local_data_map['type'] = local_data_map['type'].replace('question-record-type',
                                                                             'answer-record-type')
-
             try:
                 filename = x['submission'].filename
             except AttributeError:
                 if autils.is_file_submission(local_data_map) and not autils.is_mw_sandbox(local_data_map):
                     # TODO: for now, take empty response for MW Sandbox
-                    raise IllegalState('You must supply a file with a file upload question')
+                    raise IllegalState('You must supply a file with a file upload question in the "submission" field.')
             else:
                 if '.' not in filename:
                     extension = x['submission'].__dict__['type'].split('/')[-1]  # make assumption about mimetype
@@ -1967,7 +1987,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if extension not in filename:
                         filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
-
             try:
                 update_form = autils.update_response_form(local_data_map, response_form)
             except AttributeError:
@@ -1976,140 +1995,44 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             bank.submit_response(first_section.ident, question.ident, update_form)
             # the above code logs the response in Mongo
 
-            try:
-                response = bank.get_response(first_section.ident, question.ident)
-                correct = response.is_correct()
-            except (AttributeError, IllegalState):
-                # Now need to actually check the answers against the
-                # item answers.
-                answers = bank.get_answers(first_section.ident, question.ident)
-                # compare these answers to the submitted response
+            response = bank.get_response(first_section.ident, question.ident)
+            correct = response.is_correct()
 
-                correct = autils.validate_response(local_data_map, answers)
+            if autils.always_right(local_data_map):
+                correct = True
+
             feedback = "No feedback available."
             return_data = {
                 'correct': correct,
                 'feedback': feedback
             }
+
             # update with item solution, if available
             feedback_strings = []
             confused_los = []
+
+            item = first_section._get_item(question.ident)
             try:
-                taken = bank.get_assessment_taken(utilities.clean_id(taken_id))
-                feedback = taken.get_solution_for_question(
-                    utilities.clean_id(question_id))['explanation']
-                if isinstance(feedback, basestring):
-                    feedback = {
-                        'text': feedback
-                    }
-                return_data.update({
-                    'feedback': feedback
-                })
-            except (IllegalState, TypeError, AttributeError):
-                # update with answer feedback, if available
-                # for now, just support this for multiple choice questions...
-                if (autils.is_multiple_choice(local_data_map) or
-                        autils.is_ordered_choice(local_data_map)):
-                    submissions = autils.get_response_submissions(local_data_map)
-                    answers = bank.get_answers(first_section.ident, question.ident)
-                    exact_answer_match = None
-                    default_answer_match = None
-                    for answer in answers:
-                        correct_submissions = 0
-                        answer_choice_ids = list(answer.get_choice_ids())
-                        number_choices = len(answer_choice_ids)
-                        if len(submissions) == number_choices:
-                            for index, choice_id in enumerate(answer_choice_ids):
-                                if autils.is_multiple_choice(local_data_map):
-                                    if str(choice_id) in submissions:
-                                        correct_submissions += 1
+                feedback = item.get_feedback_for_response(response)
+            except (NotFound, IllegalState, AttributeError):
+                pass
+            else:
+                # Need to wrap the feedback in <?xml> and also as a single block
+                # to make this work with OEA player
+                feedback_wrapped = feedback.text
+                if u'<modalFeedback' not in feedback_wrapped:
+                    feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback_wrapped)
 
-                        if not correct and autils.answer_is_default_incorrect(answer):
-                            default_answer_match = answer
-                        elif correct and str(answer.genus_type) == str(RIGHT_ANSWER_GENUS):
-                            default_answer_match = answer
+                feedback_soup = BeautifulSoup(feedback_wrapped, 'xml')
+                feedback_strings.append(feedback_soup.prettify())
 
-                        # try to find an exact answer match, first
-                        if (correct_submissions == number_choices and
-                                len(submissions) == number_choices):
-                            exact_answer_match = answer
+            try:
+                response_los = item.get_confused_learning_objective_ids_for_response(response)
+            except(NotFound, IllegalState, AttributeError):
+                pass
+            else:
+                confused_los += list(response_los)
 
-                    # now that we have either an exact match or a default (wrong) answer
-                    # let's calculate the feedback and the confused LOs
-                    answer_to_use = default_answer_match
-                    if exact_answer_match is not None:
-                        answer_to_use = exact_answer_match
-                    try:
-                        if any('qti' in answer_record
-                               for answer_record in answer_to_use.object_map['recordTypeIds']):
-                            feedback_strings.append(answer_to_use.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                        else:
-                            feedback_strings.append(answer_to_use.feedback.text)
-                    except (KeyError, AttributeError):
-                        pass
-                    try:
-                        confused_los += answer_to_use.confused_learning_objective_ids
-                    except (KeyError, AttributeError):
-                        pass
-                elif (autils.is_file_submission(local_data_map) or
-                        autils.is_short_answer(local_data_map)):
-                    # right now assume one "correct" answer with generic feedback
-                    answers = bank.get_answers(first_section.ident, question.ident)
-                    feedback_strings = []
-                    confused_los = []
-                    for answer in answers:
-                        if (correct and
-                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)):
-                            try:
-                                if any('qti' in answer_record
-                                       for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                                else:
-                                    feedback_strings.append(answer.feedback['text'])
-                            except (KeyError, AttributeError):
-                                pass
-                            try:
-                                confused_los += answer.confused_learning_objective_ids
-                            except (KeyError, AttributeError):
-                                pass
-                            # only take the first feedback / confused LO for now
-                            break
-                elif autils.is_inline_choice(local_data_map):
-                    answer_match = autils.match_submission_to_answer(answers, local_data_map)
-                    try:
-                        if any('qti' in answer_record
-                               for answer_record in answer_match.object_map['recordTypeIds']):
-                            feedback_strings.append(answer_match.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                        else:
-                            feedback_strings.append(answer_match.feedback['text'])
-                    except (KeyError, AttributeError):
-                        pass
-                    try:
-                        confused_los += answer_match.confused_learning_objective_ids
-                    except (KeyError, AttributeError):
-                        pass
-                elif autils.is_numeric_response(local_data_map):
-                    answers = bank.get_answers(first_section.ident, question.ident)
-                    feedback_strings = []
-                    confused_los = []
-                    for answer in answers:
-                        if ((correct and
-                                str(answer.genus_type) == str(RIGHT_ANSWER_GENUS)) or (
-                                not correct and str(answer.genus_type) == str(WRONG_ANSWER_GENUS))):
-                            try:
-                                if any('qti' in answer_record
-                                       for answer_record in answer.object_map['recordTypeIds']):
-                                    feedback_strings.append(answer.get_qti_xml(media_file_root_path=autils.get_media_path(bank)))
-                                else:
-                                    feedback_strings.append(answer.feedback['text'])
-                            except (KeyError, AttributeError):
-                                pass
-                            try:
-                                confused_los += answer.confused_learning_objective_ids
-                            except (KeyError, AttributeError):
-                                pass
-                            # only take the first feedback / confused LO for now
-                            break
             if len(feedback_strings) > 0:
                 return_data.update({
                     'feedback': feedback_strings[0]
@@ -2118,7 +2041,6 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 return_data.update({
                     'confusedLearningObjectiveIds': confused_los
                 })
-
             return return_data
         except (PermissionDenied, IllegalState, NotFound, InvalidArgument, InvalidId) as ex:
             utilities.handle_exceptions(ex)

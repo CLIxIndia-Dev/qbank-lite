@@ -1,20 +1,20 @@
 # pylint: disable=unused-import
 
-import dlkit.json.assessment.managers
-import dlkit.json.assessment.objects
-import dlkit.json.assessment.sessions
-import dlkit.json.hierarchy.managers
-import dlkit.json.hierarchy.objects
-import dlkit.json.hierarchy.sessions
-import dlkit.json.osid.managers
-import dlkit.json.osid.objects
-import dlkit.json.osid.sessions
-import dlkit.json.relationship.managers
-import dlkit.json.relationship.objects
-import dlkit.json.relationship.sessions
-import dlkit.json.repository.managers
-import dlkit.json.repository.objects
-import dlkit.json.repository.sessions
+import dlkit.json_.assessment.managers
+import dlkit.json_.assessment.objects
+import dlkit.json_.assessment.sessions
+import dlkit.json_.hierarchy.managers
+import dlkit.json_.hierarchy.objects
+import dlkit.json_.hierarchy.sessions
+import dlkit.json_.osid.managers
+import dlkit.json_.osid.objects
+import dlkit.json_.osid.sessions
+import dlkit.json_.relationship.managers
+import dlkit.json_.relationship.objects
+import dlkit.json_.relationship.sessions
+import dlkit.json_.repository.managers
+import dlkit.json_.repository.objects
+import dlkit.json_.repository.sessions
 import dlkit.authz_adapter.assessment.managers
 import dlkit.authz_adapter.assessment.sessions
 import dlkit.authz_adapter.repository.managers
