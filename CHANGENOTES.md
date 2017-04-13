@@ -1,3 +1,8 @@
+## [3.11.4] - 2017-04-13:
+### Fixed
+  - JSONify `altText` and `mediaDescription` when they
+    are sent as JSON strings in forms.
+
 ## [3.11.3] - 2017-04-12:
 ### Changed
   - Updated dlkit to include cataloging support.
@@ -235,6 +240,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.11.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.3...v3.11.4
 [3.11.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.2...v3.11.3
 [3.11.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.1...v3.11.2
 [3.11.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.0...v3.11.1

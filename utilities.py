@@ -37,6 +37,7 @@ class BaseClass:
     def data():
         # merge web.data() (url params) and web.input() (form)
         form_data = web.input()
+
         url_data = {}
         try:
             url_data = json.loads(web.data())
@@ -45,6 +46,7 @@ class BaseClass:
         if isinstance(url_data, dict):
             # because might pass in list data, like a list of offereds
             url_data.update(form_data)
+
         return url_data
 
 
@@ -226,6 +228,19 @@ def clean_id(_id):
         return Id(quote(_id))
     else:
         return Id(_id)
+
+
+def clean_json(data):
+    """return the json object version of the data, assuming it's a JSON string
+    Return the original data if an exception is throw
+    TypeError is thrown if non-string passed in
+    ValueError is thrown if a non-JSON string passed in
+    """
+    try:
+        return json.loads(data)
+    except (TypeError, ValueError):
+        pass
+    return data
 
 
 def construct_qti_id(qti_id, namespace='assessment.Item'):
