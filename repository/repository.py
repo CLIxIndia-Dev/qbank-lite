@@ -494,7 +494,7 @@ class AssetDetails(utilities.BaseClass):
                 # update form
                 rutils.add_alt_text_to_asset(repo,
                                              utilities.clean_id(asset_id),
-                                             params['altText'])
+                                             utilities.clean_json(params['altText']))
             if 'removeAltTextLanguage' in params:
                 rutils.remove_alt_text_language(repo,
                                                 utilities.clean_id(asset_id),
@@ -506,7 +506,7 @@ class AssetDetails(utilities.BaseClass):
             if 'mediaDescription' in params:
                 rutils.add_media_description_to_asset(repo,
                                                       utilities.clean_id(asset_id),
-                                                      params['mediaDescription'])
+                                                      utilities.clean_json(params['mediaDescription']))
             if 'removeMediaDescriptionLanguage' in params:
                 rutils.remove_media_description_language(repo,
                                                          utilities.clean_id(asset_id),
