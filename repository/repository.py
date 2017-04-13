@@ -198,13 +198,13 @@ class AssetsList(utilities.BaseClass):
             if 'altText' in params.keys():
                 rutils.append_text_as_asset_content(repository,
                                                     asset,
-                                                    params['altText'],
+                                                    utilities.clean_json(params['altText']),
                                                     'Alt text',
                                                     'alt-text')
             if 'mediaDescription' in params.keys():
                 rutils.append_text_as_asset_content(repository,
                                                     asset,
-                                                    params['mediaDescription'],
+                                                    utilities.clean_json(params['mediaDescription']),
                                                     'Description',
                                                     'mediaDescription')
 

@@ -702,6 +702,72 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
             str(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE)
         )
 
+    def test_can_create_asset_with_multi_language_media_description_in_form(self):
+        self._image_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={"mediaDescription": json.dumps(self._hindi_text)},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(
+            len(data['assetContents'][1]['mediaDescriptions']),
+            1
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescriptions'][0]['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescription']['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescription']['languageTypeId'],
+            self._hindi_text['languageTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescription']['scriptTypeId'],
+            self._hindi_text['scriptTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE)
+        )
+
+    def test_can_create_asset_with_multi_language_alt_text_in_form(self):
+        self._image_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            params={"altText": json.dumps(self._hindi_text)},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(
+            len(data['assetContents'][1]['altTexts']),
+            1
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altTexts'][0]['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altText']['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altText']['languageTypeId'],
+            self._hindi_text['languageTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altText']['scriptTypeId'],
+            self._hindi_text['scriptTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['genusTypeId'],
+            str(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE)
+        )
+
     def test_can_update_alt_text_with_new_language(self):
         data = self.upload_image_with_hindi_alt_text()
 
