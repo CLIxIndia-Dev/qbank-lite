@@ -792,6 +792,44 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
             'a green dot!'
         )
 
+    def test_can_update_alt_text_with_new_language_in_form(self):
+        self._image_upload_test_file.seek(0)
+        alt_text = "a green dot!"
+        req = self.app.post(self.url,
+                            params={"altText": alt_text},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        req = self.app.put(url,
+                           params={'altText': json.dumps(self._hindi_text)})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['altTexts']), 2)
+        self.assertEqual(data['assetContents'][1]['genusTypeId'],
+                         str(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE))
+        self.assertEqual(
+            data['assetContents'][1]['altTexts'][1]['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altTexts'][1]['languageTypeId'],
+            self._hindi_text['languageTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altTexts'][1]['scriptTypeId'],
+            self._hindi_text['scriptTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['altText']['text'],
+            'a green dot!'
+        )
+
     def test_can_update_existing_alt_text_language(self):
         self._image_upload_test_file.seek(0)
         alt_text = "a green dot!"
@@ -852,6 +890,44 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         req = self.app.put(url,
                            params=json.dumps(payload),
                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 2)
+        self.assertEqual(data['assetContents'][1]['genusTypeId'],
+                         str(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE))
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescriptions'][1]['text'],
+            self._hindi_text['text']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescription']['text'],
+            media_description
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescriptions'][1]['languageTypeId'],
+            self._hindi_text['languageTypeId']
+        )
+        self.assertEqual(
+            data['assetContents'][1]['mediaDescriptions'][1]['scriptTypeId'],
+            self._hindi_text['scriptTypeId']
+        )
+
+    def test_can_update_media_description_with_new_language_in_form(self):
+        self._image_upload_test_file.seek(0)
+        media_description = "a bright green dot"
+        req = self.app.post(self.url,
+                            params={"mediaDescription": media_description},
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        req = self.app.put(url,
+                           params={'mediaDescription': json.dumps(self._hindi_text)})
         self.ok(req)
         data = self.json(req)
 
