@@ -1717,6 +1717,25 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_audio)
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_audio)
 
+    def test_audio_transcript_not_nested_in_p_tag(self):
+        data = self.upload_audio_with_transcripts()
+        item = self.create_mc_item_with_audio_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        choice_text_with_audio = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        soup = BeautifulSoup(choice_text_with_audio, 'xml')
+        self.assertIsNone(soup.simpleChoice.p.div)
+        div_text = str(soup.simpleChoice.div)
+        self.assertIn('transcript_txt', div_text)
+        self.assertIn('transcriptWrapper', div_text)
+        self.assertIn('transcript', div_text)
+        self.assertIn('Transcript', div_text)
+        self.assertIn('This is a test transcript.', div_text)
+
     def test_video_transcript_shows_up_in_requested_language(self):
         data = self.upload_video_with_caption_and_transcripts()
         item = self.create_mc_item_with_video_and_transcript(data)
@@ -1757,6 +1776,26 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'వీడియో ట్రాన్స్క్రిప్ట్', choice_text_with_video)
         self.assertIn(u'ఈ పరీక్ష ట్రాన్స్క్రిప్ట్ ఉంది.', choice_text_with_video)
+
+    def test_video_transcript_shows_up_not_nested_in_p_tag(self):
+        data = self.upload_video_with_caption_and_transcripts()
+        item = self.create_mc_item_with_video_and_transcript(data)
+
+        url = '/api/v1/assessment/banks/{0}/items/{1}'.format(str(self._repo.ident),
+                                                              item['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+
+        choice_text_with_video = data['question']['multiLanguageChoices'][0]['texts'][0]['text']
+        soup = BeautifulSoup(choice_text_with_video, 'xml')
+        self.assertIsNone(soup.simpleChoice.p.div)
+        div_text = str(soup.simpleChoice.div)
+        self.assertIn('transcript_txt', div_text)
+        self.assertIn('transcriptWrapper', div_text)
+        self.assertIn('transcript', div_text)
+        self.assertIn('Transcript', div_text)
+        self.assertIn('This is a test transcript.', div_text)
 
     def test_can_get_video_question_even_if_transcript_src_blank(self):
         self._video_upload_test_file.seek(0)
