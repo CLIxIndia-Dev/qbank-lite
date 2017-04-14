@@ -1,3 +1,8 @@
+## [3.11.6] - 2017-04-14:
+### Changed
+  - Render the transcript as sibling to the parent `<p>`
+    tag so there is valid HTML on the UI-side.
+
 ## [3.11.5] - 2017-04-13:
 ### Fixed
   - JSONify `altText` and `mediaDescription` on `PUT`, too.
@@ -244,6 +249,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.11.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.5...v3.11.6
 [3.11.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.4...v3.11.5
 [3.11.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.3...v3.11.4
 [3.11.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.2...v3.11.3
