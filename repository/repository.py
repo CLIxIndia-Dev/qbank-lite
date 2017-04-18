@@ -8,7 +8,8 @@ from bson.errors import InvalidId
 from dlkit_runtime.errors import *
 from dlkit_runtime.primitives import DataInputStream, Type
 
-import repository_utilities as rutils
+from . import repository_utilities as rutils
+from resource import resource_utilities as resource_utils
 import utilities
 
 
@@ -87,6 +88,12 @@ class AssetsList(utilities.BaseClass):
                 repository = rm.get_repository(utilities.clean_id(repository_id))
                 assets = repository.get_assets()
             data = utilities.extract_items(assets)
+
+            # Update the source field with the displayName.text of the actual resource
+            data = json.loads(data)
+            for asset_map in data:
+                resource_utils.update_asset_map_with_resource(asset_map)
+            data = json.dumps(data)
 
             if 'fullUrls' in params:
                 data = json.loads(data)
@@ -186,12 +193,23 @@ class AssetsList(utilities.BaseClass):
                                                                transcript_file,
                                                                locale)
 
-            if 'license' in params.keys() or 'copyright' in params.keys():
+            if any(term in params.keys() for term in ['license',
+                                                      'copyright',
+                                                      'source',
+                                                      'provider']):
                 form = repository.get_asset_form_for_update(asset.ident)
                 if 'license' in params.keys():
                     form.set_license(params['license'])
                 if 'copyright' in params.keys():
                     form.set_copyright(params['copyright'])
+                if 'source' in params.keys():
+                    resource_id = resource_utils.get_or_create_resource_id(repository,
+                                                                           params['source'])
+                    form.set_source(resource_id)
+                if 'provider' in params.keys():
+                    resource_id = resource_utils.get_or_create_resource_id(repository,
+                                                                           params['provider'])
+                    form.set_provider(resource_id)
                 asset = repository.update_asset(form)
 
             # Handle the alt-text for images
@@ -213,6 +231,9 @@ class AssetsList(utilities.BaseClass):
             asset_map = json.loads(utilities.convert_dl_object(asset))
             if 'returnUrl' in web.input().keys():
                 asset_map = rutils.update_asset_map_with_content_url(rm, asset_map)
+
+            # Update the source field with the displayName.text of the actual resource
+            asset_map = resource_utils.update_asset_map_with_resource(asset_map)
 
             return json.dumps(asset_map)
         except (PermissionDenied, InvalidId, TypeError) as ex:
@@ -464,6 +485,10 @@ class AssetDetails(utilities.BaseClass):
                 data = rutils.update_asset_map_with_content_url(rm, data)
 
                 data = json.dumps(data)
+
+            # Update the source field with the displayName.text of the actual resource
+            data = resource_utils.update_asset_map_with_resource(data)
+
             return data
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
@@ -572,7 +597,22 @@ class AssetDetails(utilities.BaseClass):
             if 'copyright' in params.keys():
                 form.set_copyright(params['copyright'])
 
-            return utilities.convert_dl_object(repo.update_asset(form))
+            if 'source' in params.keys():
+                resource_id = resource_utils.get_or_create_resource_id(repo,
+                                                                       params['source'])
+                form.set_source(resource_id)
+
+            if 'provider' in params.keys():
+                resource_id = resource_utils.get_or_create_resource_id(repo,
+                                                                       params['provider'])
+                form.set_provider(resource_id)
+
+            data = utilities.convert_dl_object(repo.update_asset(form))
+
+            # Update the source field with the displayName.text of the actual resource
+            data = resource_utils.update_asset_map_with_resource(data)
+
+            return data
         except (PermissionDenied, NotFound, InvalidId) as ex:
             utilities.handle_exceptions(ex)
 

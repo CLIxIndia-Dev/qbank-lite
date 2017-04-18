@@ -394,6 +394,14 @@ SERVICE = {
                 {'value': 'JSON_1', 'priority': 1}
             ]
         },
+        'resourceProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Resource Provider Implementation',
+            'description': 'Implementation for resource service provider',
+            'values': [
+                {'value': 'JSON_1', 'priority': 1}
+            ]
+        },
         'hierarchyProviderImpl': {
             'syntax': 'STRING',
             'displayName': 'Hierarchy Provider Implementation',
@@ -758,6 +766,14 @@ TEST_AUTHZ_ADAPTER_1 = {
                 {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
+        'resourceProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Resource Provider Implementation',
+            'description': 'Implementation for resource provider',
+            'values': [
+                {'value': 'TEST_JSON_1', 'priority': 1}
+            ]
+        },
     }
 }
 
@@ -803,6 +819,14 @@ TEST_SERVICE = {
             'syntax': 'STRING',
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
+            'values': [
+                {'value': 'TEST_JSON_1', 'priority': 1}
+            ]
+        },
+        'resourceProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Resource Provider Implementation',
+            'description': 'Implementation for resource service provider',
             'values': [
                 {'value': 'TEST_JSON_1', 'priority': 1}
             ]
