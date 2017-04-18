@@ -193,7 +193,10 @@ class AssetsList(utilities.BaseClass):
                                                                transcript_file,
                                                                locale)
 
-            if 'license' in params.keys() or 'copyright' in params.keys() or 'source' in params.keys():
+            if any(term in params.keys() for term in ['license',
+                                                      'copyright',
+                                                      'source',
+                                                      'provider']):
                 form = repository.get_asset_form_for_update(asset.ident)
                 if 'license' in params.keys():
                     form.set_license(params['license'])
@@ -203,6 +206,10 @@ class AssetsList(utilities.BaseClass):
                     resource_id = resource_utils.get_or_create_resource_id(repository,
                                                                            params['source'])
                     form.set_source(resource_id)
+                if 'provider' in params.keys():
+                    resource_id = resource_utils.get_or_create_resource_id(repository,
+                                                                           params['provider'])
+                    form.set_provider(resource_id)
                 asset = repository.update_asset(form)
 
             # Handle the alt-text for images
@@ -594,6 +601,11 @@ class AssetDetails(utilities.BaseClass):
                 resource_id = resource_utils.get_or_create_resource_id(repo,
                                                                        params['source'])
                 form.set_source(resource_id)
+
+            if 'provider' in params.keys():
+                resource_id = resource_utils.get_or_create_resource_id(repo,
+                                                                       params['provider'])
+                form.set_provider(resource_id)
 
             data = utilities.convert_dl_object(repo.update_asset(form))
 
