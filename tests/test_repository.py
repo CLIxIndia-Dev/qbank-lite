@@ -893,6 +893,15 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self._caption_upload_test_file.close()
         self._image_2_test_file.close()
 
+    def upload_asset_with_provider(self):
+        self._video_upload_test_file.seek(0)
+        self._provider = "Doe, John. Images from the sky. Nature Magazine, vol 1 iss 10. pp 1-10, 2016"
+        req = self.app.post(self.url,
+                            params={"provider": self._provider},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def upload_asset_with_source(self):
         self._video_upload_test_file.seek(0)
         self._source = "John Doe, (c) 2016"
@@ -1316,3 +1325,88 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self.assertIn('source', data[0])
         self.assertEqual(data[0]['sourceId'], original_source_id)
         self.assertEqual(data[0]['source']['text'], self._source)
+
+    def test_can_set_asset_provider(self):
+        data = self.upload_asset_with_provider()
+        self.assertIn('provider', data)
+        self.assertEqual(
+            data['provider']['text'],
+            self._provider
+        )
+
+    def test_can_update_asset_provider(self):
+        self._video_upload_test_file.seek(0)
+        provider = "Doe, John. Images from the sky. Nature Magazine, vol 1 iss 10. pp 1-10, 2016"
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertNotIn('provider', data)
+        self.assertEqual(data['providerId'], '')
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        payload = {
+            'provider': provider
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('provider', data)
+        self.assertEqual(
+            data['provider']['text'],
+            provider
+        )
+
+    def test_can_change_asset_provider(self):
+        data = self.upload_asset_with_provider()
+        self.assertIn('provider', data)
+        self.assertEqual(
+            data['provider']['text'],
+            self._provider
+        )
+        resource_id_1 = data['providerId']
+
+        provider_2 = 'foobar, (c) 1900'
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        payload = {
+            'provider': provider_2
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('provider', data)
+        self.assertEqual(
+            data['provider']['text'],
+            provider_2
+        )
+
+        self.assertNotEqual(resource_id_1,
+                            data['providerId'])
+
+    def test_asset_provider_returns_as_resource_name_on_get_details(self):
+        data = self.upload_asset_with_provider()
+        original_provider_id = data['providerId']
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('provider', data)
+        self.assertEqual(data['providerId'], original_provider_id)
+        self.assertEqual(data['provider']['text'], self._provider)
+
+    def test_asset_provider_returns_as_resource_name_on_get_list(self):
+        data = self.upload_asset_with_provider()
+        original_provider_id = data['providerId']
+        req = self.app.get(self.url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertIn('provider', data[0])
+        self.assertEqual(data[0]['providerId'], original_provider_id)
+        self.assertEqual(data[0]['provider']['text'], self._provider)

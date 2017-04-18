@@ -99,6 +99,18 @@ def update_asset_map_with_resource(asset_map):
             'scriptTypeId': str(resource.display_name.script_type)
         }
 
+    if 'providerId' in asset_map and asset_map['providerId'] != '':
+        mgr = get_resource_manager()
+        rls = mgr.get_resource_lookup_session()
+        rls.use_federated_bin_view()
+        resource = rls.get_resource(clean_id(asset_map['providerId']))
+        asset_map['provider'] = {
+            'text': resource.display_name.text,
+            'languageTypeId': str(resource.display_name.language_type),
+            'formatTypeId': str(resource.display_name.format_type),
+            'scriptTypeId': str(resource.display_name.script_type)
+        }
+
     if original_was_string:
         return json.dumps(asset_map)
     return asset_map
