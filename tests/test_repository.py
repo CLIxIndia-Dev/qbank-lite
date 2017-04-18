@@ -893,6 +893,15 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self._caption_upload_test_file.close()
         self._image_2_test_file.close()
 
+    def upload_asset_with_source(self):
+        self._video_upload_test_file.seek(0)
+        self._source = "John Doe, (c) 2016"
+        req = self.app.post(self.url,
+                            params={"source": self._source},
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        return self.json(req)
+
     def test_can_upload_video_files_to_repository(self):
         self._video_upload_test_file.seek(0)
         req = self.app.post(self.url,
@@ -1222,3 +1231,88 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self._image_2_test_file.seek(0)
         self.assertEqual(req.body,
                          self._image_2_test_file.read())
+
+    def test_can_set_asset_source(self):
+        data = self.upload_asset_with_source()
+        self.assertIn('source', data)
+        self.assertEqual(
+            data['source']['text'],
+            self._source
+        )
+
+    def test_can_update_asset_source(self):
+        self._video_upload_test_file.seek(0)
+        source = "John Doe, (c) 2016"
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertNotIn('source', data)
+        self.assertEqual(data['sourceId'], '')
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        payload = {
+            'source': source
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('source', data)
+        self.assertEqual(
+            data['source']['text'],
+            source
+        )
+
+    def test_can_change_asset_source(self):
+        data = self.upload_asset_with_source()
+        self.assertIn('source', data)
+        self.assertEqual(
+            data['source']['text'],
+            self._source
+        )
+        resource_id_1 = data['sourceId']
+
+        source_2 = 'foobar, (c) 1900'
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        payload = {
+            'source': source_2
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('source', data)
+        self.assertEqual(
+            data['source']['text'],
+            source_2
+        )
+
+        self.assertNotEqual(resource_id_1,
+                            data['sourceId'])
+
+    def test_asset_source_returns_as_resource_name_on_get_details(self):
+        data = self.upload_asset_with_source()
+        original_source_id = data['sourceId']
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIn('source', data)
+        self.assertEqual(data['sourceId'], original_source_id)
+        self.assertEqual(data['source']['text'], self._source)
+
+    def test_asset_source_returns_as_resource_name_on_get_list(self):
+        data = self.upload_asset_with_source()
+        original_source_id = data['sourceId']
+        req = self.app.get(self.url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertIn('source', data[0])
+        self.assertEqual(data[0]['sourceId'], original_source_id)
+        self.assertEqual(data[0]['source']['text'], self._source)
