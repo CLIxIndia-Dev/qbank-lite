@@ -1,3 +1,7 @@
+## [3.12.0] - 2017-04-18:
+### Added
+  - `source` field for `asset` forms.
+
 ## [3.11.6] - 2017-04-14:
 ### Changed
   - Render the transcript as sibling to the parent `<p>`
@@ -249,6 +253,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.12.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.6...v3.12.0
 [3.11.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.5...v3.11.6
 [3.11.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.4...v3.11.5
 [3.11.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.11.3...v3.11.4
