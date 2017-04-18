@@ -26,6 +26,8 @@ MANAGER_PATHS = {
                           'dlkit.authz_adapter.authorization.managers.AuthorizationProxyManager'),
         'REPOSITORY': ('dlkit.authz_adapter.repository.managers.RepositoryManager',
                        'dlkit.authz_adapter.repository.managers.RepositoryProxyManager'),
+        'RESOURCE': ('dlkit.authz_adapter.resource.managers.ResourceManager',
+                     'dlkit.authz_adapter.resource.managers.ResourceProxyManager'),
         'LEARNING': ('dlkit.authz_adapter.learning.managers.LearningManager',
                      'dlkit.authz_adapter.learning.managers.LearningProxyManager'),
         'LOGGING': ('dlkit.authz_adapter.logging_.managers.LoggingManager',
@@ -71,7 +73,9 @@ MANAGER_PATHS = {
         'LOGGING': ('dlkit.json_.logging_.managers.LoggingManager',
                     'dlkit.json_.logging_.managers.LoggingProxyManager'),
         'REPOSITORY': ('dlkit.json_.repository.managers.RepositoryManager',
-                       'dlkit.json_.repository.managers.RepositoryProxyManager')
+                       'dlkit.json_.repository.managers.RepositoryProxyManager'),
+        'RESOURCE': ('dlkit.json_.resource.managers.ResourceManager',
+                     'dlkit.json_.resource.managers.ResourceProxyManager')
     },
     'filesystem_adapter': {
         'REPOSITORY': ('dlkit.filesystem_adapter.repository.managers.RepositoryManager',

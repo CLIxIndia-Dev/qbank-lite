@@ -13,6 +13,7 @@ QBank uses various headers to represent the user and settings. They are outlined
                 the matching language code. Note that for `POST` or `PUT` operations you can
                 provide either the new text + `x-api-locale`, or just provide the entire
                 `DisplayText` object, which specifies the language values:
+                ```
                 {text: 'टेक्स्ट',
                  languageTypeId: '639-2%3AHIN%40ISO',
                  formatTypeId: 'TextFormats%3APLAIN%40okapia.net',
@@ -25,6 +26,7 @@ QBank uses various headers to represent the user and settings. They are outlined
                  languageTypeId: '639-2%3AENG%40ISO',
                  formatTypeId: 'TextFormats%3APLAIN%40okapia.net',
                  scriptTypeId: '15924%3ALATN%40ISO'}
+                 ```
 
 ## URLs
 

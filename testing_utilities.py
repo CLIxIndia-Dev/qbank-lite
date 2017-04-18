@@ -261,6 +261,14 @@ def configure_dlkit():
                     {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
+            'resourceProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Resource Provider Implementation',
+                'description': 'Implementation for resource service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
             'authorizationProviderImpl': {
                 'syntax': 'STRING',
                 'displayName': 'Authorization Provider Implementation',
