@@ -162,6 +162,7 @@ url parameters (optional):
   - removeVTTFileLanguage. Removes the matching `languageTypeId` vtt file.
   - clearTranscriptFiles. Removes all transcript files, but does not delete the `assetContent`.
   - clearVTTFiles. Removes all vtt files, but does not delete the `assetContent`.
+  - source. A string representing the source of media content, like "Jane Doe, (c) 2017".
 
 returns:
   - `Asset` object.
@@ -201,6 +202,7 @@ form data (required):
   - locale (optional). Used to indicate `transcriptFile` and `vttFile` language. `en` by default.
   - transcriptFile (optional). Add a transcript file. Requires usage of `locale` parameter.
   - vttFile (optional). Add a vtt caption file. Requires usage of `locale` parameter.
+  - source. A string representing the source of media content, like "Jane Doe, (c) 2017".
 
 returns:
   - `Asset` object.
