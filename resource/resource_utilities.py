@@ -36,7 +36,7 @@ def get_or_create_resource_id(catalog, resource_name):
         pass
 
     resource_alias_id = get_alias_resource_id(resource_name,
-                                           authority=authority)
+                                              authority=authority)
     try:
         # look for an aliased resource
         resource = bin_.get_resource(resource_alias_id)
