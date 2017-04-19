@@ -1164,7 +1164,6 @@ class ItemDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
-
     @utilities.format_response
     def GET(self, bank_id, sub_id):
         try:
