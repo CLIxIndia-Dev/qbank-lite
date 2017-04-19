@@ -167,7 +167,7 @@ class AssessmentBanksList(utilities.BaseClass):
                 assessment_banks = am.banks
             banks = utilities.extract_items(assessment_banks)
             return banks
-        except PermissionDenied as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -191,7 +191,7 @@ class AssessmentBanksList(utilities.BaseClass):
                               utilities.clean_id(data['aliasId']))
 
             return new_bank
-        except (PermissionDenied, InvalidArgument) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -205,7 +205,7 @@ class AssessmentRemoveAssignedBankIds(utilities.BaseClass):
             am.unassign_assessment_from_bank(utilities.clean_id(assessment_id),
                                              assigned_bank_id)
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId, OperationFailed) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -222,7 +222,7 @@ class AssessmentAssignedBankIds(utilities.BaseClass):
                     am.assign_assessment_to_bank(assessment_id,
                                                  assigned_bank_id)
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -247,7 +247,7 @@ class AssessmentBankDetails(utilities.BaseClass):
             am = autils.get_assessment_manager()
             data = am.delete_bank(utilities.clean_id(bank_id))
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -257,7 +257,7 @@ class AssessmentBankDetails(utilities.BaseClass):
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
             bank = utilities.convert_dl_object(assessment_bank)
             return bank
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -276,7 +276,7 @@ class AssessmentBankDetails(utilities.BaseClass):
 
             bank = utilities.convert_dl_object(updated_bank)
             return bank
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -315,7 +315,7 @@ class AssessmentsList(utilities.BaseClass):
 
             data = utilities.extract_items(assessments)
             return data
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -362,7 +362,7 @@ class AssessmentsList(utilities.BaseClass):
 
             data = utilities.convert_dl_object(full_assessment)
             return data
-        except (PermissionDenied, NotFound, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -439,7 +439,7 @@ class ItemsList(utilities.BaseClass):
                 results.append(item_map)
 
             return json.dumps(results)
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -844,8 +844,7 @@ class ItemsList(utilities.BaseClass):
             return_data = autils.update_item_json_random_choices(bank, full_item, return_data)
 
             return return_data
-        except (KeyError, PermissionDenied, Unsupported,
-                InvalidArgument, NullArgument, TypeError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -871,7 +870,7 @@ class AssessmentDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment(utilities.clean_id(sub_id))
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -882,7 +881,7 @@ class AssessmentDetails(utilities.BaseClass):
             als.use_federated_bank_view()
             data = utilities.convert_dl_object(als.get_assessment(utilities.clean_id(sub_id)))
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -923,7 +922,7 @@ class AssessmentDetails(utilities.BaseClass):
             data = utilities.convert_dl_object(full_assessment)
 
             return data
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -969,7 +968,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
             else:
                 data = utilities.extract_items(nodes.get_child_bank_nodes())
             return data
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1001,7 +1000,7 @@ class AssessmentHierarchiesNodeChildrenList(utilities.BaseClass):
                 pass
 
             return utilities.success()
-        except (PermissionDenied, NotFound, KeyError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1040,7 +1039,7 @@ class AssessmentHierarchiesNodeDetails(utilities.BaseClass):
 
             data = node_data.get_object_node_map()
             return data
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1068,7 +1067,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
             root_banks = am.get_root_banks()
             banks = utilities.extract_items(root_banks)
             return banks
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1087,7 +1086,7 @@ class AssessmentHierarchiesRootsList(utilities.BaseClass):
 
             am.add_root_bank(utilities.clean_id(self.data()['id']))
             return utilities.success()
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1114,7 +1113,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
             else:
                 raise IllegalState('That bank is not a root.')
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1132,7 +1131,7 @@ class AssessmentHierarchiesRootDetails(utilities.BaseClass):
 
             data = bank.object_map
             return data
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1158,12 +1157,13 @@ class ItemDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_item(utilities.clean_id(sub_id))
             return utilities.success()
-        except (PermissionDenied, InvalidId) as ex:
-            utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('This Item is being used in one or more '
                                                  'Assessments. Delink it first, before '
                                                  'deleting it.'))
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
 
     @utilities.format_response
     def GET(self, bank_id, sub_id):
@@ -1179,7 +1179,7 @@ class ItemDetails(utilities.BaseClass):
             data = autils.update_item_json_random_choices(ils, item, data)
 
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1292,7 +1292,7 @@ class ItemDetails(utilities.BaseClass):
             return_data = autils.update_item_json_random_choices(bank, full_item, return_data)
 
             return return_data
-        except (PermissionDenied, Unsupported, InvalidArgument, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1322,7 +1322,7 @@ class ItemQTIDetails(utilities.BaseClass):
                 return item.get_qti_xml(media_file_root_path=autils.get_media_path(item_bank))
             except AttributeError:
                 return ''
-        except (PermissionDenied, NotFound) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1378,7 +1378,7 @@ class AssessmentItemsList(utilities.BaseClass):
                     if item['question'] and 'fileIds' in item['question']:
                         item['question']['files'] = dlkit_item.get_question().get_files()
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1413,7 +1413,7 @@ class AssessmentItemsList(utilities.BaseClass):
                 data.append(item_map)
 
             return json.dumps(data)
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1454,7 +1454,7 @@ class AssessmentItemsList(utilities.BaseClass):
                 data.append(item_map)
 
             return json.dumps(data)
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1474,7 +1474,7 @@ class AssessmentItemDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.remove_item(utilities.clean_id(sub_id), utilities.clean_id(item_id))
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1501,7 +1501,7 @@ class AssessmentsOffered(utilities.BaseClass):
             offerings = bank.get_assessments_offered_for_assessment(utilities.clean_id(sub_id))
             data = utilities.extract_items(offerings)
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1525,11 +1525,11 @@ class AssessmentsOffered(utilities.BaseClass):
             else:
                 raise InvalidArgument()
             return data
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
-            utilities.handle_exceptions(ex)
         except LookupError as ex:
             utilities.handle_exceptions(type(ex)('Cannot create an assessment offering for '
                                                  'an assessment with no items.'))
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 
 class AssessmentOfferedDetails(utilities.BaseClass):
@@ -1556,12 +1556,12 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_offered(utilities.clean_id(offering_id))
             return utilities.success()
-        except (PermissionDenied, InvalidId) as ex:
-            utilities.handle_exceptions(ex)
         except IllegalState as ex:
             utilities.handle_exceptions(type(ex)('There are still AssessmentTakens '
                                                  'associated with this AssessmentOffered. '
                                                  'Delete them first.'))
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def GET(self, bank_id, offering_id):
@@ -1573,7 +1573,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             offering = aols.get_assessment_offered(utilities.clean_id(offering_id))
             data = utilities.convert_dl_object(offering)
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1600,7 +1600,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
             else:
                 raise InvalidArgument()
             return data
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1655,7 +1655,7 @@ class AssessmentOfferedResults(utilities.BaseClass):
 
             data = utilities.extract_items(data)
             return data
-        except (PermissionDenied, NotFound) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1695,7 +1695,7 @@ class AssessmentsTaken(utilities.BaseClass):
                 takens = bank.get_assessments_taken_for_assessment(utilities.clean_id(sub_id))
             data = utilities.extract_items(takens)
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1739,11 +1739,11 @@ class AssessmentsTaken(utilities.BaseClass):
                 data = utilities.convert_dl_object(bank.create_assessment_taken(form))
 
             return data
-        except (PermissionDenied, InvalidArgument, InvalidId) as ex:
-            utilities.handle_exceptions(ex)
         except Unsupported as ex:
             utilities.handle_exceptions(type(ex)('Can only create AssessmentTaken from an '
                                                  'AssessmentOffered root URL.'))
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 
 class AssessmentTakenDetails(utilities.BaseClass):
@@ -1766,7 +1766,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
             bank = am.get_bank(utilities.clean_id(bank_id))
             data = bank.delete_assessment_taken(utilities.clean_id(taken_id))
             return utilities.success()
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -1778,7 +1778,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
             taken = atls.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1801,7 +1801,7 @@ class FinishAssessmentTaken(utilities.BaseClass):
                 'success': True
             }
             return data
-        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1842,7 +1842,7 @@ class AssessmentTakenQuestions(utilities.BaseClass):
             else:
                 data = utilities.extract_items(questions)
             return data
-        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1874,7 +1874,7 @@ class AssessmentTakenQuestionDetails(utilities.BaseClass):
 
             data = json.dumps(data)
             return data
-        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1897,7 +1897,7 @@ class AssessmentTakenQuestionQTIDetails(utilities.BaseClass):
             # if 'fileIds' in data:
             #     data['files'] = question.get_files()
             return data
-        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -1927,7 +1927,7 @@ class AssessmentTakenQuestionStatus(utilities.BaseClass):
                                               utilities.clean_id(question_id))
 
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -2042,7 +2042,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     'confusedLearningObjectiveIds': confused_los
                 })
             return return_data
-        except (PermissionDenied, IllegalState, NotFound, InvalidArgument, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -2074,7 +2074,7 @@ class AssessmentTakenQuestionSurrender(utilities.BaseClass):
             data = utilities.extract_items(answers)
 
             return data
-        except (PermissionDenied, IllegalState, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 

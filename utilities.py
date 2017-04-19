@@ -308,19 +308,23 @@ def extract_items(item_list):
 
 
 def handle_exceptions(ex):
+    message = str(ex)
     if 'WEBENV' in os.environ and os.environ['WEBENV'] == 'test':
         pass
+    elif 'WEBENV' in os.environ and os.environ['WEBENV'] == 'development':
+        message = traceback.format_exc(10)
     else:
         print traceback.format_exc(10)
     if isinstance(ex, PermissionDenied):
         web.message = 'Permission Denied'
         raise web.Forbidden()
     elif isinstance(ex, IllegalState):
-        web.message = 'IllegalState {}'.format(str(ex))
+        # Sometimes we try to explain why illegal state, like
+        # the assessment still has items, can't delete it.
+        web.message = 'IllegalState {0}'.format(message)
         raise web.NotAcceptable()
     else:
-        web.message = 'Bad request {}'.format(ex)
-        raise web.NotFound()
+        raise web.InternalError(message)
 
 
 def set_form_basics(form, data):
