@@ -40,7 +40,7 @@ class RepositoriesList(utilities.BaseClass):
             repositories = rm.repositories
             repositories = utilities.extract_items(repositories)
             return repositories
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -59,7 +59,7 @@ class RepositoryDetails(utilities.BaseClass):
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository = utilities.convert_dl_object(repository)
             return repository
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -104,7 +104,7 @@ class AssetsList(utilities.BaseClass):
                 data = json.dumps(updated_data)
 
             return data
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -236,7 +236,7 @@ class AssetsList(utilities.BaseClass):
             asset_map = resource_utils.update_asset_map_with_resource(asset_map)
 
             return json.dumps(asset_map)
-        except (PermissionDenied, InvalidId, TypeError) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -320,7 +320,7 @@ class AssetContentStream(utilities.BaseClass):
                     bytes_read += bytes_to_read
                     starting_bytes += bytes_to_read
                     yield buf
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -337,7 +337,7 @@ class AssetContentsList(utilities.BaseClass):
                 data = json.dumps(rutils.update_asset_map_with_content_url(rm, asset.object_map)['assetContents'])
 
             return data
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -375,7 +375,7 @@ class AssetContentsList(utilities.BaseClass):
                 asset_content_map = rutils.update_asset_map_with_content_url(rm, asset_content_map)
 
             return json.dumps(asset_content_map)
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -409,7 +409,7 @@ class AssetContentDetails(utilities.BaseClass):
                         break
 
             return json.dumps(data)
-        except (PermissionDenied, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -459,7 +459,7 @@ class AssetContentDetails(utilities.BaseClass):
 
             repository.update_asset_content(form)
             return utilities.convert_dl_object(repository.get_asset(asset.ident))
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -490,7 +490,7 @@ class AssetDetails(utilities.BaseClass):
             data = resource_utils.update_asset_map_with_resource(data)
 
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -613,7 +613,7 @@ class AssetDetails(utilities.BaseClass):
             data = resource_utils.update_asset_map_with_resource(data)
 
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 app_repository = web.application(urls, locals())

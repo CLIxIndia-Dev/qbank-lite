@@ -52,11 +52,11 @@ class LogDetails(utilities.BaseClass):
             logm.delete_log(utilities.clean_id(log_id))
 
             return utilities.success()
-        except (PermissionDenied, NotFound, InvalidId) as ex:
-            utilities.handle_exceptions(ex)
         except IllegalState as ex:
             modified_ex = type(ex)('Log is not empty.')
             utilities.handle_exceptions(modified_ex)
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
     @utilities.format_response
     def GET(self, log_id):
@@ -66,7 +66,7 @@ class LogDetails(utilities.BaseClass):
             log = utilities.convert_dl_object(log)
 
             return log
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -87,7 +87,7 @@ class LogDetails(utilities.BaseClass):
             updated_log = utilities.convert_dl_object(updated_log)
 
             return updated_log
-        except (PermissionDenied, KeyError, InvalidArgument, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -128,7 +128,7 @@ class LogsList(utilities.BaseClass):
             logs = logm.logs
             logs = utilities.extract_items(logs)
             return logs
-        except PermissionDenied as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -158,7 +158,7 @@ class LogsList(utilities.BaseClass):
             new_log = utilities.convert_dl_object(finalize_method(form))
 
             return new_log
-        except (PermissionDenied, InvalidArgument, NotFound, KeyError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -187,7 +187,7 @@ class LogEntriesList(utilities.BaseClass):
             data = utilities.extract_items(entries)
 
             return data
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -208,7 +208,7 @@ class LogEntriesList(utilities.BaseClass):
             entry = log.create_log_entry(form)
 
             return utilities.convert_dl_object(entry)
-        except (PermissionDenied, InvalidArgument, IllegalState, KeyError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -236,7 +236,7 @@ class LogEntryDetails(utilities.BaseClass):
             log.delete_log_entry(utilities.clean_id(entry_id))
 
             return utilities.success()
-        except (PermissionDenied, IllegalState, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -249,7 +249,7 @@ class LogEntryDetails(utilities.BaseClass):
             entry_map = entry.object_map
 
             return entry_map
-        except (PermissionDenied, NotFound, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
@@ -275,7 +275,7 @@ class LogEntryDetails(utilities.BaseClass):
             entry = log.get_log_entry(utilities.clean_id(entry_id))
 
             return utilities.convert_dl_object(entry)
-        except (PermissionDenied, InvalidArgument, KeyError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
@@ -324,7 +324,7 @@ class GenericLogEntries(utilities.BaseClass):
             entry = log.create_log_entry(form)
 
             return utilities.convert_dl_object(entry)
-        except (PermissionDenied, InvalidArgument, IllegalState, KeyError, InvalidId) as ex:
+        except Exception as ex:
             utilities.handle_exceptions(ex)
 
 
