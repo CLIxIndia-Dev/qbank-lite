@@ -311,8 +311,10 @@ def handle_exceptions(ex):
     message = str(ex)
     if 'WEBENV' in os.environ and os.environ['WEBENV'] == 'test':
         pass
-    elif 'WEBENV' in os.environ and os.environ['WEBENV'] == 'development':
+    elif (('WEBENV' in os.environ and os.environ['WEBENV'] == 'development') or
+          ('WEBENV' in web.ctx.env and web.ctx.env['WEBENV'] == 'development')):
         message = traceback.format_exc(10)
+        print message  # to get this in the server logs
     else:
         pass
         # print traceback.format_exc(10)
