@@ -1,3 +1,7 @@
+## [3.14.1] - 2017-04-19:
+### Fixed
+  - Also check WSGI environment variables for development.
+
 ## [3.14.0] - 2017-04-19:
 ### Changed
   - Provide exception tracebacks on dev environments.
@@ -265,6 +269,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.0...v3.14.1
 [3.14.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.13.1...v3.14.0
 [3.13.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.13.0...v3.13.1
 [3.13.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.12.0...v3.13.0
