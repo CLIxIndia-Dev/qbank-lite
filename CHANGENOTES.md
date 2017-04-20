@@ -1,3 +1,9 @@
+## [3.14.2] - 2017-04-20:
+### Changed
+  - `isCorrect: None` appears in offered results for
+    every question, by default, when they have not
+    been responded to.
+
 ## [3.14.1] - 2017-04-19:
 ### Fixed
   - Also check WSGI environment variables for development.
@@ -269,6 +275,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.1...v3.14.2
 [3.14.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.0...v3.14.1
 [3.14.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.13.1...v3.14.0
 [3.13.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.13.0...v3.13.1
