@@ -1341,6 +1341,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -1358,6 +1367,12 @@ class RESTfulTests(BaseAssessmentTestCase):
         sent_feedback = BeautifulSoup(data['feedback'], 'xml')
         self.assertEqual(str(expected_feedback),
                          str(sent_feedback))
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
     def test_can_create_reflection_single_answer_question_via_rest(self):
         url = '{0}/items'.format(self.url)
@@ -5059,6 +5074,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -5073,6 +5097,12 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertFalse(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
     def test_submitting_to_image_sequence_with_exact_wrong_answer_match_works(self):
         url = '{0}/items'.format(self.url)
@@ -6081,6 +6111,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -6094,6 +6133,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        # For short answer, the server doesn't auto-evaluate the response,
+        # so isCorrect always False in results. Above it returned True
+        # during submission because that is a RESTful layer behavior.
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
     def test_submitting_to_file_upload_correct_even_if_no_answers(self):
         url = '{0}/items'.format(self.url)
@@ -6131,6 +6179,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -6143,6 +6200,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        # For file upload, the server doesn't auto-evaluate the response,
+        # so isCorrect always False in results. Above it returned True
+        # during submission because that is a RESTful layer behavior.
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
     def test_submitting_to_survey_correct_even_if_no_answers(self):
         url = '{0}/items'.format(self.url)
@@ -6189,6 +6255,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -6203,6 +6278,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        # For survey, the server doesn't auto-evaluate the response,
+        # so isCorrect always False in results. Above it returned True
+        # during submission because that is a RESTful layer behavior.
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
     def test_submitting_to_mw_sandbox_correct_even_if_no_answers(self):
         media_files = [self._mw_sandbox_audio_file]
@@ -6328,6 +6412,15 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.ok(req)
         question = self.json(req)['data'][0]
 
+        # Making sure that responded and isCorrect in the results JSON even if no response
+        results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                  str(offered.ident))
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
         url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
                                                                      str(taken.ident),
                                                                      question['id'])
@@ -6340,3 +6433,12 @@ class RESTfulTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertTrue(data['correct'])
         self.assertEqual(data['feedback'], 'No feedback available.')
+
+        req = self.app.get(results_url)
+        self.ok(req)
+        data = self.json(req)
+        # For MW sandbox, the server doesn't auto-evaluate the response,
+        # so isCorrect always False in results. Above it returned True
+        # during submission because that is a RESTful layer behavior.
+        self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+        self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
