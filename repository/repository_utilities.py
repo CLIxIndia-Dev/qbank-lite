@@ -420,8 +420,7 @@ def replace_asset_main_content(repo, asset_id, file_name, file_data):
 
 
 def update_asset_map_with_content_url(rm, asset_map):
-    # because we've appended the asset content lookup methods to asset lookup session
-    acls = rm.get_asset_lookup_session()
+    acls = rm.get_asset_content_lookup_session()
     acls.use_federated_repository_view()
     if 'assetContents' in asset_map:
         for index, asset_content in enumerate(asset_map['assetContents']):
