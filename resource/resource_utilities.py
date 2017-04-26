@@ -5,10 +5,10 @@ from bson.errors import InvalidId
 
 from dlkit.primordium.type.primitives import Type
 from dlkit.json_ import types
-from dlkit_runtime import PROXY_SESSION, RUNTIME
-from dlkit_runtime.errors import NotFound
-from dlkit_runtime.proxy_example import TestRequest
-from dlkit_runtime.primitives import InitializableLocale
+from dlkit.runtime import PROXY_SESSION, RUNTIME
+from dlkit.runtime.errors import NotFound
+from dlkit.runtime.proxy_example import SimpleRequest
+from dlkit.runtime.primitives import InitializableLocale
 
 from utilities import clean_id
 
@@ -51,8 +51,8 @@ def get_or_create_resource_id(catalog, resource_name):
 
 def get_resource_manager():
     condition = PROXY_SESSION.get_proxy_condition()
-    dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
-                                authenticated=True)
+    dummy_request = SimpleRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                  authenticated=True)
     condition.set_http_request(dummy_request)
 
     if 'HTTP_X_API_LOCALE' in web.ctx.env:
@@ -89,7 +89,7 @@ def update_asset_map_with_resource(asset_map):
 
     if 'sourceId' in asset_map and asset_map['sourceId'] != '':
         mgr = get_resource_manager()
-        rls = mgr.get_resource_lookup_session()
+        rls = mgr.get_resource_lookup_session(proxy=mgr._proxy)
         rls.use_federated_bin_view()
         resource = rls.get_resource(clean_id(asset_map['sourceId']))
         asset_map['source'] = {
@@ -101,7 +101,7 @@ def update_asset_map_with_resource(asset_map):
 
     if 'providerId' in asset_map and asset_map['providerId'] != '':
         mgr = get_resource_manager()
-        rls = mgr.get_resource_lookup_session()
+        rls = mgr.get_resource_lookup_session(proxy=mgr._proxy)
         rls.use_federated_bin_view()
         resource = rls.get_resource(clean_id(asset_map['providerId']))
         asset_map['provider'] = {

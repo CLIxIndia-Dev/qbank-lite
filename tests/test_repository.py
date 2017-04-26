@@ -4,16 +4,14 @@ import os
 
 from bs4 import BeautifulSoup
 
-from dlkit_runtime.configs import FILESYSTEM_ASSET_CONTENT_TYPE
-from dlkit_runtime.errors import NotFound
-from dlkit_runtime.primordium import DataInputStream, Type, Id, DisplayText
+from dlkit.runtime.errors import NotFound
+from dlkit.runtime.primordium import DataInputStream, Type, Id, DisplayText
+from dlkit.records.registry import ASSESSMENT_RECORD_TYPES,\
+    ASSET_CONTENT_RECORD_TYPES, ASSET_CONTENT_GENUS_TYPES
 
 from testing_utilities import BaseTestCase, get_fixture_repository,\
     get_managers
 from urllib import unquote, quote
-
-from records.registry import ASSESSMENT_RECORD_TYPES,\
-    ASSET_CONTENT_RECORD_TYPES, ASSET_CONTENT_GENUS_TYPES
 
 import utilities
 

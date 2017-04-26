@@ -8,16 +8,21 @@ from unittest import TestCase
 from bs4 import Tag, BeautifulSoup
 from paste.fixture import TestApp
 
-import dlkit_runtime.configs
 from authorization.authorization_utilities import create_function_id, create_qualifier_id, create_agent_id
-from dlkit_runtime import PROXY_SESSION, RUNTIME
-from dlkit_runtime.primordium import Type
-from dlkit_runtime.proxy_example import TestRequest
-from dlkit_runtime.utilities import impl_key_dict
-from main import app
-from records.registry import LOG_ENTRY_RECORD_TYPES
+
+# Note that changing the runtime configs works with testing, but
+# trying to change dlkit_configs.configs does not...
+import dlkit.runtime.configs
+from dlkit.runtime import PROXY_SESSION, RUNTIME
+from dlkit.runtime.primordium import Type
+from dlkit.runtime.proxy_example import SimpleRequest
+from dlkit.runtime.utilities import impl_key_dict
+from dlkit.records.registry import LOG_ENTRY_RECORD_TYPES
 
 from urllib import unquote
+
+from main import app
+
 
 # PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
 # ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
@@ -215,7 +220,7 @@ SUBPACKAGES = (
 
 
 def configure_dlkit():
-    dlkit_runtime.configs.SERVICE = {
+    dlkit.runtime.configs.SERVICE = {
         'id': 'dlkit_runtime_bootstrap_configuration',
         'displayName': 'DLKit Runtime Bootstrap Configuration',
         'description': 'Bootstrap Configuration for DLKit Runtime',
@@ -415,7 +420,7 @@ def get_managers(username='student@tiss.edu'):
         nickname = manager[0]
         service_name = manager[1]
         condition = PROXY_SESSION.get_proxy_condition()
-        dummy_request = TestRequest(username=username, authenticated=True)
+        dummy_request = SimpleRequest(username=username, authenticated=True)
         condition.set_http_request(dummy_request)
         proxy = PROXY_SESSION.get_proxy(condition)
         results[nickname] = RUNTIME.get_service_manager(service_name,
