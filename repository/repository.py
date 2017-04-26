@@ -3,10 +3,8 @@ import os
 import web
 import json
 
-from bson.errors import InvalidId
-
-from dlkit_runtime.errors import *
-from dlkit_runtime.primitives import DataInputStream, Type
+from dlkit.runtime.errors import *
+from dlkit.runtime.primitives import DataInputStream
 
 from . import repository_utilities as rutils
 from resource import resource_utilities as resource_utils
@@ -81,7 +79,7 @@ class AssetsList(utilities.BaseClass):
             params = web.input()
 
             if 'allAssets' in params:
-                als = rm.get_asset_lookup_session()
+                als = rm.get_asset_lookup_session(proxy=rm._proxy)
                 als.use_federated_repository_view()
                 assets = als.get_assets()
             else:
@@ -252,7 +250,7 @@ class AssetContentStream(utilities.BaseClass):
     def GET(self, repository_id, asset_id, content_id):
         try:
             rm = rutils.get_repository_manager()
-            als = rm.get_asset_lookup_session()
+            als = rm.get_asset_lookup_session(proxy=rm._proxy)
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
@@ -425,7 +423,7 @@ class AssetContentDetails(utilities.BaseClass):
         try:
             x = web.input(inputFile={})
             rm = rutils.get_repository_manager()
-            als = rm.get_asset_lookup_session()
+            als = rm.get_asset_lookup_session(proxy=rm._proxy)
             als.use_federated_repository_view()
             asset = als.get_asset(utilities.clean_id(asset_id))
             asset_content = rutils.get_asset_content_by_id(asset, utilities.clean_id(content_id))
@@ -475,7 +473,7 @@ class AssetDetails(utilities.BaseClass):
     def GET(self, repository_id, asset_id):
         try:
             rm = rutils.get_repository_manager()
-            als = rm.get_asset_lookup_session()
+            als = rm.get_asset_lookup_session(proxy=rm._proxy)
             als.use_federated_repository_view()
             data = utilities.convert_dl_object(als.get_asset(utilities.clean_id(asset_id)))
 
