@@ -1,3 +1,8 @@
+## [3.14.3] - 2017-04-26:
+### Changed
+  - Switched to using `dlkit` installable package from
+    `pip`, instead of git submodules.
+
 ## [3.14.2] - 2017-04-20:
 ### Changed
   - `isCorrect: None` appears in offered results for
@@ -275,6 +280,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.2...v3.14.3
 [3.14.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.1...v3.14.2
 [3.14.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.0...v3.14.1
 [3.14.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.13.1...v3.14.0
