@@ -3,11 +3,10 @@
 import os
 import json
 
-from dlkit_runtime.primitives import Type
-
 from paste.fixture import AppError
 
-from records.registry import ITEM_GENUS_TYPES, QUESTION_GENUS_TYPES,\
+from dlkit.runtime.primitives import Type
+from dlkit.records.registry import ITEM_GENUS_TYPES, QUESTION_GENUS_TYPES,\
     ANSWER_GENUS_TYPES, ASSESSMENT_RECORD_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES
 

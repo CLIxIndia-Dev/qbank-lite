@@ -8,9 +8,9 @@ from bson.errors import InvalidId
 
 from cStringIO import StringIO
 
-from dlkit_runtime.errors import *
-from dlkit_runtime.primordium import Type, DataInputStream, DisplayText
-from records.registry import ANSWER_GENUS_TYPES,\
+from dlkit.runtime.errors import *
+from dlkit.runtime.primordium import Type, DataInputStream, DisplayText
+from dlkit.records.registry import ANSWER_GENUS_TYPES,\
     ASSESSMENT_TAKEN_RECORD_TYPES, COMMENT_RECORD_TYPES, BANK_RECORD_TYPES,\
     QUESTION_RECORD_TYPES, ANSWER_RECORD_TYPES, ITEM_RECORD_TYPES, ITEM_GENUS_TYPES,\
     ASSESSMENT_RECORD_TYPES, QUESTION_GENUS_TYPES
@@ -877,7 +877,7 @@ class AssessmentDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            als = am.get_assessment_lookup_session()
+            als = am.get_assessment_lookup_session(proxy=am._proxy)
             als.use_federated_bank_view()
             data = utilities.convert_dl_object(als.get_assessment(utilities.clean_id(sub_id)))
             return data
@@ -1168,7 +1168,7 @@ class ItemDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            ils = am.get_item_lookup_session()
+            ils = am.get_item_lookup_session(proxy=am._proxy)
             ils.use_federated_bank_view()
 
             item = ils.get_item(utilities.clean_id(sub_id))
@@ -1306,7 +1306,7 @@ class ItemQTIDetails(utilities.BaseClass):
     def GET(self, bank_id, sub_id):
         try:
             am = autils.get_assessment_manager()
-            ils = am.get_item_lookup_session()
+            ils = am.get_item_lookup_session(proxy=am._proxy)
             ils.use_federated_bank_view()
 
             item = ils.get_item(utilities.clean_id(sub_id))
@@ -1566,7 +1566,7 @@ class AssessmentOfferedDetails(utilities.BaseClass):
     def GET(self, bank_id, offering_id):
         try:
             am = autils.get_assessment_manager()
-            aols = am.get_assessment_offered_lookup_session()
+            aols = am.get_assessment_offered_lookup_session(proxy=am._proxy)
             aols.use_federated_bank_view()
 
             offering = aols.get_assessment_offered(utilities.clean_id(offering_id))
@@ -1772,7 +1772,7 @@ class AssessmentTakenDetails(utilities.BaseClass):
     def GET(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            atls = am.get_assessment_taken_lookup_session()
+            atls = am.get_assessment_taken_lookup_session(proxy=am._proxy)
             atls.use_federated_bank_view()
             taken = atls.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
@@ -1792,7 +1792,7 @@ class FinishAssessmentTaken(utilities.BaseClass):
     def POST(self, bank_id, taken_id):
         try:
             am = autils.get_assessment_manager()
-            assessment_session = am.get_assessment_session()
+            assessment_session = am.get_assessment_session(proxy=am._proxy)
             # "finish" the assessment section
             # bank.finished_assessment_section(first_section.ident)
             assessment_session.finish_assessment(utilities.clean_id(taken_id))

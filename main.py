@@ -47,7 +47,7 @@ class index:
 
 class version:
     def GET(self):
-        return '3.14.2'
+        return '3.14.3'
 
 
 class video_test:

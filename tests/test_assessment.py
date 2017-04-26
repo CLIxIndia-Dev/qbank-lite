@@ -3,16 +3,15 @@ import csv
 import json
 import os
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 from copy import deepcopy
 
-from dlkit_runtime.primordium import Id, Type
-
 from paste.fixture import AppError
 
-from records.assessment.qti.basic import _stringify
-from records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
+from dlkit.runtime.primordium import Id, Type
+from dlkit.records.assessment.qti.basic import _stringify
+from dlkit.records.registry import ITEM_GENUS_TYPES, ITEM_RECORD_TYPES,\
     ANSWER_RECORD_TYPES, QUESTION_RECORD_TYPES, ANSWER_GENUS_TYPES,\
     ASSESSMENT_OFFERED_RECORD_TYPES, ASSESSMENT_TAKEN_RECORD_TYPES,\
     QUESTION_GENUS_TYPES, ASSESSMENT_RECORD_TYPES

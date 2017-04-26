@@ -6,12 +6,12 @@ from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
 from dlkit.json_ import types
 
-from dlkit_runtime import PROXY_SESSION, RUNTIME
-from dlkit_runtime.errors import NotFound
-from dlkit_runtime.primitives import InitializableLocale
-from dlkit_runtime.proxy_example import TestRequest
+from dlkit.runtime import PROXY_SESSION, RUNTIME
+from dlkit.runtime.errors import NotFound
+from dlkit.runtime.primitives import InitializableLocale
+from dlkit.runtime.proxy_example import SimpleRequest
 
-from records import registry
+from dlkit.records import registry
 
 import utilities
 
@@ -302,8 +302,8 @@ def get_file_extension(file_name):
 
 def get_repository_manager():
     condition = PROXY_SESSION.get_proxy_condition()
-    dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
-                                authenticated=True)
+    dummy_request = SimpleRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                  authenticated=True)
     condition.set_http_request(dummy_request)
 
     if 'HTTP_X_API_LOCALE' in web.ctx.env:
@@ -420,8 +420,7 @@ def replace_asset_main_content(repo, asset_id, file_name, file_data):
 
 
 def update_asset_map_with_content_url(rm, asset_map):
-    # because we've appended the asset content lookup methods to asset lookup session
-    acls = rm.get_asset_lookup_session()
+    acls = rm.get_asset_content_lookup_session(proxy=rm._proxy)
     acls.use_federated_repository_view()
     if 'assetContents' in asset_map:
         for index, asset_content in enumerate(asset_map['assetContents']):

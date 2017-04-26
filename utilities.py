@@ -8,12 +8,10 @@ from urllib import quote
 
 from dlkit.json_ import types
 
-from dlkit_runtime import PROXY_SESSION, RUNTIME
-from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound,\
-    OperationFailed, Unsupported
-from dlkit_runtime.primitives import InitializableLocale
-from dlkit_runtime.primordium import Id, Type, DisplayText
-from dlkit_runtime.proxy_example import TestRequest
+from dlkit.runtime.errors import PermissionDenied, IllegalState,\
+    OperationFailed
+from dlkit.runtime.primitives import InitializableLocale
+from dlkit.runtime.primordium import Id, Type, DisplayText
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
 DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
@@ -175,48 +173,6 @@ def allow_cors(func):
         web.header("Access-Control-Max-Age", "1728000")
         return results
     return wrapper
-
-# def activate_managers(session, username='student@tiss.edu'):
-#     """
-#     Create initial managers and store them in the session
-#     """
-#     managers = [('am', 'ASSESSMENT'),
-#                 ('logm', 'LOGGING'),
-#                 ('rm', 'REPOSITORY')]
-#
-#     for manager in managers:
-#         nickname = manager[0]
-#         service_name = manager[1]
-#
-#         condition = PROXY_SESSION.get_proxy_condition()
-#         dummy_request = TestRequest(username=username, authenticated=True)
-#         condition.set_http_request(dummy_request)
-#
-#         if 'HTTP_X_API_LOCALE' in web.ctx.env:
-#             language_code = web.ctx.env['HTTP_X_API_LOCALE'].lower()
-#             if language_code in ['en', 'hi', 'te']:
-#                 if language_code == 'en':
-#                     language_code = 'ENG'
-#                     script_code = 'LATN'
-#                 elif language_code == 'hi':
-#                     language_code = 'HIN'
-#                     script_code = 'DEVA'
-#                 else:
-#                     language_code = 'TEL'
-#                     script_code = 'TELU'
-#             else:
-#                 language_code = DEFAULT_LANGUAGE_TYPE.identifier
-#                 script_code = DEFAULT_SCRIPT_TYPE.identifier
-#
-#             locale = InitializableLocale(language_type_identifier=language_code,
-#                                          script_type_identifier=script_code)
-#
-#             condition.set_locale(locale)
-#
-#         proxy = PROXY_SESSION.get_proxy(condition)
-#         session._initializer[nickname] = RUNTIME.get_service_manager(service_name,
-#                                                                      proxy=proxy)
-#     return session
 
 
 def clean_id(_id):

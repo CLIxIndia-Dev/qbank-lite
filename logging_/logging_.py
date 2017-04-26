@@ -4,14 +4,10 @@
 import json
 import web
 
-from bson.errors import InvalidId
+from dlkit.runtime.errors import IllegalState
+from dlkit.runtime.primordium import Id, Type
 
-from dlkit_runtime.errors import PermissionDenied, InvalidArgument, IllegalState, NotFound
-from dlkit_runtime.primordium import Id, Type
-
-from pymongo.errors import InvalidId
-
-from records.registry import LOG_ENTRY_RECORD_TYPES
+from dlkit.records.registry import LOG_ENTRY_RECORD_TYPES
 
 import logging_utilities as logutils
 import utilities
@@ -243,7 +239,7 @@ class LogEntryDetails(utilities.BaseClass):
     def GET(self, log_id, entry_id):
         try:
             logm = logutils.get_logging_manager()
-            lels = logm.get_log_entry_lookup_session()
+            lels = logm.get_log_entry_lookup_session(proxy=logm._proxy)
             lels.use_federated_log_view()
             entry = lels.get_log_entry(utilities.clean_id(entry_id))
             entry_map = entry.object_map

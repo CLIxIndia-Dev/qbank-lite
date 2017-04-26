@@ -5,9 +5,6 @@ data_file=/tmp/coverage
 omit =
     *_test.py
     *_tests.py
-    dlkit/*
-    dlkit_runtime/*
-    records/*
 
 [report]
 exclude_lines =

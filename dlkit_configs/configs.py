@@ -3,7 +3,7 @@ import sys
 
 from dlkit.primordium.type.primitives import Type
 
-from dlkit_runtime.utilities import impl_key_dict
+from dlkit.runtime.utilities import impl_key_dict
 
 if getattr(sys, 'frozen', False):
     ABS_PATH = os.path.dirname(sys.executable)
@@ -237,7 +237,7 @@ JSON_1 = {
             'displayName': 'Python path to the extension records registry file',
             'description': 'dot-separated path to the extension records registry file',
             'values': [
-                {'value': 'records.registry', 'priority': 1}
+                {'value': 'dlkit.records.registry', 'priority': 1}
             ]
         },
         'magicItemLookupSessions': {
@@ -245,7 +245,7 @@ JSON_1 = {
             'displayName': 'Which magic item lookup sessions to try',
             'description': 'To handle magic IDs.',
             'values': [
-                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+                {'value': 'dlkit.records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
         'localImpl': {
@@ -406,6 +406,14 @@ SERVICE = {
             'syntax': 'STRING',
             'displayName': 'Hierarchy Provider Implementation',
             'description': 'Implementation for hierarchy service provider',
+            'values': [
+                {'value': 'JSON_1', 'priority': 1}
+            ]
+        },
+        'authorizationProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Authorization Provider Implementation',
+            'description': 'Implementation for authorization service provider',
             'values': [
                 {'value': 'JSON_1', 'priority': 1}
             ]
@@ -642,7 +650,7 @@ TEST_JSON_1 = {
             'displayName': 'Python path to the extension records registry file',
             'description': 'dot-separated path to the extension records registry file',
             'values': [
-                {'value': 'records.registry', 'priority': 1}
+                {'value': 'dlkit.records.registry', 'priority': 1}
             ]
         },
         'magicItemLookupSessions': {
@@ -650,7 +658,7 @@ TEST_JSON_1 = {
             'displayName': 'Which magic item lookup sessions to try',
             'description': 'To handle magic IDs.',
             'values': [
-                {'value': 'records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
+                {'value': 'dlkit.records.assessment.clix.magic_item_lookup_sessions.CLIxMagicItemLookupSession', 'priority': 1}
             ]
         },
         'localImpl': {

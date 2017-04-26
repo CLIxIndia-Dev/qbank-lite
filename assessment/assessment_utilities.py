@@ -9,17 +9,17 @@ from bson.errors import InvalidId
 
 from dlkit.abstract_osid.osid.objects import OsidObjectForm
 from dlkit.json_ import types
-from dlkit_runtime import PROXY_SESSION, RUNTIME
-from dlkit_runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
+from dlkit.runtime import PROXY_SESSION, RUNTIME
+from dlkit.runtime.errors import InvalidArgument, Unsupported, NotFound, NullArgument,\
     IllegalState
-from dlkit_runtime.primitives import InitializableLocale
-from dlkit_runtime.primordium import Duration, DateTime, Id, Type,\
+from dlkit.runtime.primitives import InitializableLocale
+from dlkit.runtime.primordium import Duration, DateTime, Id, Type,\
     DataInputStream, DisplayText, RectangularSpatialUnit, BasicCoordinate
-from dlkit_runtime.proxy_example import TestRequest
+from dlkit.runtime.proxy_example import SimpleRequest
 
 from inflection import underscore
 
-from records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
+from dlkit.records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
     ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES, ASSET_GENUS_TYPES,\
     ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES,\
     QUESTION_RECORD_TYPES
@@ -446,8 +446,8 @@ def get_answer_records(answer):
 
 def get_assessment_manager():
     condition = PROXY_SESSION.get_proxy_condition()
-    dummy_request = TestRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
-                                authenticated=True)
+    dummy_request = SimpleRequest(username=web.ctx.env.get('HTTP_X_API_PROXY', 'student@tiss.edu'),
+                                  authenticated=True)
     condition.set_http_request(dummy_request)
 
     if 'HTTP_X_API_LOCALE' in web.ctx.env:
