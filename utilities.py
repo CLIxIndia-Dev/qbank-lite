@@ -280,8 +280,9 @@ def handle_exceptions(ex):
     elif isinstance(ex, IllegalState):
         # Sometimes we try to explain why illegal state, like
         # the assessment still has items, can't delete it.
-        web.message = 'IllegalState {0}'.format(message)
-        raise web.NotAcceptable()
+        # web.message = 'IllegalState {0}'.format(message)
+        # raise web.NotAcceptable()
+        raise web.InternalError('IllegalState {0}'.format(message))
     else:
         raise web.InternalError(message)
 

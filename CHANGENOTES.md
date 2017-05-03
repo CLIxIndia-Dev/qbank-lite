@@ -1,3 +1,7 @@
+## [3.14.6] - 2017-05-03:
+### Fixed
+  - Fixed traceback on development, for `IllegalState`.
+
 ## [3.14.5] - 2017-05-03:
 ### Fixed
   - Changing choice order ignores duplicate `choiceId`s.
@@ -288,6 +292,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.5...v3.14.6
 [3.14.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.4...v3.14.5
 [3.14.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.3...v3.14.4
 [3.14.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.2...v3.14.3
