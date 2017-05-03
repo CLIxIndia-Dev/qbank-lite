@@ -3,6 +3,8 @@
 import os
 import json
 
+from copy import deepcopy
+
 from paste.fixture import AppError
 
 from dlkit.runtime.primitives import Type
@@ -2410,7 +2412,7 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.ok(req)
         data = self.json(req)
 
-        original_targets_order = [t for t in data['question']['multiLanguageTargets']]
+        original_targets_order = [t for t in data['question']['targets']]
 
         reversed_order = []
         # this extended slice returns the list in reverse order
@@ -2445,9 +2447,65 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotEqual(original_target_ids_order,
                             updated_target_ids_order)
 
+    def test_can_set_target_order_with_duplicate_ids(self):
+        item = self.create_item_with_question_and_answers()
+        payload = {
+            'question': {
+                'targets': [{
+                    'text': '<p><img src="AssetContent:drag_and_drop_input_DPP-Concpt-BlkonRmp-Trgt_png" alt="Ski slope" /></p>',
+                    'name': 'Image of ski slope',
+                    'dropBehaviorType': DROP_DROP_BEHAVIOR
+                }]
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        original_targets_order = [t for t in data['question']['targets']]
+
+        reversed_order = []
+        # this extended slice returns the list in reverse order
+        for index, target in enumerate(original_targets_order[::-1]):
+            target['order'] = index
+            reversed_order.append(target)
+
+        reversed_order.append(deepcopy(reversed_order[0]))
+        reversed_order[-1]['order'] = len(reversed_order)
+
+        payload = {
+            'question': {
+                'targets': reversed_order
+            }
+        }
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        original_target_ids_order = [t['id'] for t in original_targets_order]
+        updated_target_ids_order = [t['id'] for t in data['question']['multiLanguageTargets']]
+
+        # check same length
+        self.assertEqual(len(updated_target_ids_order),
+                         len(original_target_ids_order))
+
+        # check same elements
+        self.assertEqual(set(updated_target_ids_order),
+                         set(original_target_ids_order))
+
+        # but check order not equal
+        self.assertNotEqual(original_target_ids_order,
+                            updated_target_ids_order)
+
     def test_can_set_droppable_order(self):
         item = self.create_item_with_question_and_answers()
-        original_droppables_order = [d for d in item['question']['multiLanguageDroppables']]
+        original_droppables_order = [d for d in item['question']['droppables']]
 
         reversed_order = []
         # this extended slice returns the list in reverse order
@@ -2482,15 +2540,95 @@ class UpdateTests(BaseDragAndDropTestCase):
         self.assertNotEqual(original_droppable_ids_order,
                             updated_droppable_ids_order)
 
+    def test_can_set_droppable_order_with_duplicate_ids(self):
+        item = self.create_item_with_question_and_answers()
+        original_droppables_order = [d for d in item['question']['droppables']]
+
+        reversed_order = []
+        # this extended slice returns the list in reverse order
+        for index, droppable in enumerate(original_droppables_order[::-1]):
+            droppable['order'] = index
+            reversed_order.append(droppable)
+
+        reversed_order.append(deepcopy(reversed_order[0]))
+        reversed_order[-1]['order'] = len(reversed_order)
+
+        payload = {
+            'question': {
+                'droppables': reversed_order
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        original_droppable_ids_order = [d['id'] for d in original_droppables_order]
+        updated_droppable_ids_order = [d['id'] for d in data['question']['multiLanguageDroppables']]
+
+        # check same length
+        self.assertEqual(len(updated_droppable_ids_order),
+                         len(original_droppable_ids_order))
+
+        # check same elements
+        self.assertEqual(set(updated_droppable_ids_order),
+                         set(original_droppable_ids_order))
+
+        # but check order not equal
+        self.assertNotEqual(original_droppable_ids_order,
+                            updated_droppable_ids_order)
+
     def test_can_set_zone_order(self):
         item = self.create_item_with_question_and_answers()
-        original_zones_order = [d for d in item['question']['multiLanguageZones']]
+        original_zones_order = [d for d in item['question']['zones']]
 
         reversed_order = []
         # this extended slice returns the list in reverse order
         for index, zone in enumerate(original_zones_order[::-1]):
             zone['order'] = index
             reversed_order.append(zone)
+
+        payload = {
+            'question': {
+                'zones': reversed_order
+            }
+        }
+        url = '{0}/{1}'.format(self.url, item['id'])
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        original_zone_ids_order = [d['id'] for d in original_zones_order]
+        updated_zone_ids_order = [d['id'] for d in data['question']['multiLanguageZones']]
+
+        # check same length
+        self.assertEqual(len(updated_zone_ids_order),
+                         len(original_zone_ids_order))
+
+        # check same elements
+        self.assertEqual(set(updated_zone_ids_order),
+                         set(original_zone_ids_order))
+
+        # but check order not equal
+        self.assertNotEqual(original_zone_ids_order,
+                            updated_zone_ids_order)
+
+    def test_can_set_zone_order_with_duplicate_ids(self):
+        item = self.create_item_with_question_and_answers()
+        original_zones_order = [d for d in item['question']['zones']]
+
+        reversed_order = []
+        # this extended slice returns the list in reverse order
+        for index, zone in enumerate(original_zones_order[::-1]):
+            zone['order'] = index
+            reversed_order.append(zone)
+
+        reversed_order.append(deepcopy(reversed_order[0]))
+        reversed_order[-1]['order'] = len(reversed_order)
 
         payload = {
             'question': {
