@@ -1,3 +1,9 @@
+## [3.14.8] - 2017-05-08:
+### Changed
+  - Update `spec` file with hidden `dlkit` imports
+    for `pyinstaller`.
+  - Update `pyinstaller` to `3.2.1`.
+
 ## [3.14.7] - 2017-05-08:
 ### Changed
   - Update `dlkit` from `0.3.3` to `0.3.6`.
@@ -296,6 +302,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.7...v3.14.8
 [3.14.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.6...v3.14.7
 [3.14.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.5...v3.14.6
 [3.14.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.4...v3.14.5
