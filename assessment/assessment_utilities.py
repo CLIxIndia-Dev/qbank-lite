@@ -1560,10 +1560,10 @@ def update_form_with_files(form, data):
     for label, asset_data in data['fileIds'].iteritems():
         # don't let them overwrite files from other languages...
         if label not in form._my_map['fileIds']:
-            form.add_asset(asset_data['assetId'],
-                           asset_content_id=asset_data['assetContentId'],
+            form.add_asset(utilities.clean_id(asset_data['assetId']),
+                           asset_content_id=utilities.clean_id(asset_data['assetContentId']),
                            label=label,
-                           asset_content_type=asset_data['assetContentTypeId'])
+                           asset_content_type=Type(asset_data['assetContentTypeId']))
     return form
 
 
