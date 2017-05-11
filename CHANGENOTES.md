@@ -1,3 +1,9 @@
+## [3.14.9] - 2017-05-11:
+### Fixed
+  - Update `dlkit` to fix bug with `None` text.
+  - Account for `None` feedback text.
+  - Enforce typing for `add_asset()` method.
+
 ## [3.14.8] - 2017-05-08:
 ### Changed
   - Update `spec` file with hidden `dlkit` imports
@@ -302,6 +308,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.8...v3.14.9
 [3.14.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.7...v3.14.8
 [3.14.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.6...v3.14.7
 [3.14.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.5...v3.14.6
