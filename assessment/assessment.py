@@ -2019,6 +2019,8 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                 # Need to wrap the feedback in <?xml> and also as a single block
                 # to make this work with OEA player
                 feedback_wrapped = feedback.text
+                if feedback_wrapped is None:
+                    feedback_wrapped = ''
                 if u'<modalFeedback' not in feedback_wrapped:
                     feedback_wrapped = u'<modalFeedback>{0}</modalFeedback>'.format(feedback_wrapped)
 
