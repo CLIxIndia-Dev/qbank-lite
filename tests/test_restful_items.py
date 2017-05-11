@@ -2075,7 +2075,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['question']['timeValue'],
-            {'hours': '00', 'minutes': '01', 'seconds': '40'}
+            {'hours': 0, 'minutes': 1, 'seconds': 40}
         )
 
         item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
@@ -2214,7 +2214,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['question']['timeValue'],
-            {'hours': '00', 'minutes': '01', 'seconds': '40'}
+            {'hours': 0, 'minutes': 1, 'seconds': 40}
         )
 
         item_qti_url = '{0}/{1}/qti'.format(url, item['id'])
@@ -3201,7 +3201,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['question']['timeValue'],
-            {'hours': '00', 'minutes': '06', 'seconds': '00'}
+            {'hours': 0, 'minutes': 6, 'seconds': 0}
         )
 
         self.assertEqual(
@@ -3553,7 +3553,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         self.assertEqual(
             item['question']['timeValue'],
-            {'hours': '00', 'minutes': '06', 'seconds': '00'}
+            {'hours': 0, 'minutes': 6, 'seconds': 0}
         )
 
         self.assertEqual(
