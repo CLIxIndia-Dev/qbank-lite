@@ -1192,7 +1192,8 @@ class ItemDetails(utilities.BaseClass):
             if any(attr in local_data_map for attr in ['name', 'description', 'learningObjectiveIds',
                                                        'attempts', 'markdown', 'showanswer',
                                                        'weight', 'difficulty', 'discrimination',
-                                                       'removeName', 'editName', 'removeDescription',
+                                                       'removeNameLanguageType', 'editName',
+                                                       'removeDescriptionLanguageType',
                                                        'editDescription', 'aliasId', 'genusTypeId']):
                 form = bank.get_item_form_for_update(utilities.clean_id(sub_id))
                 form = utilities.set_form_basics(form, local_data_map)
