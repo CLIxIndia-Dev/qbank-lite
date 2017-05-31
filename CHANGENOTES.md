@@ -1,3 +1,7 @@
+## [3.14.10] - 2017-05-31:
+### Changed
+  - Update `dlkit` to `0.4.2` for Python 2 / 3 compatibility.
+
 ## [3.14.9] - 2017-05-11:
 ### Fixed
   - Update `dlkit` to fix bug with `None` text.
@@ -308,6 +312,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.14.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.9...v3.14.10
 [3.14.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.8...v3.14.9
 [3.14.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.7...v3.14.8
 [3.14.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.6...v3.14.7
