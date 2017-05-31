@@ -8907,7 +8907,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeName': data['displayNames'][0]
+            'removeNameLanguageType': data['displayNames'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -8937,11 +8937,10 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeDescription': data['descriptions'][0]
+            'removeDescriptionLanguageType': data['descriptions'][0]['languageTypeId']
         }
         req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers=self._hindi_headers())  # this header should be ignored because we're passing in the entire DisplayText
+                           params=json.dumps(payload))
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['descriptions']), 1)
@@ -8966,18 +8965,20 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
+        new_name = 'new english name'
+
         payload = {
-            'editName': [data['displayNames'][0], self._telugu_text]
+            'editName': new_name
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
-                           headers=self._telugu_headers())
+                           headers=self._english_headers())
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['displayNames']), 2)
-        self.assertEqual(data['displayNames'][0]['text'], self._telugu_text)
-        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['displayNames'][0]['text'], new_name)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._english_script_type)
         self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
         self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
@@ -8999,18 +9000,20 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
+        new_description = 'new english description'
+
         payload = {
-            'editDescription': [data['descriptions'][0], self._telugu_text]
+            'editDescription': new_description
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
-                           headers=self._telugu_headers())  # now this header matters, because we're passing in a string only
+                           headers=self._english_headers())  # now this header matters, because we're passing in a string only
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['descriptions']), 2)
-        self.assertEqual(data['descriptions'][0]['text'], self._telugu_text)
-        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['descriptions'][0]['text'], new_description)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._english_script_type)
         self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
         self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
@@ -9096,7 +9099,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeName': data['displayNames'][0]
+            'removeNameLanguageType': data['displayNames'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -9193,7 +9196,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeDescription': data['descriptions'][0]
+            'removeDescriptionLanguageType': data['descriptions'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
