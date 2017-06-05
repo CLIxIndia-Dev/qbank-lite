@@ -1,3 +1,8 @@
+## [3.15.0] - 2017-06-05:
+### Added
+  - Update `dlkit` to `0.5.0` to add `UnlockPrevious` record.
+  - RESTful support for `UnlockPrevious` record.
+
 ## [3.14.10] - 2017-05-31:
 ### Changed
   - Update `dlkit` to `0.4.2` for Python 2 / 3 compatibility.
@@ -312,6 +317,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.10...v3.15.0
 [3.14.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.9...v3.14.10
 [3.14.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.8...v3.14.9
 [3.14.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.7...v3.14.8
