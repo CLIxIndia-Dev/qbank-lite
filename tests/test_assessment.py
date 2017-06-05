@@ -3039,6 +3039,79 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         self.assertEqual(offered['id'], updated_offered['id'])
         self.assertEqual(updated_offered['genusTypeId'], single_page_genus)
 
+    def test_can_set_unlock_previous_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo'
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious']['text'], 'foo')
+
+    def test_can_update_unlock_previous_on_update(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious']['text'], 'always')
+
+        payload = {
+            "unlockPrevious": 'foo'
+        }
+
+        assessment_offering_details_endpoint = '{0}/{1}'.format(assessment_offering_endpoint,
+                                                                unquote(offering['id']))
+
+        req = self.app.put(assessment_offering_details_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious']['text'], payload['unlockPrevious'])
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
