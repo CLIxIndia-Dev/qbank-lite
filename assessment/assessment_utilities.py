@@ -1144,7 +1144,7 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
         if update:
             offering_form = bank.get_assessment_offered_form_for_update(assessment_id)
             if str(UNLOCK_PREVIOUS_BUTTON_OFFERED) not in offering_form._my_map['recordTypeIds']:
-                record = offering_form.get_assessmnet_offered_form_record(UNLOCK_PREVIOUS_BUTTON_OFFERED)
+                record = offering_form.get_assessment_offered_form_record(UNLOCK_PREVIOUS_BUTTON_OFFERED)
                 record._init_metadata()
                 record._init_map()
             execute = bank.update_assessment_offered
