@@ -280,7 +280,6 @@ class AssetContentStream(utilities.BaseClass):
                 # The algorithm below for streaming partial content was based off of this
                 # post:
                 # https://benramsey.com/blog/2008/05/206-partial-content-and-range-requests/
-
                 continue_with_stream = True
                 byte_range = rutils.get_byte_ranges()
                 total_bytes_to_read = os.path.getsize(asset_content_data.name)
@@ -291,33 +290,42 @@ class AssetContentStream(utilities.BaseClass):
                     if bytes_to_throw_away > total_bytes_to_read or bytes_to_throw_away < 0:
                         web.ctx.status = '416 Requested Range Not Satisfiable'
                         continue_with_stream = False
+                        asset_content_data.close()
                         yield ''
-                    asset_content_data.read(bytes_to_throw_away)
-                    total_bytes_to_read = os.path.getsize(asset_content_data.name) - bytes_to_throw_away
-                    if byte_range[1] != '':
-                        total_bytes_to_read = int(byte_range[1]) - bytes_to_throw_away
+                    else:
+                        asset_content_data.read(bytes_to_throw_away)
+                        total_bytes_to_read = os.path.getsize(asset_content_data.name) - bytes_to_throw_away
+                        if byte_range[1] != '':
+                            total_bytes_to_read = int(byte_range[1]) - bytes_to_throw_away
 
-                bytes_read = 0
+                if continue_with_stream:
+                    bytes_read = 0
+                    num_bytes_to_read = 1024 * 8
+                    starting_bytes = bytes_to_throw_away
+                    web.ctx.status = '206 Partial Content'
 
-                num_bytes_to_read = 1024 * 8
-                starting_bytes = bytes_to_throw_away
-                web.ctx.status = '206 Partial Content'
+                    while continue_with_stream:
+                        remaining_bytes = total_bytes_to_read - bytes_read
+                        bytes_to_read = min(num_bytes_to_read, remaining_bytes)
+                        buf = asset_content_data.read(bytes_to_read)
+                        if not buf:
+                            asset_content_data.close()
+                            break
 
-                while continue_with_stream:
-                    remaining_bytes = total_bytes_to_read - bytes_read
-                    bytes_to_read = min(num_bytes_to_read, remaining_bytes)
-                    buf = asset_content_data.read(bytes_to_read)
-                    if not buf:
-                        break
+                        bytes_actually_read = len(buf)
 
-                    # web.header('Content-Length', str(bytes_to_read))
-                    web.header('Content-Range', 'bytes {0}-{1}/{2}'.format(str(starting_bytes),
-                                                                           str(starting_bytes + bytes_to_read),
-                                                                           str(content_length)))
+                        # web.header('Content-Length', total_bytes_to_read)
+                        # Introduce a -1 here because otherwise the bytes_read indicator is off
+                        #   by one to the browser. The ending value {1} has to be the last byte
+                        #   actually read. That broke video streaming in Chrome, not in FF.
+                        range_header_str = 'bytes {0}-{1}/{2}'.format(str(starting_bytes),
+                                                                      str(starting_bytes + bytes_actually_read - 1),
+                                                                      str(content_length))
+                        web.header('Content-Range', range_header_str)
 
-                    bytes_read += bytes_to_read
-                    starting_bytes += bytes_to_read
-                    yield buf
+                        bytes_read += bytes_actually_read
+                        starting_bytes += bytes_actually_read
+                        yield buf
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
