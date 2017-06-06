@@ -390,8 +390,8 @@ class AssetContentTests(BaseRepositoryTestCase):
         # self.assertIn('.png', headers['content-disposition'])
         # original_content_length = headers['content-length']
         self.assertIn('content-range', headers)
-        self.assertEqual('bytes 0-8192/152318', headers['content-range'][0])
-        self.assertEqual('bytes 147456-152318/152318', headers['content-range'][-1])
+        self.assertEqual('bytes 0-8191/152318', headers['content-range'][0])
+        self.assertEqual('bytes 147456-152317/152318', headers['content-range'][-1])
 
         # need to get rid of the /stream part of the path to just get the content details URL
         content_url = image['src'].replace('/stream', '')
@@ -418,7 +418,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         # self.assertIn('.sltng', headers['content-disposition'])
         # self.assertNotEqual(original_content_length, headers['content-length'])
         self.assertIn('content-range', headers)
-        expected_range = 'bytes 0-8192/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
+        expected_range = 'bytes 0-8191/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
         self.assertIn(expected_range,
                       headers['content-range'])
 
@@ -471,7 +471,7 @@ class AssetContentTests(BaseRepositoryTestCase):
         # self.assertIn('.sltng', headers['content-disposition'])
         # self.assertNotEqual(original_content_length, headers['content-length'])
         self.assertIn('content-range', headers)
-        expected_range = 'bytes 0-8192/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
+        expected_range = 'bytes 0-8191/{0}'.format(str(os.path.getsize(self._logo_upload_test_file.name)))
         self.assertIn(expected_range,
                       headers['content-range'])
 
