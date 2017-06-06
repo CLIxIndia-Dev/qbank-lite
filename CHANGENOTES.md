@@ -1,3 +1,7 @@
+## [3.15.2] - 2017-06-06:
+### Fixed
+  - Off-by-one when returning byte range for streaming asset contents.
+
 ## [3.15.1] - 2017-06-06:
 ### Fixed
   - Typo in adding record to assessment offered.
@@ -325,6 +329,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2
 [3.15.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.0...v3.15.1
 [3.15.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.10...v3.15.0
 [3.14.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.9...v3.14.10
