@@ -3067,7 +3067,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
-        self.assertEquals(offering['unlockPrevious']['text'], 'foo')
+        self.assertEquals(offering['unlockPrevious'], 'foo')
 
     def test_can_update_unlock_previous_on_update(self):
         item = self.create_item()
@@ -3096,7 +3096,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
-        self.assertEquals(offering['unlockPrevious']['text'], 'always')
+        self.assertEquals(offering['unlockPrevious'], 'always')
 
         payload = {
             "unlockPrevious": 'foo'
@@ -3110,7 +3110,7 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
                            headers={'content-type': 'application/json'})
         self.ok(req)
         offering = json.loads(req.body)
-        self.assertEquals(offering['unlockPrevious']['text'], payload['unlockPrevious'])
+        self.assertEquals(offering['unlockPrevious'], payload['unlockPrevious'])
 
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
