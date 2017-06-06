@@ -47,6 +47,7 @@ LATEX_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['latex'])
 PNG_ASSET_CONTENT_GENUS_TYPE = Type(**ASSET_CONTENT_GENUS_TYPES['png'])
 REVIEWABLE_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['review-options'])
 N_OF_M_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['n-of-m'])
+UNLOCK_PREVIOUS_BUTTON_OFFERED = Type(**ASSESSMENT_OFFERED_RECORD_TYPES['unlock-previous-button'])
 WRONG_ANSWER = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
 RIGHT_ANSWER = Type(**ANSWER_GENUS_TYPES['right-answer'])
 
@@ -1142,13 +1143,18 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if update:
             offering_form = bank.get_assessment_offered_form_for_update(assessment_id)
+            if str(UNLOCK_PREVIOUS_BUTTON_OFFERED) not in offering_form._my_map['recordTypeIds']:
+                record = offering_form.get_assessment_offered_form_record(UNLOCK_PREVIOUS_BUTTON_OFFERED)
+                record._init_metadata()
+                record._init_map()
             execute = bank.update_assessment_offered
         else:
             # use our new Offered Record object, which lets us do
             # "can_review_whether_correct()" on the Taken.
             offering_form = bank.get_assessment_offered_form_for_create(assessment_id,
                                                                         [REVIEWABLE_OFFERED,
-                                                                         N_OF_M_OFFERED])
+                                                                         N_OF_M_OFFERED,
+                                                                         UNLOCK_PREVIOUS_BUTTON_OFFERED])
             execute = bank.create_assessment_offered
 
         if 'genusTypeId' in offering:
@@ -1186,6 +1192,9 @@ def set_assessment_offerings(bank, offerings, assessment_id, update=False):
 
         if 'nOfM' in offering:
             offering_form.set_n_of_m(int(offering['nOfM']))
+
+        if 'unlockPrevious' in offering:
+            offering_form.set_unlock_previous(offering['unlockPrevious'])
 
         new_offering = execute(offering_form)
         return_data.append(new_offering)

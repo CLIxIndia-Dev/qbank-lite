@@ -3039,6 +3039,79 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         self.assertEqual(offered['id'], updated_offered['id'])
         self.assertEqual(updated_offered['genusTypeId'], single_page_genus)
 
+    def test_can_set_unlock_previous_on_create(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo'
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious'], 'foo')
+
+    def test_can_update_unlock_previous_on_update(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            }
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious'], 'always')
+
+        payload = {
+            "unlockPrevious": 'foo'
+        }
+
+        assessment_offering_details_endpoint = '{0}/{1}'.format(assessment_offering_endpoint,
+                                                                unquote(offering['id']))
+
+        req = self.app.put(assessment_offering_details_endpoint,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['unlockPrevious'], payload['unlockPrevious'])
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -8907,7 +8980,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeName': data['displayNames'][0]
+            'removeNameLanguageType': data['displayNames'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -8937,11 +9010,10 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeDescription': data['descriptions'][0]
+            'removeDescriptionLanguageType': data['descriptions'][0]['languageTypeId']
         }
         req = self.app.put(url,
-                           params=json.dumps(payload),
-                           headers=self._hindi_headers())  # this header should be ignored because we're passing in the entire DisplayText
+                           params=json.dumps(payload))
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['descriptions']), 1)
@@ -8966,18 +9038,20 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
+        new_name = 'new english name'
+
         payload = {
-            'editName': [data['displayNames'][0], self._telugu_text]
+            'editName': new_name
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
-                           headers=self._telugu_headers())
+                           headers=self._english_headers())
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['displayNames']), 2)
-        self.assertEqual(data['displayNames'][0]['text'], self._telugu_text)
-        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['displayNames'][0]['text'], new_name)
+        self.assertEqual(data['displayNames'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['displayNames'][0]['scriptTypeId'], self._english_script_type)
         self.assertEqual(data['displayNames'][1]['text'], self._hindi_text)
         self.assertEqual(data['displayNames'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
@@ -8999,18 +9073,20 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
+        new_description = 'new english description'
+
         payload = {
-            'editDescription': [data['descriptions'][0], self._telugu_text]
+            'editDescription': new_description
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
-                           headers=self._telugu_headers())  # now this header matters, because we're passing in a string only
+                           headers=self._english_headers())  # now this header matters, because we're passing in a string only
         self.ok(req)
         data = self.json(req)
         self.assertEqual(len(data['descriptions']), 2)
-        self.assertEqual(data['descriptions'][0]['text'], self._telugu_text)
-        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._telugu_language_type)
-        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._telugu_script_type)
+        self.assertEqual(data['descriptions'][0]['text'], new_description)
+        self.assertEqual(data['descriptions'][0]['languageTypeId'], self._english_language_type)
+        self.assertEqual(data['descriptions'][0]['scriptTypeId'], self._english_script_type)
         self.assertEqual(data['descriptions'][1]['text'], self._hindi_text)
         self.assertEqual(data['descriptions'][1]['languageTypeId'], self._hindi_language_type)
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
@@ -9096,7 +9172,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['displayNames'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeName': data['displayNames'][0]
+            'removeNameLanguageType': data['displayNames'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),
@@ -9193,7 +9269,7 @@ class MultiLanguageTests(BaseAssessmentTestCase):
         self.assertEqual(data['descriptions'][1]['scriptTypeId'], self._hindi_script_type)
 
         payload = {
-            'removeDescription': data['descriptions'][0]
+            'removeDescriptionLanguageType': data['descriptions'][0]['languageTypeId']
         }
         req = self.app.put(url,
                            params=json.dumps(payload),

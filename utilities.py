@@ -305,13 +305,11 @@ def set_form_basics(form, data):
             form.display_name = _grab_first_match(name_keys)
 
     if 'editName' in data:
-        old_name = create_display_text(data['editName'][0])
-        new_name = create_display_text(data['editName'][1])
-        form.edit_display_name(old_name, new_name)
+        new_name = create_display_text(data['editName'])
+        form.edit_display_name(new_name)
 
-    if 'removeName' in data:
-        old_name = create_display_text(data['removeName'])
-        form.clear_display_name(old_name)
+    if 'removeNameLanguageType' in data:
+        form.remove_display_name_by_language(Type(data['removeNameLanguageType']))
 
     if any(_desc in data for _desc in description_keys):
         try:
@@ -321,13 +319,11 @@ def set_form_basics(form, data):
             form.description = _grab_first_match(description_keys)
 
     if 'editDescription' in data:
-        old_description = create_display_text(data['editDescription'][0])
-        new_description = create_display_text(data['editDescription'][1])
-        form.edit_description(old_description, new_description)
+        new_description = create_display_text(data['editDescription'])
+        form.edit_description(new_description)
 
-    if 'removeDescription' in data:
-        old_description = create_display_text(data['removeDescription'])
-        form.clear_description(old_description)
+    if 'removeDescriptionLanguageType' in data:
+        form.remove_description_by_language(Type(data['removeDescriptionLanguageType']))
 
     if any(_genus in data for _genus in genus_keys):
         form.set_genus_type(Type(_grab_first_match(genus_keys)))

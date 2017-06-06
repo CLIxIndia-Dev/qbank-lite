@@ -1,3 +1,24 @@
+## [3.15.2] - 2017-06-06:
+### Fixed
+  - Off-by-one when returning byte range for streaming asset contents.
+
+## [3.15.1] - 2017-06-06:
+### Fixed
+  - Typo in adding record to assessment offered.
+
+### Changed
+  - Updated `dlkit` to `0.5.1` to keep `unlockPrevious` as
+    a simple string.
+
+## [3.15.0] - 2017-06-05:
+### Added
+  - Update `dlkit` to `0.5.0` to add `UnlockPrevious` record.
+  - RESTful support for `UnlockPrevious` record.
+
+## [3.14.10] - 2017-05-31:
+### Changed
+  - Update `dlkit` to `0.4.2` for Python 2 / 3 compatibility.
+
 ## [3.14.9] - 2017-05-11:
 ### Fixed
   - Update `dlkit` to fix bug with `None` text.
@@ -308,6 +329,10 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2
+[3.15.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.0...v3.15.1
+[3.15.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.10...v3.15.0
+[3.14.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.9...v3.14.10
 [3.14.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.8...v3.14.9
 [3.14.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.7...v3.14.8
 [3.14.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.6...v3.14.7
