@@ -1,3 +1,8 @@
+## [3.15.3] - 2017-06-07:
+### Fixed
+  - Allow you to upload the first asset metadata file on PUT,
+    even if you didn't include it in the original POST.
+
 ## [3.15.2] - 2017-06-06:
 ### Fixed
   - Off-by-one when returning byte range for streaming asset contents.
@@ -329,6 +334,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.2...v3.15.3
 [3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2
 [3.15.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.0...v3.15.1
 [3.15.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.14.10...v3.15.0

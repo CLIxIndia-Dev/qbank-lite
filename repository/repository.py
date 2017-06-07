@@ -165,7 +165,10 @@ class AssetsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
-                rutils.append_file_as_asset_content(repository, asset, file_name, input_file)
+                rutils.append_file_as_asset_content(repository,
+                                                    asset.ident,
+                                                    file_name,
+                                                    input_file)
 
             # Check if transcripts or VTT files are included
             try:
@@ -175,7 +178,7 @@ class AssetsList(utilities.BaseClass):
             else:
                 file_name = vtt_input_file['vttFile'].filename
                 rutils.append_vtt_file_as_asset_content(repository,
-                                                        asset,
+                                                        asset.ident,
                                                         file_name,
                                                         vtt_file,
                                                         locale)
@@ -186,7 +189,7 @@ class AssetsList(utilities.BaseClass):
             else:
                 file_name = transcript_input_file['transcriptFile'].filename
                 rutils.append_transcript_file_as_asset_content(repository,
-                                                               asset,
+                                                               asset.ident,
                                                                file_name,
                                                                transcript_file,
                                                                locale)
@@ -213,13 +216,13 @@ class AssetsList(utilities.BaseClass):
             # Handle the alt-text for images
             if 'altText' in params.keys():
                 rutils.append_text_as_asset_content(repository,
-                                                    asset,
+                                                    asset.ident,
                                                     utilities.clean_json(params['altText']),
                                                     'Alt text',
                                                     'alt-text')
             if 'mediaDescription' in params.keys():
                 rutils.append_text_as_asset_content(repository,
-                                                    asset,
+                                                    asset.ident,
                                                     utilities.clean_json(params['mediaDescription']),
                                                     'Description',
                                                     'mediaDescription')
@@ -373,7 +376,11 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_file_as_asset_content(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_file_as_asset_content(repository,
+                                                                                   asset.ident,
+                                                                                   file_name,
+                                                                                   input_file,
+                                                                                   params)
 
             # need to get the updated asset with Contents
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
