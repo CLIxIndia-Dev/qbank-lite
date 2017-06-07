@@ -2262,6 +2262,104 @@ class AssetAccessibilityCRUDTests(BaseAccessibilityTestCase):
         orig_item = [i for i in data if i['id'] == item['id']][0]
         self.assertEqual(len(orig_item['assetContents']), 2)
 
+    def test_can_add_first_alt_text_on_update(self):
+        self._image_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 1)
+        self.assertNotEqual(data['assetContents'][0]['genusTypeId'],
+                            str(ALT_TEXT_ASSET_CONTENT_GENUS_TYPE))
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        payload = {
+            'altText': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['altTexts']), 1)
+
+    def test_can_add_first_media_description_on_update(self):
+        self._image_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'green_dot.png', self._image_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 1)
+        self.assertNotEqual(data['assetContents'][0]['genusTypeId'],
+                            str(MEDIA_DESCRIPTION_ASSET_CONTENT_GENUS_TYPE))
+
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+
+        payload = {
+            'mediaDescription': self._hindi_text
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['mediaDescriptions']), 1)
+
+    def test_can_add_first_vtt_file_on_update(self):
+        self._video_upload_test_file.seek(0)
+        self._caption_upload_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', 'video-js-test.mp4', self._video_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 1)
+        self.assertNotEqual(data['assetContents'][0]['genusTypeId'],
+                            str(VTT_FILE_ASSET_CONTENT_GENUS_TYPE))
+
+        self._caption_hi_upload_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('vttFile', 'video-js-test-hi.vtt', self._caption_hi_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertIn('HIN', data['assetContents'][1]['fileIds'])
+
+    def test_can_add_first_transcript_file_on_update(self):
+        self._audio_upload_test_file.seek(0)
+        self._transcript_test_file.seek(0)
+        req = self.app.post(self.url,
+                            upload_files=[('inputFile', self._filename(self._audio_upload_test_file), self._audio_upload_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 1)
+        self.assertNotEqual(data['assetContents'][0]['genusTypeId'],
+                            str(TRANSCRIPT_FILE_ASSET_CONTENT_GENUS_TYPE))
+
+        self._transcript_hi_test_file.seek(0)
+        url = '{0}/{1}'.format(self.url,
+                               data['id'])
+        req = self.app.put(url,
+                           params={'locale': 'hi'},
+                           upload_files=[('transcriptFile', 'transcript_hi.txt', self._transcript_hi_test_file.read())])
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data['assetContents']), 2)
+        self.assertEqual(len(data['assetContents'][1]['fileIds']), 1)
+        self.assertIn('HIN', data['assetContents'][1]['fileIds'])
+
     # Not sure what to do with these, how we want to display them on the content side...
     # Fill in these tests once we figure that out
     # def test_default_lang_media_description_shows_up_in_audio(self):
