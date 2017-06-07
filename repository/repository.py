@@ -165,7 +165,7 @@ class AssetsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
-                rutils.append_file_as_asset_content(repository, asset, file_name, input_file)
+                rutils.append_file_as_asset_content(repository, asset.ident, file_name, input_file)
 
             # Check if transcripts or VTT files are included
             try:
@@ -175,7 +175,7 @@ class AssetsList(utilities.BaseClass):
             else:
                 file_name = vtt_input_file['vttFile'].filename
                 rutils.append_vtt_file_as_asset_content(repository,
-                                                        asset,
+                                                        asset.ident,
                                                         file_name,
                                                         vtt_file,
                                                         locale)
@@ -186,7 +186,7 @@ class AssetsList(utilities.BaseClass):
             else:
                 file_name = transcript_input_file['transcriptFile'].filename
                 rutils.append_transcript_file_as_asset_content(repository,
-                                                               asset,
+                                                               asset.ident,
                                                                file_name,
                                                                transcript_file,
                                                                locale)
