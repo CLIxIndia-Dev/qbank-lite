@@ -165,7 +165,10 @@ class AssetsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data
-                rutils.append_file_as_asset_content(repository, asset.ident, file_name, input_file)
+                rutils.append_file_as_asset_content(repository,
+                                                    asset.ident,
+                                                    file_name,
+                                                    input_file)
 
             # Check if transcripts or VTT files are included
             try:
@@ -373,7 +376,11 @@ class AssetContentsList(utilities.BaseClass):
 
                 # now let's create an asset content for this asset, with the
                 # right genus type and file data. Also set the form basics, if passed in
-                updated_asset, asset_content = rutils.append_file_as_asset_content(repository, asset, file_name, input_file, params)
+                updated_asset, asset_content = rutils.append_file_as_asset_content(repository,
+                                                                                   asset.ident,
+                                                                                   file_name,
+                                                                                   input_file,
+                                                                                   params)
 
             # need to get the updated asset with Contents
             asset_content_map = json.loads(utilities.convert_dl_object(asset_content))
