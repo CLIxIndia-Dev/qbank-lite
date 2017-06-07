@@ -213,13 +213,13 @@ class AssetsList(utilities.BaseClass):
             # Handle the alt-text for images
             if 'altText' in params.keys():
                 rutils.append_text_as_asset_content(repository,
-                                                    asset,
+                                                    asset.ident,
                                                     utilities.clean_json(params['altText']),
                                                     'Alt text',
                                                     'alt-text')
             if 'mediaDescription' in params.keys():
                 rutils.append_text_as_asset_content(repository,
-                                                    asset,
+                                                    asset.ident,
                                                     utilities.clean_json(params['mediaDescription']),
                                                     'Description',
                                                     'mediaDescription')
