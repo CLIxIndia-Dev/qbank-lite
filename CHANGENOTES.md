@@ -1,3 +1,7 @@
+## [3.15.4] - 2017-06-13:
+### Changed
+  - Update `dlkit` to `0.5.2` for `pymongo` 2 compatibility.
+
 ## [3.15.3] - 2017-06-07:
 ### Fixed
   - Allow you to upload the first asset metadata file on PUT,
@@ -334,6 +338,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.3...v3.15.4
 [3.15.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.2...v3.15.3
 [3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2
 [3.15.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.0...v3.15.1
