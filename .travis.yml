@@ -1,8 +1,17 @@
 language: python
+cache: pip
 python:
   - "2.7"
 services:
   - mongodb
+env:
+  - TEST_SUITE=tests/test_assessment.py
+  - TEST_SUITE=tests/test_asset_accessibility.py
+  - TEST_SUITE=tests/test_drag_and_drop.py
+  - TEST_SUITE=tests/test_logging.py
+  - TEST_SUITE=tests/test_qti.py
+  - TEST_SUITE=tests/test_repository.py
+  - TEST_SUITE=tests/test_restful_items.py
 
 sudo: false
 
@@ -17,7 +26,7 @@ install:
   - git submodule update --init --recursive
 
 # command to run tests
-script: python -m pytest -x
+script: "python -m pytest -x $TEST_SUITE"
 
 # command to report coverage stats
 after_success:
