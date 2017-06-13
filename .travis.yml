@@ -12,6 +12,7 @@ env:
   - TEST_SUITE=tests/test_qti.py
   - TEST_SUITE=tests/test_repository.py
   - TEST_SUITE=tests/test_restful_items.py
+  - TEST_SUITE=-k "not tests"
 
 sudo: false
 
