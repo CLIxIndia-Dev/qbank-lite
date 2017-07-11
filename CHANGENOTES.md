@@ -1,3 +1,7 @@
+## [3.15.5] - 2017-07-11:
+### Changed
+  - Update `dlkit` to `0.5.3` for `cataloging` package.
+
 ## [3.15.4] - 2017-06-13:
 ### Changed
   - Update `dlkit` to `0.5.2` for `pymongo` 2 compatibility.
@@ -338,6 +342,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.4...v3.15.5
 [3.15.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.3...v3.15.4
 [3.15.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.2...v3.15.3
 [3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2
