@@ -5,6 +5,13 @@ data_file=/tmp/coverage
 omit =
     *_test.py
     *_tests.py
+    .dockerignore
+    Dockerfile
+    docker-compose.yml
+    *.txt
+    *.md
+    settings.py.example
+    main.spec
 
 [report]
 exclude_lines =
