@@ -1,0 +1,11 @@
+version: "3"
+services:
+  web:
+    build: . 
+    volumes:
+      - .:/qbank
+    command: >
+      /bin/bash -c '
+      python main.py'
+    ports:
+      - "8080:8080"
