@@ -12,6 +12,7 @@ omit =
     *.md
     settings.py.example
     main.spec
+    setup.py
 
 [report]
 exclude_lines =
