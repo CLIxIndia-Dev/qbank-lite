@@ -1,0 +1,14 @@
+__pycache__
+.cache
+.idea
+.DS_Store
+build
+builders
+dist
+docs
+htmlcov
+interface_maps
+package_maps
+pattern_maps
+webapps
+xosid
