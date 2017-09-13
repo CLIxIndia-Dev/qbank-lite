@@ -2105,7 +2105,7 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -8065,9 +8065,6 @@ class NumericAnswerTests(BaseAssessmentTestCase):
                             headers={'content-type': 'application/json'})
         self.ok(req)
         data = self.json(req)
-        if not data['correct']:
-            import pdb
-            pdb.set_trace()
         self.assertTrue(data['correct'])
         self.assertIn('<p/>', data['feedback'])
 
