@@ -1,3 +1,7 @@
+## [3.15.6] - 2017-09-13:
+### Changed
+  - Update `dlkit` to `0.5.13` and update tests.
+
 ## [3.15.5] - 2017-07-11:
 ### Changed
   - Update `dlkit` to `0.5.3` for `cataloging` package.
@@ -342,6 +346,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.5...v3.15.6
 [3.15.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.4...v3.15.5
 [3.15.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.3...v3.15.4
 [3.15.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.2...v3.15.3
