@@ -304,7 +304,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             'true'
         )
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
 
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
@@ -458,7 +458,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Student 2 talks about herself or himself and asks a few questions about the new school
   </p>
 <uploadInteraction responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id)
 
@@ -639,7 +639,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -750,7 +750,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
         asset_id = item['answers'][0]['fileIds'][image_asset_label]['assetId']
         asset_content_id = item['answers'][0]['fileIds'][image_asset_label]['assetContentId']
 
-        expected_string = """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="614"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+        expected_string = """<modalFeedback identifier="Feedback864753096" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>You did it!</p><p><img alt="CLIx" height="182" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="614"/></p></modalFeedback>""".format(str(self._repo.ident),
                                                                                                                                                                                                                                                                                                     asset_id,
                                                                                                                                                                                                                                                                                                     asset_content_id)
 
@@ -778,7 +778,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             asset_id = item['answers'][index]['fileIds'][image_asset_label]['assetId']
             asset_content_id = item['answers'][index]['fileIds'][image_asset_label]['assetContentId']
 
-            expected_string = """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/></p></modalFeedback>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+            expected_string = """<modalFeedback identifier="Feedback1588452919" outcomeIdentifier="FEEDBACKMODAL" showHide="show"><p>Sorry, bad choice</p><p><img alt="oops" height="20" src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" width="20"/></p></modalFeedback>""".format(str(self._repo.ident),
                                                                                                                                                                                                                                                                                                              asset_id,
                                                                                                                                                                                                                                                                                                              asset_content_id)
 
@@ -1390,7 +1390,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
 
@@ -1605,7 +1605,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </p>
 </simpleChoice>
 </choiceInteraction>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       parallel_asset_id,
                       parallel_asset_content_id,
                       regular_square_asset_id,
@@ -1684,7 +1684,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
         self.assertEqual(
@@ -1805,7 +1805,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 <p>
 <img alt="This is a picture of a bus." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -2278,7 +2278,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         order_interaction = item_body.orderInteraction.extract()
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
         audio_asset_label = 'audioTestFile__mp3'
         image_1_asset_label = 'medium6529396219987445959Picture1_png'
         image_2_asset_label = 'medium5957728225939996885Picture2_png'
@@ -3283,7 +3283,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
             'true'
         )
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
 
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
@@ -4014,7 +4014,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
    Student 2 talks about herself or himself and asks a few questions about the new school
   </p>
 <uploadInteraction responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id)
 
@@ -5386,7 +5386,7 @@ class QTIEndpointTests(BaseAssessmentTestCase):
 
         order_interaction = item_body.orderInteraction.extract()
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
         audio_asset_label = 'audioTestFile__mp3'
         image_1_asset_label = 'Picture1_png'
         image_2_asset_label = 'Picture2_png'

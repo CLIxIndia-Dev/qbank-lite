@@ -12,6 +12,8 @@ MANAGER_PATHS = {
                      'dlkit.services.learning.LearningManager'),
         'LOGGING': ('dlkit.services.logging_.LoggingManager',
                     'dlkit.services.logging_.LoggingManager'),
+        'CATALOGING': ('dlkit.services.cataloging.CatalogingManager',
+                       'dlkit.services.cataloging.CatalogingManager'),
         'COMMENTING': ('dlkit.services.commenting.CommentingManager',
                        'dlkit.services.commenting.CommentingManager'),
         'RESOURCE': ('dlkit.services.resource.ResourceManager',
@@ -31,7 +33,9 @@ MANAGER_PATHS = {
         'LEARNING': ('dlkit.authz_adapter.learning.managers.LearningManager',
                      'dlkit.authz_adapter.learning.managers.LearningProxyManager'),
         'LOGGING': ('dlkit.authz_adapter.logging_.managers.LoggingManager',
-                    'dlkit.authz_adapter.logging_.managers.LoggingProxyManager')
+                    'dlkit.authz_adapter.logging_.managers.LoggingProxyManager'),
+        'CATALOGING': ('dlkit.authz_adapter.cataloging.managers.CatalogingManager',
+                       'dlkit.authz_adapter.cataloging.managers.CatalogingProxyManager'),
     },
     # 'filesystem': {
     #     'ASSESSMENT': ('dlkit.filesystem.assessment.managers.AssessmentManager',
@@ -72,6 +76,8 @@ MANAGER_PATHS = {
                      'dlkit.json_.learning.managers.LearningProxyManager'),
         'LOGGING': ('dlkit.json_.logging_.managers.LoggingManager',
                     'dlkit.json_.logging_.managers.LoggingProxyManager'),
+        'CATALOGING': ('dlkit.json_.cataloging.managers.CatalogingManager',
+                       'dlkit.json_.cataloging.managers.CatalogingProxyManager'),
         'REPOSITORY': ('dlkit.json_.repository.managers.RepositoryManager',
                        'dlkit.json_.repository.managers.RepositoryProxyManager'),
         'RESOURCE': ('dlkit.json_.resource.managers.ResourceManager',

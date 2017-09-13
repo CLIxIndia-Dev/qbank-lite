@@ -67,7 +67,6 @@ def append_file_as_asset_content(repo, asset_id, file_name, file_data, basics=No
     acfu = repo.get_asset_content_form_for_update(ac.ident)
     acfu.set_data(data)
     repo.update_asset_content(acfu)
-
     return repo.get_asset(asset_id), ac
 
 

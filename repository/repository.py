@@ -152,7 +152,7 @@ class AssetsList(utilities.BaseClass):
                 else:
                     try:
                         querier = repository.get_asset_query()
-                    except (AttributeError, Unimplemented):
+                    except (AttributeError, Unimplemented, PermissionDenied):
                         assets = None
                     else:
                         querier.match_display_name(rutils.get_singular_filename(file_name), match=True)
