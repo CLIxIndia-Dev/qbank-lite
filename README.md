@@ -28,6 +28,8 @@ code in `main.py` and manually inject `sys.argv[1] = <new port #>` before `app.r
 
 Running with Docker
 ===================
+To run this application with Docker, use the `docker` branch. This is because the deployed code does not use Docker. This means that the source code paths inside of a Docker container will not match the source code path outside of the container...so the `master` branch uses non-Docker paths to not break our deployed versions.
+
 The docker images built with this repository use the filesystem
 to store data, in an unplatform-type scenario. If you want to run against
 MongoDB, you have to modify the image / Dockerfile / docker-compose files
