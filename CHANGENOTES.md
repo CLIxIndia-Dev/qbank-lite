@@ -1,3 +1,7 @@
+## [3.15.7] - 2017-12-05:
+### Added
+  - Hidden import for accessibility records, in main.spec.
+
 ## [3.15.6] - 2017-09-13:
 ### Changed
   - Update `dlkit` to `0.5.13` and update tests.
@@ -346,6 +350,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.6...v3.15.7
 [3.15.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.5...v3.15.6
 [3.15.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.4...v3.15.5
 [3.15.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.3...v3.15.4
