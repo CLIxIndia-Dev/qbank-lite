@@ -1,6 +1,9 @@
 # -*- mode: python -*-
 
 import os
+# The below two lines are for OS X only
+# import sys
+# sys.setrecursionlimit(10000)
 
 block_cipher = None
 
@@ -74,7 +77,8 @@ a = Analysis(['main.py'],
                             'dlkit.records.osid',
                             'dlkit.records.osid.base_records',
                             'dlkit.records.osid.object_records',
-                            'dlkit.records.adaptive.multi_choice_questions.randomized_questions'],
+                            'dlkit.records.adaptive.multi_choice_questions.randomized_questions',
+                            'dlkit.records.repository.basic.media_accessibility'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
