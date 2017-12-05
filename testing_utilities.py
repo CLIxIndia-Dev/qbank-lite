@@ -359,8 +359,6 @@ def create_new_bank():
     form.description = 'for testing with'
     new_bank = am .create_bank(form)
 
-    # from nose.tools import set_trace
-    # set_trace()
     # create_user_authorizations(get_vault(),
     #                            username='clix-authz%40tiss.edu',
     #                            new_catalogs=[new_bank.ident.identifier])
@@ -377,8 +375,6 @@ def create_test_repository():
     # return rm.create_repository(form)
     new_repo = rm.create_repository(form)
 
-    # from nose.tools import set_trace
-    # set_trace()
     # create_super_authz_authorizations(get_vault())
     #
     create_user_authorizations(get_vault(),
@@ -388,16 +384,12 @@ def create_test_repository():
 
     return new_repo
 
-# don't use test in the name, otherwise the nose test runner thinks this is a test
-
 
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
     fixture_repo = get_fixture_repository()
     return am.get_bank(fixture_repo.ident)
-
-# don't use test in the name, otherwise the nose test runner thinks this is a test
 
 
 def get_fixture_repository():
