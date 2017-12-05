@@ -1,3 +1,7 @@
+## [3.15.8] - 2017-12-05:
+### Changed
+  - Cleaned up old requirements.
+
 ## [3.15.7] - 2017-12-05:
 ### Added
   - Hidden import for accessibility records, in main.spec.
@@ -350,6 +354,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.7...v3.15.8
 [3.15.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.6...v3.15.7
 [3.15.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.5...v3.15.6
 [3.15.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.4...v3.15.5
