@@ -13,6 +13,9 @@ else:
     ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
     TEST_ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
 
+print('CWD is {}'.format(os.getcwd()))
+print('ABSPATH is {}'.format(ABS_PATH))
+os.chdir(ABS_PATH)
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
 STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
