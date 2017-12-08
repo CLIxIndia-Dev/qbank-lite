@@ -1,9 +1,13 @@
 # -*- mode: python -*-
 
 import os
-# The below two lines are for OS X only
-# import sys
-# sys.setrecursionlimit(10000)
+
+# The below lines are for OS X only to avoid a recursion limit
+import platform
+if platform.system() == 'Darwin':
+    import sys
+    sys.setrecursionlimit(10000)
+# End OS X recursion patch
 
 block_cipher = None
 
