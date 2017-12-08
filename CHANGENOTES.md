@@ -1,3 +1,8 @@
+## [3.15.9] - 2017-12-08:
+### Changed
+  - Set `os.chdir()` to find files in application bundle.
+  - Detect platform for recursion limit in `main.spec`.
+
 ## [3.15.8] - 2017-12-05:
 ### Changed
   - Cleaned up old requirements.
@@ -354,6 +359,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.8...v3.15.9
 [3.15.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.7...v3.15.8
 [3.15.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.6...v3.15.7
 [3.15.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.5...v3.15.6
