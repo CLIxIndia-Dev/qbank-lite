@@ -1,3 +1,7 @@
+## [3.15.10] - 2018-01-17:
+### Changed
+  - Updated `dlkit` to `0.5.17` for `memcached` config.
+
 ## [3.15.9] - 2017-12-08:
 ### Changed
   - Set `os.chdir()` to find files in application bundle.
@@ -359,6 +363,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.9...v3.15.10
 [3.15.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.8...v3.15.9
 [3.15.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.7...v3.15.8
 [3.15.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.6...v3.15.7
