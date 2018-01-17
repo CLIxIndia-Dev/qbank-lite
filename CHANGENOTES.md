@@ -1,3 +1,28 @@
+## [3.15.10] - 2018-01-17:
+### Changed
+  - Updated `dlkit` to `0.5.17` for `memcached` config.
+
+## [3.15.9] - 2017-12-08:
+### Changed
+  - Set `os.chdir()` to find files in application bundle.
+  - Detect platform for recursion limit in `main.spec`.
+
+## [3.15.8] - 2017-12-05:
+### Changed
+  - Cleaned up old requirements.
+
+## [3.15.7] - 2017-12-05:
+### Added
+  - Hidden import for accessibility records, in main.spec.
+
+## [3.15.6] - 2017-09-13:
+### Changed
+  - Update `dlkit` to `0.5.13` and update tests.
+
+## [3.15.5] - 2017-07-11:
+### Changed
+  - Update `dlkit` to `0.5.3` for `cataloging` package.
+
 ## [3.15.4] - 2017-06-13:
 ### Changed
   - Update `dlkit` to `0.5.2` for `pymongo` 2 compatibility.
@@ -338,6 +363,12 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.15.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.9...v3.15.10
+[3.15.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.8...v3.15.9
+[3.15.8]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.7...v3.15.8
+[3.15.7]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.6...v3.15.7
+[3.15.6]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.5...v3.15.6
+[3.15.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.4...v3.15.5
 [3.15.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.3...v3.15.4
 [3.15.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.2...v3.15.3
 [3.15.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.1...v3.15.2

@@ -153,11 +153,17 @@ INSTRUCTOR_FUNCTIONS = (
     ('repository.Repository', 'search', 'repository.Repository'),
     ('repository.Repository', 'update', 'repository.Repository'),
     ('repository.Asset', 'author', 'repository.Repository'),
+    ('repository.Asset', 'author', 'cataloging.Catalog'),
     ('repository.Asset', 'lookup', 'repository.Repository'),
+    ('repository.Asset', 'lookup', 'cataloging.Catalog'),
     ('repository.Asset', 'create', 'repository.Repository'),
+    ('repository.Asset', 'create', 'cataloging.Catalog'),
     ('repository.Asset', 'delete', 'repository.Repository'),
+    ('repository.Asset', 'delete', 'cataloging.Catalog'),
     ('repository.Asset', 'search', 'repository.Repository'),
+    ('repository.Asset', 'search', 'cataloging.Catalog'),
     ('repository.Asset', 'update', 'repository.Repository'),
+    ('repository.Asset', 'update', 'cataloging.Catalog'),
     ('repository.AssetComposition', 'access', 'repository.Repository'),
     ('repository.AssetComposition', 'lookup', 'repository.Repository'),
     ('repository.AssetComposition', 'compose', 'repository.Repository'),
@@ -353,8 +359,6 @@ def create_new_bank():
     form.description = 'for testing with'
     new_bank = am .create_bank(form)
 
-    # from nose.tools import set_trace
-    # set_trace()
     # create_user_authorizations(get_vault(),
     #                            username='clix-authz%40tiss.edu',
     #                            new_catalogs=[new_bank.ident.identifier])
@@ -371,8 +375,6 @@ def create_test_repository():
     # return rm.create_repository(form)
     new_repo = rm.create_repository(form)
 
-    # from nose.tools import set_trace
-    # set_trace()
     # create_super_authz_authorizations(get_vault())
     #
     create_user_authorizations(get_vault(),
@@ -382,16 +384,12 @@ def create_test_repository():
 
     return new_repo
 
-# don't use test in the name, otherwise the nose test runner thinks this is a test
-
 
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
     fixture_repo = get_fixture_repository()
     return am.get_bank(fixture_repo.ident)
-
-# don't use test in the name, otherwise the nose test runner thinks this is a test
 
 
 def get_fixture_repository():
@@ -512,6 +510,8 @@ class BaseTestCase(TestCase):
         #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
         shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
                         '{0}/repository'.format(TEST_DATA_STORE_PATH))
+        shutil.copytree('{0}/cataloging'.format(TEST_FIXTURES_PATH),
+                        '{0}/cataloging'.format(TEST_DATA_STORE_PATH))
 
         self._bank = get_fixture_bank()
 

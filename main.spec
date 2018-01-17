@@ -2,6 +2,13 @@
 
 import os
 
+# The below lines are for OS X only to avoid a recursion limit
+import platform
+if platform.system() == 'Darwin':
+    import sys
+    sys.setrecursionlimit(10000)
+# End OS X recursion patch
+
 block_cipher = None
 
 a = Analysis(['main.py'],
@@ -74,7 +81,8 @@ a = Analysis(['main.py'],
                             'dlkit.records.osid',
                             'dlkit.records.osid.base_records',
                             'dlkit.records.osid.object_records',
-                            'dlkit.records.adaptive.multi_choice_questions.randomized_questions'],
+                            'dlkit.records.adaptive.multi_choice_questions.randomized_questions',
+                            'dlkit.records.repository.basic.media_accessibility'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],

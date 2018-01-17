@@ -430,7 +430,7 @@ class RESTfulTests(BaseAssessmentTestCase):
             'true'
         )
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
 
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
@@ -671,7 +671,7 @@ class RESTfulTests(BaseAssessmentTestCase):
             'true'
         )
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
 
         expected_choices = {
             "idc561552b-ed48-46c3-b20d-873150dfd4a2": """<simpleChoice identifier="idc561552b-ed48-46c3-b20d-873150dfd4a2">
@@ -926,7 +926,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </p>
 </simpleChoice>
 </choiceInteraction>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       parallel_asset_id,
                       parallel_asset_content_id,
                       regular_square_asset_id,
@@ -1176,7 +1176,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </p>
 </simpleChoice>
 </choiceInteraction>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       parallel_asset_id,
                       parallel_asset_content_id,
                       regular_square_asset_id,
@@ -1210,7 +1210,7 @@ class RESTfulTests(BaseAssessmentTestCase):
   <strong>Which all shape(s) can be contained in the gray shaded area?<br />
 </strong>
 </p>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'))
+</itemBody>""".format(str(self._repo.ident))
         self.assertEqual(
             item['question']['text']['text'],
             expected_json_string
@@ -2109,7 +2109,7 @@ class RESTfulTests(BaseAssessmentTestCase):
    Student 2 talks about herself or himself and asks a few questions about the new school
   </p>
 <uploadInteraction responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id)
 
@@ -2248,7 +2248,7 @@ class RESTfulTests(BaseAssessmentTestCase):
    Student 2 talks about herself or himself and asks a few questions about the new school
   </p>
 <uploadInteraction responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id)
 
@@ -2268,7 +2268,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 <p>It's the first day of school after the summer vacations. A new student has joined the class</p>
 <p>Student 1 talks to the new student to make him/her feel comfortable.</p>
 <p>Student 2 talks about herself or himself and asks a few questions about the new school</p>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id)
 
@@ -2668,7 +2668,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -2962,7 +2962,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 <img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -2987,7 +2987,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 <p>
 <img alt="This is a drawing of a busy intersection." height="100" src="/api/v1/repository/repositories/{0}/assets/{3}/contents/{4}/stream" width="100"/>
 </p>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       audio_asset_id,
                       audio_asset_content_id,
                       image_asset_id,
@@ -3288,7 +3288,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
 
@@ -3642,7 +3642,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </audio>
 </p>
 
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
 
@@ -3660,7 +3660,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 <source src="/api/v1/repository/repositories/{0}/assets/{1}/contents/{2}/stream" type="audio/mpeg"/>
 </audio>
 </p>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
 
@@ -4371,7 +4371,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
         self.assertEqual(
@@ -4503,7 +4503,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 </strong>
 </p>
 <extendedTextInteraction expectedLength="100" expectedLines="5" maxStrings="300" responseIdentifier="RESPONSE_1"/>
-</itemBody>""".format(str(self._bank.ident).replace('assessment.Bank', 'repository.Repository'),
+</itemBody>""".format(str(self._repo.ident),
                       asset_id,
                       asset_content_id)
         self.assertEqual(
@@ -4641,7 +4641,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         order_interaction = item_body.orderInteraction.extract()
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
         audio_asset_label = 'audioTestFile__mp3'
         image_1_asset_label = 'Picture1_png'
         image_2_asset_label = 'Picture2_png'
@@ -4869,7 +4869,7 @@ class RESTfulTests(BaseAssessmentTestCase):
 
         order_interaction = item_body.orderInteraction.extract()
 
-        repository_id = str(self._bank.ident).replace('assessment.Bank', 'repository.Repository')
+        repository_id = str(self._repo.ident)
         audio_asset_label = 'audioTestFile__mp3'
         image_1_asset_label = 'Picture1_png'
         image_2_asset_label = 'Picture2_png'
