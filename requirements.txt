@@ -1,5 +1,5 @@
 beautifulsoup4==4.4.1
-bs4=0.0.1
+bs4==0.0.1
 cffi==1.7.0
 cryptography==1.4
 dlkit==0.5.17
