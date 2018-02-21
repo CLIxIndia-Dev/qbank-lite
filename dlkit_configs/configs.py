@@ -5,20 +5,10 @@ from dlkit.primordium.type.primitives import Type
 
 from dlkit.runtime.utilities import impl_key_dict
 
-if getattr(sys, 'frozen', False):
-    ABS_PATH = os.path.dirname(sys.executable)
-    TEST_ABS_PATH = ABS_PATH
-else:
-    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-    ABS_PATH = '{0}/../..'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
-    TEST_ABS_PATH = '{0}'.format(os.path.abspath(os.path.join(PROJECT_PATH, os.pardir)))
+ABS_PATH = '/var/www/html'
 
-print('CWD is {}'.format(os.getcwd()))
-print('ABSPATH is {}'.format(ABS_PATH))
-os.chdir(ABS_PATH)
-
-DATA_STORE_PATH = 'webapps/CLIx/datastore'
-STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
+DATA_STORE_PATH = 'qbank/CLIx/datastore'
+STUDENT_RESPONSE_DATA_STORE_PATH = 'qbank/CLIx/datastore/studentResponseFiles'
 
 TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
@@ -77,7 +67,7 @@ FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Hostname config for serving files over the network',
             'description': 'Hostname config for serving files.',
             'values': [
-                {'value': 'https://qbank-clix-dev.mit.edu/api/v1', 'priority': 1}  # Mac
+                {'value': 'https://unplatform.mit.edu:8080/api/v1', 'priority': 1}  # Mac
             ]
         },
     }
