@@ -5,10 +5,10 @@ from dlkit.primordium.type.primitives import Type
 
 from dlkit.runtime.utilities import impl_key_dict
 
-ABS_PATH = '/var/www/html'
+ABS_PATH = '/var/www/html/qbank'
 
-DATA_STORE_PATH = 'qbank/CLIx/datastore'
-STUDENT_RESPONSE_DATA_STORE_PATH = 'qbank/CLIx/datastore/studentResponseFiles'
+DATA_STORE_PATH = 'webapps/CLIx/datastore'
+STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
 
 TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
