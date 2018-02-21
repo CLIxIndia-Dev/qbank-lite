@@ -6,6 +6,7 @@ from dlkit.primordium.type.primitives import Type
 from dlkit.runtime.utilities import impl_key_dict
 
 ABS_PATH = '/var/www/html/qbank'
+TEST_ABS_PATH = '/var/www/webapps/qbank'
 
 DATA_STORE_PATH = 'webapps/CLIx/datastore'
 STUDENT_RESPONSE_DATA_STORE_PATH = 'webapps/CLIx/datastore/studentResponseFiles'
