@@ -22,7 +22,7 @@ from inflection import underscore
 from dlkit.records.registry import ASSESSMENT_OFFERED_RECORD_TYPES,\
     ANSWER_GENUS_TYPES, ANSWER_RECORD_TYPES, ASSET_GENUS_TYPES,\
     ITEM_RECORD_TYPES, ITEM_GENUS_TYPES, ASSET_CONTENT_GENUS_TYPES,\
-    QUESTION_RECORD_TYPES
+    QUESTION_RECORD_TYPES, QUESTION_GENUS_TYPES
 
 from urllib import quote
 
@@ -94,8 +94,48 @@ DRAG_AND_DROP_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['drag-and-drop'])
 DRAG_AND_DROP_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['drag-and-drop'])
 DRAG_AND_DROP_QUESTION_RECORD = Type(**QUESTION_RECORD_TYPES['multi-language-drag-and-drop'])
 DRAG_AND_DROP_ITEM_GENUS_TYPE = Type(**ITEM_GENUS_TYPES['drag-and-drop'])
-# DRAG_AND_DROP_QUESTION_GENUS_TYPE = Type(**QUESTION_GENUS_TYPES['drag-and-drop'])
+DRAG_AND_DROP_QUESTION_GENUS_TYPE = Type(**QUESTION_GENUS_TYPES['drag-and-drop'])
 
+QTI_ITEM_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction'])
+QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-survey'])
+QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS = Type(**ITEM_GENUS_TYPES['qti-choice-interaction-multi-select-survey'])
+QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**ITEM_GENUS_TYPES['qti-numeric-response'])
+QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**ITEM_GENUS_TYPES['qti-order-interaction-object-manipulation'])
+QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**ITEM_GENUS_TYPES['qti-upload-interaction-generic'])
+QTI_ITEM_RECORD = Type(**ITEM_RECORD_TYPES['qti'])
+QTI_QUESTION_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction'])
+QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-survey'])
+QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select'])
+QTI_QUESTION_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS = Type(**QUESTION_GENUS_TYPES['qti-choice-interaction-multi-select-survey'])
+QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-extended-text-interaction'])
+QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-inline-choice-interaction-mw-fill-in-the-blank'])
+QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-numeric-response'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sentence'])
+QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-mw-sandbox'])
+QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS = Type(**QUESTION_GENUS_TYPES['qti-order-interaction-object-manipulation'])
+QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-audio'])
+QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS = Type(**QUESTION_GENUS_TYPES['qti-upload-interaction-generic'])
+
+QUESTION_ITEM_GENUS_MAP = {}
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_CHOICE_INTERACTION_GENUS)] = QTI_ITEM_CHOICE_INTERACTION_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS)] = QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_GENUS)] = QTI_ITEM_CHOICE_INTERACTION_MULTI_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS)] = QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_EXTENDED_TEXT_INTERACTION_GENUS)] = QTI_ITEM_EXTENDED_TEXT_INTERACTION_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_INLINE_CHOICE_INTERACTION_GENUS)] = QTI_ITEM_INLINE_CHOICE_INTERACTION_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_NUMERIC_RESPONSE_INTERACTION_GENUS)] = QTI_ITEM_NUMERIC_RESPONSE_INTERACTION_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_ORDER_INTERACTION_MW_SENTENCE_GENUS)] = QTI_ITEM_ORDER_INTERACTION_MW_SENTENCE_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_ORDER_INTERACTION_MW_SANDBOX_GENUS)] = QTI_ITEM_ORDER_INTERACTION_MW_SANDBOX_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS)] = QTI_ITEM_ORDER_INTERACTION_OBJECT_MANIPULATION_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS)] = QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS
+QUESTION_ITEM_GENUS_MAP[str(QTI_QUESTION_UPLOAD_INTERACTION_GENERIC_GENUS)] = QTI_ITEM_UPLOAD_INTERACTION_GENERIC_GENUS
+QUESTION_ITEM_GENUS_MAP[str(DRAG_AND_DROP_QUESTION_GENUS_TYPE)] = DRAG_AND_DROP_ITEM_GENUS_TYPE
 
 DEFAULT_LANGUAGE_TYPE = Type(**types.Language().get_type_data('DEFAULT'))
 DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
@@ -2092,13 +2132,38 @@ def update_question_form_with_files(form, data):
     return form
 
 
-def update_response_form(response, form):
+def update_response_form_records(form, question_genus_type):
+    """
+    This addresses the case where the response form was retrieved
+    for an item with NO authored answers -- in which case, the
+    response form doesn't know which records to include. So it's
+    possible to get into a state where you can't submit a valid
+    response, i.e. can't submit a file to a file-upload question.
+    :param form: ResponseForm
+    :param question_genus_type: GenusType
+    :return: updated form
+    """
+    if str(question_genus_type) in QUESTION_ITEM_GENUS_MAP:
+        expected_answer_records = get_answer_records_from_item_genus(
+            QUESTION_ITEM_GENUS_MAP[str(question_genus_type)])
+        for expected_record in expected_answer_records:
+            if str(expected_record) not in form._my_map['recordTypeIds']:
+                form.get_answer_form_record(expected_record)
+    return form
+
+
+def update_response_form(response, form, question_genus_type):
     """
     Put the response data into the form and send it back
     :param response: JSON data from user request
     :param form: responseForm, with methods that match the corresponding answerForm
+    :param question_genus_type: Genus Type of the question object
     :return: updated form
     """
+    # First, need to make sure the records match what is expected from the
+    #   question type.
+    form = update_response_form_records(form, question_genus_type)
+
     if response['type'] == 'answer-record-type%3Aresponse-string%40ODL.MIT.EDU':
         if 'responseString' in response:
             form.set_response_string(response['responseString'])
