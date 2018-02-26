@@ -24,8 +24,8 @@ from urllib import unquote
 from main import app
 
 
-# PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
-# ABS_PATH = os.path.abspath(os.path.join(PROJECT_PATH, os.pardir))
+PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
+
 TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
 TEST_FIXTURES_PATH = 'tests/fixtures'
@@ -504,13 +504,13 @@ class BaseTestCase(TestCase):
             os.makedirs(TEST_DATA_STORE_PATH)
 
         # copy over the test fixture data from tests/fixtures
-        shutil.copytree('{0}/authorization'.format(TEST_FIXTURES_PATH),
+        shutil.copytree('{0}/{1}/authorization'.format(PROJECT_PATH, TEST_FIXTURES_PATH),
                         '{0}/authorization'.format(TEST_DATA_STORE_PATH))
         # shutil.copytree('{0}/assessment'.format(TEST_FIXTURES_PATH),
         #                 '{0}/assessment'.format(TEST_DATA_STORE_PATH))
-        shutil.copytree('{0}/repository'.format(TEST_FIXTURES_PATH),
+        shutil.copytree('{0}/{1}/repository'.format(PROJECT_PATH, TEST_FIXTURES_PATH),
                         '{0}/repository'.format(TEST_DATA_STORE_PATH))
-        shutil.copytree('{0}/cataloging'.format(TEST_FIXTURES_PATH),
+        shutil.copytree('{0}/{1}/cataloging'.format(PROJECT_PATH, TEST_FIXTURES_PATH),
                         '{0}/cataloging'.format(TEST_DATA_STORE_PATH))
 
         self._bank = get_fixture_bank()
