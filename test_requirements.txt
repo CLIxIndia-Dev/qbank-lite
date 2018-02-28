@@ -5,3 +5,4 @@ pytest-pep8
 # pytest-pylint
 pytest-cov
 envoy==0.0.3
+diskcache==3.0.1
