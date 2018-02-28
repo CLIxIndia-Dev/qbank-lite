@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 
 from copy import deepcopy
 
+from diskcache import Cache
+
 from paste.fixture import AppError
 
 from dlkit.runtime.primordium import Id, Type
@@ -4187,6 +4189,9 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['displayName']['text'] == third_bank.display_name.text)
 
     def test_using_isolated_flag_for_assessments_returns_only_assessments_in_bank(self):
+        # need to clear the diskcache here? Doesn't fail locally but failes on CI
+        with Cache('/tmp/dlkit_cache') as cache:
+            cache.clear()
         second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
