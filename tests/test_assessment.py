@@ -4189,7 +4189,7 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertTrue(data['childNodes'][0]['displayName']['text'] == third_bank.display_name.text)
 
     def test_using_isolated_flag_for_assessments_returns_only_assessments_in_bank(self):
-        # need to clear the diskcache here? Doesn't fail locally but failes on CI
+        # need to clear the diskcache here? Doesn't fail locally but fails on CI
         with Cache('/tmp/dlkit_cache') as cache:
             cache.clear()
         second_bank = create_new_bank()
@@ -4242,6 +4242,9 @@ class HierarchyTests(BaseAssessmentTestCase):
         self.assertEqual(len(data), 0)
 
     def test_using_isolated_flag_for_items_returns_only_items_in_bank(self):
+        # need to clear the diskcache here? Doesn't fail locally but fails on CI
+        with Cache('/tmp/dlkit_cache') as cache:
+            cache.clear()
         second_bank = create_new_bank()
         self.add_root_bank(self._bank.ident)
 
