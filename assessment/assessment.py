@@ -838,6 +838,7 @@ class ItemsList(utilities.BaseClass):
                         bank.create_answer(a_form)
 
             full_item = bank.get_item(new_item.ident)
+            print full_item._my_map
             return_data = utilities.convert_dl_object(full_item)
 
             return_data = autils.update_item_json_answers(full_item, return_data)
