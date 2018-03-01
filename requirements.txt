@@ -2,7 +2,8 @@ beautifulsoup4==4.4.1
 bs4==0.0.1
 cffi==1.7.0
 cryptography==1.4
-dlkit==0.5.18
+diskcache==3.0.1
+dlkit==0.6.2
 enum34==1.1.6
 html5lib==0.9999999
 idna==2.1

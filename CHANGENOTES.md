@@ -1,4 +1,16 @@
-## [3.15.11] - 2017-02-23:
+## [3.16.1] - 2018-03-01:
+### Changed
+  - Updated `dlkit` to `0.6.2` to improve performance of FilesRecord
+    when retrieving AssetContent URLs.
+
+## [3.16.0] - 2018-02-28:
+### Changed
+  - Updated `dlkit` to `0.6.0` to add `diskcache` option and config.
+    This changes the default caching engine to `diskcache` instead
+    of `memcache`. To continue using `memcache`, use the `cachingEngine`
+    config for `dlkit`.
+
+## [3.15.11] - 2018-02-23:
 ### Changed
   - Updated `dlkit` to `0.5.18` for minor bugs.
 
@@ -370,6 +382,8 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.16.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.0...v3.16.1
+[3.16.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.11...v3.16.0
 [3.15.11]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.10...v3.15.11
 [3.15.10]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.9...v3.15.10
 [3.15.9]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.8...v3.15.9

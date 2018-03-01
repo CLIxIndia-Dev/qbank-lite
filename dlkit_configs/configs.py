@@ -77,7 +77,7 @@ FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Hostname config for serving files over the network',
             'description': 'Hostname config for serving files.',
             'values': [
-                {'value': 'https://qbank-clix-dev.mit.edu/api/v1', 'priority': 1}  # Mac
+                {'value': 'https://localhost:8080/api/v1', 'priority': 1}  # Mac
             ]
         },
     }
@@ -261,10 +261,18 @@ JSON_1 = {
         },
         'useCachingForQualifierIds': {
             'syntax': 'BOOLEAN',
-            'displayName': 'Flag to use memcached for authz qualifier_ids or not',
-            'description': 'Flag to use memcached for authz qualifier_ids or not',
+            'displayName': 'Flag to use caching for authz qualifier_ids or not',
+            'description': 'Flag to use caching for authz qualifier_ids or not',
             'values': [
-                {'value': False, 'priority': 1}
+                {'value': True, 'priority': 1}
+            ]
+        },
+        'cachingEngine': {
+            'syntax': 'STRING',
+            'displayName': 'Flag to configure caching engine',
+            'description': 'Flag to configure caching engine',
+            'values': [
+                {'value': 'diskcache', 'priority': 1}  # can be either "memcache" or "diskcache"
             ]
         },
         'dataStorePath': {
@@ -678,6 +686,14 @@ TEST_JSON_1 = {
             'description': 'Flag to use memcached for authz qualifier_ids or not',
             'values': [
                 {'value': True, 'priority': 1}
+            ]
+        },
+        'cachingEngine': {
+            'syntax': 'STRING',
+            'displayName': 'Flag to configure caching engine',
+            'description': 'Flag to configure caching engine',
+            'values': [
+                {'value': 'diskcache', 'priority': 1}
             ]
         },
         'dataStorePath': {
