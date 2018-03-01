@@ -212,9 +212,7 @@ def convert_dl_object(obj):
     try:
         # return json.loads(json.loads(json.dumps(obj, cls=DLEncoder)))
         return json.dumps(obj.object_map)
-    except Exception as ex:
-        import traceback
-        print traceback.format_exc()
+    except:
         return json.dumps(obj)
 
 
