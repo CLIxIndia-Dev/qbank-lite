@@ -6143,6 +6143,11 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
         self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
+        # Also make sure that the text actually gets saved!
+        self.assertIn('text', data[0]['sections'][0]['questions'][0]['response'])
+        self.assertEqual(data[0]['sections'][0]['questions'][0]['response']['text']['text'],
+                         'foo')
+
     def test_submitting_to_file_upload_correct_even_if_no_answers(self):
         url = '{0}/items'.format(self.url)
         payload = {
@@ -6210,7 +6215,86 @@ class RESTfulTests(BaseAssessmentTestCase):
         self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
         self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
 
-    def test_submitting_to_survey_correct_even_if_no_answers(self):
+        # Also make sure that the file actually gets saved!
+        self.assertIn('fileIds', data[0]['sections'][0]['questions'][0]['response'])
+        self.assertTrue(len(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()) == 1)
+        self.assertEqual(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()[0],
+                         self._label(self._filename(self._diamond_image)))
+
+    def test_submitting_to_audio_record_correct_even_if_no_answers(self):
+            url = '{0}/items'.format(self.url)
+            payload = {
+                "genusTypeId": str(QTI_ITEM_UPLOAD_INTERACTION_AUDIO_GENUS),
+                "name": "Question 1",
+                "description": "For testing",
+                "question": {
+                    "questionString": """<itemBody>
+    <p>
+    <strong>
+    <span id="docs-internal-guid-46f83555-04c5-4e80-4138-8ed0f8d56345">
+         Construct a rhombus of side 200 using Turtle Blocks. Save the shape you draw, and upload it here.
+        </span>
+    <br/>
+    </strong>
+    </p>
+    </itemBody>""",
+                    "genusTypeId": str(QTI_QUESTION_UPLOAD_INTERACTION_AUDIO_GENUS)
+                }
+            }
+
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            item = self.json(req)
+
+            taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                    utilities.clean_id(item['id']))
+
+            url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                              str(taken.ident))
+            req = self.app.get(url)
+            self.ok(req)
+            question = self.json(req)['data'][0]
+
+            # Making sure that responded and isCorrect in the results JSON even if no response
+            results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                      str(offered.ident))
+            req = self.app.get(results_url)
+            self.ok(req)
+            data = self.json(req)
+            self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+            self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
+            url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                         str(taken.ident),
+                                                                         question['id'])
+            self._diamond_image.seek(0)
+            req = self.app.post(url,
+                                upload_files=[('submission',
+                                               self._filename(self._diamond_image),
+                                               self._diamond_image.read())])
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['correct'])
+            self.assertEqual(data['feedback'], 'No feedback available.')
+
+            req = self.app.get(results_url)
+            self.ok(req)
+            data = self.json(req)
+            # For file upload, the server doesn't auto-evaluate the response,
+            # so isCorrect always False in results. Above it returned True
+            # during submission because that is a RESTful layer behavior.
+            self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+            self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
+
+            # Also make sure that the file actually gets saved!
+            self.assertIn('fileIds', data[0]['sections'][0]['questions'][0]['response'])
+            self.assertTrue(len(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()) == 1)
+            self.assertEqual(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()[0],
+                             self._label(self._filename(self._diamond_image)))
+
+    def test_submitting_to_multi_select_survey_correct_even_if_no_answers(self):
         url = '{0}/items'.format(self.url)
         payload = {
             "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_MULTI_SELECT_SURVEY_GENUS),
@@ -6268,7 +6352,7 @@ class RESTfulTests(BaseAssessmentTestCase):
                                                                      str(taken.ident),
                                                                      question['id'])
         submit_payload = {
-            'choiceIds': 'id8188b5cd-89b0-4140-b12a-aed5426bd81b',
+            'choiceIds': ['id8188b5cd-89b0-4140-b12a-aed5426bd81b', 'id31392307-c87e-476b-8f92-b0f12ed66300'],
             'type': 'answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU'
         }
         req = self.app.post(url,
@@ -6287,6 +6371,98 @@ class RESTfulTests(BaseAssessmentTestCase):
         # during submission because that is a RESTful layer behavior.
         self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
         self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
+
+        # Also make sure that the choices actually get saved!
+        self.assertIn('choiceIds', data[0]['sections'][0]['questions'][0]['response'])
+        self.assertTrue(len(data[0]['sections'][0]['questions'][0]['response']['choiceIds']) == 2)
+        self.assertIn('id8188b5cd-89b0-4140-b12a-aed5426bd81b',
+                      data[0]['sections'][0]['questions'][0]['response']['choiceIds'])
+        self.assertIn('id31392307-c87e-476b-8f92-b0f12ed66300',
+                      data[0]['sections'][0]['questions'][0]['response']['choiceIds'])
+
+    def test_submitting_to_single_select_survey_correct_even_if_no_answers(self):
+            url = '{0}/items'.format(self.url)
+            payload = {
+                "genusTypeId": str(QTI_ITEM_CHOICE_INTERACTION_SURVEY_GENUS),
+                "name": "Question 1",
+                "description": "For testing",
+                "question": {
+                    "questionString": """<itemBody >
+    <p>Did you eat breakfast today?</p>
+    </itemBody>""",
+                    "choices": [{
+                        "id": "id5f1fc52a-a04e-4fa1-b855-51da24967a31",
+                        "text": """<simpleChoice identifier="id5f1fc52a-a04e-4fa1-b855-51da24967a31">
+    <p>Yes</p>
+    </simpleChoice>"""
+                    }, {
+                        "id": "id31392307-c87e-476b-8f92-b0f12ed66300",
+                        "text": """<simpleChoice identifier="id31392307-c87e-476b-8f92-b0f12ed66300">
+    <p>No</p>
+    </simpleChoice>"""
+                    }, {
+                        "id": "id8188b5cd-89b0-4140-b12a-aed5426bd81b",
+                        "text": """<simpleChoice identifier="id8188b5cd-89b0-4140-b12a-aed5426bd81b">
+    <p>I don't remember</p>
+    </simpleChoice>"""
+                    }],
+                    "genusTypeId": str(QTI_QUESTION_CHOICE_INTERACTION_SURVEY_GENUS),
+                    "shuffle": True
+                }
+            }
+            req = self.app.post(url,
+                                params=json.dumps(payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            item = self.json(req)
+
+            taken, offered, assessment = self.create_taken_for_item(self._bank.ident,
+                                                                    utilities.clean_id(item['id']))
+
+            url = '{0}/assessmentstaken/{1}/questions'.format(self.url,
+                                                              str(taken.ident))
+            req = self.app.get(url)
+            self.ok(req)
+            question = self.json(req)['data'][0]
+
+            # Making sure that responded and isCorrect in the results JSON even if no response
+            results_url = '{0}/assessmentsoffered/{1}/results'.format(self.url,
+                                                                      str(offered.ident))
+            req = self.app.get(results_url)
+            self.ok(req)
+            data = self.json(req)
+            self.assertIsNone(data[0]['sections'][0]['questions'][0]['isCorrect'])
+            self.assertFalse(data[0]['sections'][0]['questions'][0]['responded'])
+
+            url = '{0}/assessmentstaken/{1}/questions/{2}/submit'.format(self.url,
+                                                                         str(taken.ident),
+                                                                         question['id'])
+            submit_payload = {
+                'choiceIds': 'id8188b5cd-89b0-4140-b12a-aed5426bd81b',
+                'type': 'answer-type%3Aqti-choice-interaction-multi-select-survey%40ODL.MIT.EDU'
+            }
+            req = self.app.post(url,
+                                params=json.dumps(submit_payload),
+                                headers={'content-type': 'application/json'})
+            self.ok(req)
+            data = self.json(req)
+            self.assertTrue(data['correct'])
+            self.assertEqual(data['feedback'], 'No feedback available.')
+
+            req = self.app.get(results_url)
+            self.ok(req)
+            data = self.json(req)
+            # For survey, the server doesn't auto-evaluate the response,
+            # so isCorrect always False in results. Above it returned True
+            # during submission because that is a RESTful layer behavior.
+            self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
+            self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
+
+            # Also make sure that the choices actually get saved!
+            self.assertIn('choiceIds', data[0]['sections'][0]['questions'][0]['response'])
+            self.assertTrue(len(data[0]['sections'][0]['questions'][0]['response']['choiceIds']) == 1)
+            self.assertEqual(data[0]['sections'][0]['questions'][0]['response']['choiceIds'][0],
+                             'id8188b5cd-89b0-4140-b12a-aed5426bd81b')
 
     def test_submitting_to_mw_sandbox_correct_even_if_no_answers(self):
         media_files = [self._mw_sandbox_audio_file]
@@ -6442,3 +6618,9 @@ class RESTfulTests(BaseAssessmentTestCase):
         # during submission because that is a RESTful layer behavior.
         self.assertFalse(data[0]['sections'][0]['questions'][0]['isCorrect'])
         self.assertTrue(data[0]['sections'][0]['questions'][0]['responded'])
+
+        # Also make sure that the file actually gets saved!
+        self.assertIn('fileIds', data[0]['sections'][0]['questions'][0]['response'])
+        self.assertTrue(len(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()) == 1)
+        self.assertEqual(data[0]['sections'][0]['questions'][0]['response']['fileIds'].keys()[0],
+                         self._label(self._filename(self._diamond_image)))

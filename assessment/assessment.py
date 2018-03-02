@@ -1960,6 +1960,7 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
             question = first_section.get_question(utilities.clean_id(question_id))
             response_form = bank.get_response_form(assessment_section_id=first_section.ident,
                                                    item_id=question.ident)
+
             local_data_map = self.data()
             if 'type' not in local_data_map:
                 # kind of a hack
@@ -1987,8 +1988,11 @@ class AssessmentTakenQuestionSubmit(utilities.BaseClass):
                     if extension not in filename:
                         filename = '{0}.{1}'.format(filename, extension)
                 local_data_map['files'] = {filename: x['submission'].file}
+
             try:
-                update_form = autils.update_response_form(local_data_map, response_form)
+                update_form = autils.update_response_form(local_data_map,
+                                                          response_form,
+                                                          question.genus_type)
             except AttributeError:
                 # form might not have the right records / methods that match the question
                 update_form = response_form

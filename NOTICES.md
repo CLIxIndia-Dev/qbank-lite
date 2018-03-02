@@ -7,6 +7,7 @@ However, the authors of qbank-lite want to acknowledge that
 this bundle includes (in unmodified form):
  - PyOpenSSL (Apache v2)
  - PyMongo (Apache v2)
+ - Python diskcache library (Apache v2)
 
 This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/)
 This product includes cryptographic software written by Eric Young (eay@cryptsoft.com)
