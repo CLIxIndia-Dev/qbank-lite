@@ -68,7 +68,7 @@ FILESYSTEM_ADAPTER_1 = {
             'displayName': 'Hostname config for serving files over the network',
             'description': 'Hostname config for serving files.',
             'values': [
-                {'value': 'https://unplatform-dev.mit.edu/qbank/api/v1', 'priority': 1}  # Mac
+                {'value': 'https://unplatform.mit.edu/qbank/api/v1', 'priority': 1}  # Mac
             ]
         },
     }
