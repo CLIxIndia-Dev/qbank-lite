@@ -9,7 +9,7 @@ ABS_PATH = ''
 TEST_ABS_PATH = ''
 
 DATA_STORE_PATH = '/var/www/html/qbank/webapps/CLIx/datastore'
-STUDENT_RESPONSE_DATA_STORE_PATH = '/var/www/webapps/qbank/webapps/CLIx/datastore/studentResponseFiles'
+STUDENT_RESPONSE_DATA_STORE_PATH = '/var/www/html/qbank/webapps/CLIx/datastore/studentResponseFiles'
 
 TEST_DATA_STORE_PATH = 'test_datastore'
 TEST_STUDENT_RESPONSE_DATA_STORE_PATH = 'test_datastore/studentResponseFiles'
