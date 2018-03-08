@@ -150,6 +150,14 @@ class AssetsList(utilities.BaseClass):
                 als = rm.get_asset_lookup_session(proxy=rm._proxy)
                 als.use_federated_repository_view()
                 assets = als.get_assets()
+            elif 'genusTypeId' in params:
+                repository = rm.get_repository(utilities.clean_id(repository_id))
+                querier = repository.get_asset_query()
+                if utilities.unescaped(params['genusTypeId']):
+                    querier.match_genus_type(quote(params['genusTypeId'], safe='/ '), match=True)
+                else:
+                    querier.match_genus_type(params['genusTypeId'], match=True)
+                assets = repository.get_assets_by_query(querier)
             else:
                 repository = rm.get_repository(utilities.clean_id(repository_id))
                 assets = repository.get_assets()

@@ -1014,6 +1014,45 @@ class AssetQueryTests(BaseRepositoryTestCase):
             asset_2['assetContents'][0]['genusTypeId']
         )
 
+    def test_can_query_for_asset_by_genus_type(self):
+        genus_type = 'asset-genus-type%3Asln-template%40ODL.MIT.EDU'
+        payload = {
+            "name": "test asset",
+            "genusTypeId": genus_type
+        }
+
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+
+        self.ok(req)
+        new_asset = self.json(req)
+
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_asset['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_asset['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
 
 class AssetCRUDTests(BaseRepositoryTestCase):
     def setUp(self):
