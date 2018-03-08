@@ -3661,6 +3661,34 @@ class BankTests(BaseAssessmentTestCase):
         """
         super(BankTests, self).tearDown()
 
+    def test_can_delete_bank(self):
+        payload = {
+            "name": "New bank",
+            "aliasId": "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               payload['aliasId'])
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], payload['name'])
+
+        url = '{0}/{1}'.format(self.url,
+                               new_bank['id'])
+        req = self.app.delete(url)
+        self.ok(req)
+
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
+
     def test_can_set_bank_alias_on_create(self):
         payload = {
             "name": "New bank",
@@ -3701,7 +3729,53 @@ class BankTests(BaseAssessmentTestCase):
         self.assertEqual(new_bank['id'], data[0]['id'])
         self.assertEqual(data[0]['genusTypeId'], genus_type)
 
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
         url = '{0}?genusTypeId=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_query_on_bank_display_name(self):
+        display_name = "New bank%3A bar %40"
+        payload = {
+            "name": display_name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}?displayName={1}'.format(self.url,
+                                           quote(display_name))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        unescaped_display_name = unquote(display_name)
+        url = '{0}?displayName={1}'.format(self.url,
+                                           unescaped_display_name)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        url = '{0}?displayName=foo'.format(self.url)
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)

@@ -9,6 +9,8 @@ from dlkit.runtime.primordium import DataInputStream, Type, Id, DisplayText
 from dlkit.records.registry import ASSESSMENT_RECORD_TYPES,\
     ASSET_CONTENT_RECORD_TYPES, ASSET_CONTENT_GENUS_TYPES
 
+from paste.fixture import AppError
+
 from testing_utilities import BaseTestCase, get_fixture_repository,\
     get_managers
 from urllib import unquote, quote
@@ -75,6 +77,150 @@ class BaseRepositoryTestCase(BaseTestCase):
     def tearDown(self):
         super(BaseRepositoryTestCase, self).tearDown()
         self.test_file.close()
+
+
+class RepositoryTests(BaseRepositoryTestCase):
+    def setUp(self):
+        super(RepositoryTests, self).setUp()
+        self.url += '/repositories'
+
+    def tearDown(self):
+        """
+        Remove the test user from all groups in Membership
+        Start from the smallest groupId because need to
+        remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
+        """
+        super(RepositoryTests, self).tearDown()
+
+    def test_can_set_repository_alias_on_create(self):
+        payload = {
+            "name": "New repository",
+            "aliasId": "repository.Repository%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_repository = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               payload['aliasId'])
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_repository = self.json(req)
+        self.assertEqual(new_repository['id'], fetched_repository['id'])
+        self.assertEqual(new_repository['displayName']['text'], payload['name'])
+
+    def test_can_query_on_repository_genus_type(self):
+        genus_type = "repository-type%3Aedit%40ODL.MIT.EDU"
+        payload = {
+            "name": "New repository",
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_repository = self.json(req)
+
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_repository['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_repository['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_query_on_repository_display_name(self):
+        display_name = "New repository%3A bar %40"
+        payload = {
+            "name": display_name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_repository = self.json(req)
+
+        url = '{0}?displayName={1}'.format(self.url,
+                                           quote(display_name))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_repository['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        unescaped_display_name = unquote(display_name)
+        url = '{0}?displayName={1}'.format(self.url,
+                                           unescaped_display_name)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_repository['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        url = '{0}?displayName=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_update_repository_alias(self):
+        alias_id = "repository.Repository%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        name = "New Repository"
+        payload = {
+            "name": name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_repository = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
+
+        payload = {
+            "aliasId": alias_id
+        }
+        url = '{0}/{1}'.format(self.url,
+                               new_repository['id'])
+
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               alias_id)
+
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_repository = self.json(req)
+        self.assertEqual(new_repository['id'], fetched_repository['id'])
+        self.assertEqual(new_repository['displayName']['text'], name)
 
 
 class AssetContentTests(BaseRepositoryTestCase):

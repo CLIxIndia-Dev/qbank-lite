@@ -6,6 +6,8 @@ import json
 from dlkit.runtime.errors import *
 from dlkit.runtime.primitives import DataInputStream
 
+from urllib import quote
+
 from . import repository_utilities as rutils
 from resource import resource_utilities as resource_utils
 import utilities
@@ -35,9 +37,47 @@ class RepositoriesList(utilities.BaseClass):
         """
         try:
             rm = rutils.get_repository_manager()
-            repositories = rm.repositories
+            inputs = web.input()
+            if 'displayName' in inputs or 'genusTypeId' in inputs:
+                querier = rm.get_repository_query()
+                if 'displayName' in inputs:
+                    if utilities.unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'genusTypeId' in inputs:
+                    if utilities.unescaped(inputs['genusTypeId']):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                repositories = rm.get_repositories_by_query(querier)
+            else:
+                repositories = rm.repositories
             repositories = utilities.extract_items(repositories)
             return repositories
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def POST(self):
+        """
+        Create a new repository, if authorized
+
+        """
+        try:
+            rm = rutils.get_repository_manager()
+            form = rm.get_repository_form_for_create([])
+            data = self.data()
+
+            form = utilities.set_form_basics(form, data)
+
+            new_repository = utilities.convert_dl_object(rm.create_repository(form))
+
+            if 'aliasId' in data:
+                rm.alias_repository(utilities.clean_id(json.loads(new_repository)['id']),
+                                    utilities.clean_id(data['aliasId']))
+
+            return new_repository
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
@@ -48,14 +88,42 @@ class RepositoryDetails(utilities.BaseClass):
     existing assessment bank.
     api/v2/repository/repositories/<repository_id>/
 
-    GET
+    GET, DELETE, PUT
     """
+    @utilities.format_response
+    def DELETE(self, repository_id):
+        try:
+            rm = rutils.get_repository_manager()
+            data = rm.delete_repository(utilities.clean_id(repository_id))
+            return utilities.success()
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
     @utilities.format_response
     def GET(self, repository_id):
         try:
             rm = rutils.get_repository_manager()
             repository = rm.get_repository(utilities.clean_id(repository_id))
             repository = utilities.convert_dl_object(repository)
+            return repository
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def PUT(self, repository_id):
+        try:
+            rm = rutils.get_repository_manager()
+            data = self.data()
+
+            form = rm.get_repository_form_for_update(utilities.clean_id(repository_id))
+
+            form = utilities.set_form_basics(form, data)
+            updated_repository = rm.update_repository(form)
+
+            if 'aliasId' in data:
+                rm.alias_repository(updated_repository.ident, utilities.clean_id(data['aliasId']))
+
+            repository = utilities.convert_dl_object(updated_repository)
             return repository
         except Exception as ex:
             utilities.handle_exceptions(ex)

@@ -153,12 +153,12 @@ class AssessmentBanksList(utilities.BaseClass):
             if 'displayName' in inputs or 'genusTypeId' in inputs:
                 querier = am.get_bank_query()
                 if 'displayName' in inputs:
-                    if autils._unescaped(inputs['displayName']):
+                    if utilities.unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(inputs['displayName'], match=True)
                 if 'genusTypeId' in inputs:
-                    if (autils._unescaped(inputs['genusTypeId'])):
+                    if utilities.unescaped(inputs['genusTypeId']):
                         querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(inputs['genusTypeId'], match=True)
@@ -398,17 +398,17 @@ class ItemsList(utilities.BaseClass):
                                                'genusTypeId']):
                 querier = assessment_bank.get_item_query()
                 if 'displayName' in params:
-                    if autils._unescaped(params['displayName']):
+                    if utilities.unescaped(params['displayName']):
                         querier.match_display_name(quote(params['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(params['displayName'], match=True)
                 if 'displayNames' in params:
-                    if autils._unescaped(params['displayNames']):
+                    if utilities.unescaped(params['displayNames']):
                         querier.match_display_names(quote(params['displayNames'], safe='/ '), match=True)
                     else:
                         querier.match_display_names(params['displayNames'], match=True)
                 if 'genusTypeId' in params:
-                    if (autils._unescaped(params['genusTypeId'])):
+                    if (utilities.unescaped(params['genusTypeId'])):
                         querier.match_genus_type(quote(params['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(params['genusTypeId'], match=True)
