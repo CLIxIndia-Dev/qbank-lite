@@ -3647,6 +3647,76 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             self.assertTrue(question['response']['isCorrect'])
             self.assertFalse(question['additionalAttempts'][0]['isCorrect'])
 
+    def test_can_set_display_name(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        taken_name = "Taken for student X"
+        payload = {
+            "name": taken_name
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['displayName']['text'] == taken_name
+    
+    def test_can_update_display_name(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        taken_name = "Taken for student X"
+        payload = {
+            "name": taken_name
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['displayName']['text'] == taken_name
+        assert data['id'] == taken['id']
+    
+    def test_can_set_description(self):
+        self.fail()
+    
+    def test_can_update_description(self):
+        self.fail()
+    
+    def test_can_set_genus_type(self):
+        self.fail()
+    
+    def test_can_update_genus_type(self):
+        self.fail()
+
 
 class BankTests(BaseAssessmentTestCase):
     def setUp(self):
