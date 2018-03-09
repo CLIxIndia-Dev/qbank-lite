@@ -3669,7 +3669,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         taken = json.loads(req.body)
         assert taken['displayName']['text'] == taken_name
-    
+
     def test_can_update_display_name(self):
         item = self.create_item(with_feedback=True)
         self.assessment = self.create_assessment()
@@ -3704,7 +3704,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         data = json.loads(req.body)
         assert data['displayName']['text'] == taken_name
         assert data['id'] == taken['id']
-    
+
     def test_can_set_description(self):
         item = self.create_item(with_feedback=True)
         self.assessment = self.create_assessment()
@@ -3727,7 +3727,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         taken = json.loads(req.body)
         assert taken['description']['text'] == taken_desc
-    
+
     def test_can_update_description(self):
         item = self.create_item(with_feedback=True)
         self.assessment = self.create_assessment()
@@ -3762,7 +3762,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         data = json.loads(req.body)
         assert data['description']['text'] == taken_desc
         assert data['id'] == taken['id']
-    
+
     def test_can_set_genus_type(self):
         item = self.create_item(with_feedback=True)
         self.assessment = self.create_assessment()
@@ -3785,7 +3785,7 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         self.ok(req)
         taken = json.loads(req.body)
         assert taken['genusTypeId'] == genus_type
-    
+
     def test_can_update_genus_type(self):
         item = self.create_item(with_feedback=True)
         self.assessment = self.create_assessment()
