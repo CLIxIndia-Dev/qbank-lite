@@ -1627,7 +1627,7 @@ class AssetCRUDTests(BaseRepositoryTestCase):
                             headers={"content-type": "application/json"})
         self.ok(req)
         data = self.json(req)
-        assert data['createdDate'] == None
+        assert data['createdDate'] is None
         original_id = data['id']
         url = '{0}/{1}'.format(self.url,
                                original_id)
