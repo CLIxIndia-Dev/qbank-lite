@@ -1429,9 +1429,12 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.ok(req)
 
         # PUT to this root url also returns a 405
-        self.assertRaises(AppError,
-                          self.app.put,
-                          taken_endpoint)
+        # Changed March 9, 2018. No longer returns a 405.
+        req = self.app.put(taken_endpoint)
+        self.ok(req)
+        # self.assertRaises(AppError,
+        #                   self.app.put,
+        #                   taken_endpoint)
 
         # POST to this root url also returns a 405
         self.assertRaises(AppError,
