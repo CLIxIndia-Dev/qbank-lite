@@ -3706,16 +3706,120 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
         assert data['id'] == taken['id']
     
     def test_can_set_description(self):
-        self.fail()
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        taken_desc = "Taken for student X"
+        payload = {
+            "description": taken_desc
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['description']['text'] == taken_desc
     
     def test_can_update_description(self):
-        self.fail()
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        taken_desc = "Taken for student X"
+        payload = {
+            "description": taken_desc
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['description']['text'] == taken_desc
+        assert data['id'] == taken['id']
     
     def test_can_set_genus_type(self):
-        self.fail()
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        genus_type = "taken-genus-type%3Aslnova-simulation%40ODL.MIT.EDU"
+        payload = {
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['genusTypeId'] == genus_type
     
     def test_can_update_genus_type(self):
-        self.fail()
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        genus_type = "taken-genus-type%3Aslnova-simulation%40ODL.MIT.EDU"
+        payload = {
+            "genusTypeId": genus_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['genusTypeId'] == genus_type
+        assert data['id'] == taken['id']
 
 
 class BankTests(BaseAssessmentTestCase):

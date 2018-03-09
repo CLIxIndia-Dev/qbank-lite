@@ -1716,8 +1716,6 @@ class AssessmentsTaken(utilities.BaseClass):
             user_id = am.effective_agent_id
             takens = bank.get_assessments_taken_for_taker_and_assessment_offered(user_id,
                                                                                  utilities.clean_id(sub_id))
-            import pdb
-            pdb.set_trace()
             create_new_taken = False
             if takens.available() > 0:
                 # return the first taken ONLY if not finished -- user has attempted this problem
@@ -1739,7 +1737,7 @@ class AssessmentsTaken(utilities.BaseClass):
                                                                  [REVIEWABLE_TAKEN])
 
                 # Set the taken name / description if there, for use with SLNova
-                form = utilities.set_form_basics(form, web.input())
+                form = utilities.set_form_basics(form, self.data())
 
                 data = utilities.convert_dl_object(bank.create_assessment_taken(form))
 
