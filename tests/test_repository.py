@@ -1593,3 +1593,63 @@ class AssetCRUDTests(BaseRepositoryTestCase):
         self.assertIn('provider', data[0])
         self.assertEqual(data[0]['providerId'], original_provider_id)
         self.assertEqual(data[0]['provider']['text'], self._provider)
+
+    def test_can_set_created_date(self):
+        payload = {
+            "name": "fake asset",
+            "createdDate": {
+                "year": 2018,
+                "month": 1,
+                "day": 1
+            }
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={"content-type": "application/json"})
+        self.ok(req)
+        data = self.json(req)
+        assert data['createdDate'] == {
+            'year': 2018,
+            'month': 1,
+            'day': 1,
+            'hour': 0,
+            'minute': 0,
+            'second': 0,
+            'microsecond': 0
+        }
+
+    def test_can_update_created_date(self):
+        payload = {
+            "name": "fake asset"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={"content-type": "application/json"})
+        self.ok(req)
+        data = self.json(req)
+        assert data['createdDate'] == None
+        original_id = data['id']
+        url = '{0}/{1}'.format(self.url,
+                               original_id)
+        payload = {
+            "createdDate": {
+                "year": 2018,
+                "month": 1,
+                "day": 1
+            }
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={'content-type': 'application/json'})
+        self.ok(req)
+        data = self.json(req)
+        assert data['createdDate'] == {
+            'year': 2018,
+            'month': 1,
+            'day': 1,
+            'hour': 0,
+            'minute': 0,
+            'second': 0,
+            'microsecond': 0
+        }
+        assert data['id'] == original_id

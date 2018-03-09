@@ -4,7 +4,7 @@ import web
 import json
 
 from dlkit.runtime.errors import *
-from dlkit.runtime.primitives import DataInputStream
+from dlkit.runtime.primitives import DataInputStream, DateTime
 
 from urllib import quote
 
@@ -303,6 +303,12 @@ class AssetsList(utilities.BaseClass):
                                                     'Description',
                                                     'mediaDescription')
 
+            if 'createdDate' in params.keys():
+                # set the createdDate
+                rutils.set_asset_created_date(repository,
+                                              asset.ident,
+                                              DateTime(**utilities.clean_json(params['createdDate'])))
+
             # need to get the updated asset with Contents
             asset = repository.get_asset(asset.ident)
             asset_map = json.loads(utilities.convert_dl_object(asset))
@@ -589,6 +595,8 @@ class AssetDetails(utilities.BaseClass):
             vtt_input_file = web.input(vttFile={})
             transcript_input_file = web.input(transcriptFile={})
 
+            asset_id = utilities.clean_id(asset_id)
+
             rm = rutils.get_repository_manager()
             repo = rm.get_repository(utilities.clean_id(repository_id))
             params = self.data()
@@ -600,36 +608,36 @@ class AssetDetails(utilities.BaseClass):
             # update the asset contents here, for convenience
             if 'clearAltTexts' in params and params['clearAltTexts']:
                 rutils.clear_alt_texts(repo,
-                                       utilities.clean_id(asset_id))
+                                       asset_id)
             if 'altText' in params:
                 # find the right asset content by genus type. Grab its ID
                 # then get the asset content update form
                 # call form.add_display_name(new alt text)
                 # update form
                 rutils.add_alt_text_to_asset(repo,
-                                             utilities.clean_id(asset_id),
+                                             asset_id,
                                              utilities.clean_json(params['altText']))
             if 'removeAltTextLanguage' in params:
                 rutils.remove_alt_text_language(repo,
-                                                utilities.clean_id(asset_id),
+                                                asset_id,
                                                 params['removeAltTextLanguage'])
 
             if 'clearMediaDescriptions' in params and params['clearMediaDescriptions']:
                 rutils.clear_media_descriptions(repo,
-                                                utilities.clean_id(asset_id))
+                                                asset_id)
             if 'mediaDescription' in params:
                 rutils.add_media_description_to_asset(repo,
-                                                      utilities.clean_id(asset_id),
+                                                      asset_id,
                                                       utilities.clean_json(params['mediaDescription']))
             if 'removeMediaDescriptionLanguage' in params:
                 rutils.remove_media_description_language(repo,
-                                                         utilities.clean_id(asset_id),
+                                                         asset_id,
                                                          params['removeMediaDescriptionLanguage'])
 
             # Now handle the vtt and transcript uploaded files
             if 'clearVTTFiles' in params and params['clearVTTFiles']:
                 rutils.clear_vtt_files(repo,
-                                       utilities.clean_id(asset_id))
+                                       asset_id)
             try:
                 vtt_file = vtt_input_file['vttFile'].file
             except AttributeError:
@@ -637,18 +645,18 @@ class AssetDetails(utilities.BaseClass):
             else:
                 file_name = vtt_input_file['vttFile'].filename
                 rutils.add_vtt_file_to_asset(repo,
-                                             utilities.clean_id(asset_id),
+                                             asset_id,
                                              file_name,
                                              vtt_file,
                                              locale)
             if 'removeVTTFileLanguage' in params:
                 rutils.remove_vtt_file_language(repo,
-                                                utilities.clean_id(asset_id),
+                                                asset_id,
                                                 params['removeVTTFileLanguage'])
 
             if 'clearTranscriptFiles' in params and params['clearTranscriptFiles']:
                 rutils.clear_transcript_files(repo,
-                                              utilities.clean_id(asset_id))
+                                              asset_id)
             try:
                 transcript_file = transcript_input_file['transcriptFile'].file
             except AttributeError:
@@ -656,13 +664,13 @@ class AssetDetails(utilities.BaseClass):
             else:
                 file_name = transcript_input_file['transcriptFile'].filename
                 rutils.add_transcript_file_to_asset(repo,
-                                                    utilities.clean_id(asset_id),
+                                                    asset_id,
                                                     file_name,
                                                     transcript_file,
                                                     locale)
             if 'removeTranscriptFileLanguage' in params:
                 rutils.remove_transcript_file_language(repo,
-                                                       utilities.clean_id(asset_id),
+                                                       asset_id,
                                                        params['removeTranscriptFileLanguage'])
 
             # also handle updating the main asset content (image or video or audio)
@@ -673,11 +681,11 @@ class AssetDetails(utilities.BaseClass):
             else:
                 file_name = main_input_file['inputFile'].filename
                 rutils.replace_asset_main_content(repo,
-                                                  utilities.clean_id(asset_id),
+                                                  asset_id,
                                                   file_name,
                                                   main_file)
 
-            form = repo.get_asset_form_for_update(utilities.clean_id(asset_id))
+            form = repo.get_asset_form_for_update(asset_id)
             form = utilities.set_form_basics(form, params)
 
             if 'license' in params.keys():
@@ -696,7 +704,12 @@ class AssetDetails(utilities.BaseClass):
                                                                        params['provider'])
                 form.set_provider(resource_id)
 
-            data = utilities.convert_dl_object(repo.update_asset(form))
+            repo.update_asset(form)
+
+            if 'createdDate' in params.keys():
+                rutils.set_asset_created_date(repo, asset_id, DateTime(**params['createdDate']))
+
+            data = utilities.convert_dl_object(repo.get_asset(asset_id))
 
             # Update the source field with the displayName.text of the actual resource
             data = resource_utils.update_asset_map_with_resource(data)
