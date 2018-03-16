@@ -1,6 +1,8 @@
 import os
 import web
 
+from dlkit.abstract_osid.repository.objects import Repository
+from dlkit.primordium.calendaring.primitives import DateTime
 from dlkit.primordium.id.primitives import Id
 from dlkit.primordium.transport.objects import DataInputStream
 from dlkit.primordium.type.primitives import Type
@@ -441,6 +443,18 @@ def replace_asset_main_content(repo, asset_id, file_name, file_data):
             form.set_data(data)
             repo.update_asset_content(form)
             break
+
+
+def set_asset_created_date(repository, asset_id, created_date):
+    if not isinstance(created_date, DateTime):
+        raise TypeError('created_date must be instance of DateTime')
+    if not isinstance(asset_id, Id):
+        raise TypeError('asset_id must be instance of Id')
+    if not isinstance(repository, Repository):
+        raise TypeError('repository must be instance of Repository')
+    form = repository.get_asset_form_for_update(asset_id)
+    form.set_created_date(created_date)
+    repository.update_asset(form)
 
 
 def update_asset_map_with_content_url(rm, asset_map):
