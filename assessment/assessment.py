@@ -153,12 +153,12 @@ class AssessmentBanksList(utilities.BaseClass):
             if 'displayName' in inputs or 'genusTypeId' in inputs:
                 querier = am.get_bank_query()
                 if 'displayName' in inputs:
-                    if autils._unescaped(inputs['displayName']):
+                    if utilities.unescaped(inputs['displayName']):
                         querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(inputs['displayName'], match=True)
                 if 'genusTypeId' in inputs:
-                    if (autils._unescaped(inputs['genusTypeId'])):
+                    if utilities.unescaped(inputs['genusTypeId']):
                         querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(inputs['genusTypeId'], match=True)
@@ -398,17 +398,17 @@ class ItemsList(utilities.BaseClass):
                                                'genusTypeId']):
                 querier = assessment_bank.get_item_query()
                 if 'displayName' in params:
-                    if autils._unescaped(params['displayName']):
+                    if utilities.unescaped(params['displayName']):
                         querier.match_display_name(quote(params['displayName'], safe='/ '), match=True)
                     else:
                         querier.match_display_name(params['displayName'], match=True)
                 if 'displayNames' in params:
-                    if autils._unescaped(params['displayNames']):
+                    if utilities.unescaped(params['displayNames']):
                         querier.match_display_names(quote(params['displayNames'], safe='/ '), match=True)
                     else:
                         querier.match_display_names(params['displayNames'], match=True)
                 if 'genusTypeId' in params:
-                    if (autils._unescaped(params['genusTypeId'])):
+                    if (utilities.unescaped(params['genusTypeId'])):
                         querier.match_genus_type(quote(params['genusTypeId'], safe='/ '), match=True)
                     else:
                         querier.match_genus_type(params['genusTypeId'], match=True)
@@ -1716,7 +1716,6 @@ class AssessmentsTaken(utilities.BaseClass):
             user_id = am.effective_agent_id
             takens = bank.get_assessments_taken_for_taker_and_assessment_offered(user_id,
                                                                                  utilities.clean_id(sub_id))
-
             create_new_taken = False
             if takens.available() > 0:
                 # return the first taken ONLY if not finished -- user has attempted this problem
@@ -1736,6 +1735,10 @@ class AssessmentsTaken(utilities.BaseClass):
                 # method.
                 form = bank.get_assessment_taken_form_for_create(utilities.clean_id(sub_id),
                                                                  [REVIEWABLE_TAKEN])
+
+                # Set the taken name / description if there, for use with SLNova
+                form = utilities.set_form_basics(form, self.data())
+
                 data = utilities.convert_dl_object(bank.create_assessment_taken(form))
 
             return data
@@ -1778,6 +1781,23 @@ class AssessmentTakenDetails(utilities.BaseClass):
             taken = atls.get_assessment_taken(utilities.clean_id(taken_id))
             data = utilities.convert_dl_object(taken)
             return data
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
+
+    @utilities.format_response
+    def PUT(self, bank_id, taken_id):
+        try:
+            am = autils.get_assessment_manager()
+            bank = am.get_bank(utilities.clean_id(bank_id))
+            data = self.data()
+
+            form = bank.get_assessment_taken_form_for_update(utilities.clean_id(taken_id))
+
+            form = utilities.set_form_basics(form, data)
+            updated_taken = bank.update_assessment_taken(form)
+
+            updated_taken = utilities.convert_dl_object(updated_taken)
+            return updated_taken
         except Exception as ex:
             utilities.handle_exceptions(ex)
 

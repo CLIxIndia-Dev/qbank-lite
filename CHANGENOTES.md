@@ -1,3 +1,12 @@
+## [3.16.4] - 2018-03-16:
+### Changed
+  - Upgraded `dlkit` to `0.6.8` to fix `django` config.
+
+## [3.16.3] - 2018-03-16:
+### Added
+  - `AssessmentTaken` RESTful functionality improved to support
+    some features needed for the StarLogoNova integration.
+
 ## [3.16.2] - 2018-03-08:
 ### Changed
   - Updated `dlkit` to `0.6.4` to fix some bugs related to catalog
@@ -387,6 +396,8 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.16.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.3...v3.16.4
+[3.16.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.2...v3.16.3
 [3.16.2]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.1...v3.16.2
 [3.16.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.0...v3.16.1
 [3.16.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.15.11...v3.16.0
