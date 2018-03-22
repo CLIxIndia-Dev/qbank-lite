@@ -17,11 +17,11 @@ DEFAULT_LOG_GENUS_TYPE = 'log-genus-type%3Adefault-clix%40ODL.MIT.EDU'
 TEXT_BLOB_RECORD_TYPE = Type(**LOG_ENTRY_RECORD_TYPES['text-blob'])
 
 urls = (
-    "/logs", "LogsList",
-    "/logs/(.*)/logentries/(.*)", "LogEntryDetails",
-    "/logs/(.*)/logentries", "LogEntriesList",
-    "/logs/(.*)", "LogDetails",
-    "/genericlog", "GenericLogEntries"
+    "/logs/?", "LogsList",
+    "/logs/(.*)/logentries/(.*)/?", "LogEntryDetails",
+    "/logs/(.*)/logentries/?", "LogEntriesList",
+    "/logs/(.*)/?", "LogDetails",
+    "/genericlog/?", "GenericLogEntries"
 )
 
 
