@@ -100,7 +100,6 @@ MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-langua
 urls = (
     "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken/?", "AssessmentsTaken",
     "/banks/(.*)/assessmentsoffered/(.*)/results/?", "AssessmentOfferedResults",
-    "/banks/(.*)/assessmentsoffered/(.*)/?", "AssessmentOfferedDetails",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/qti/?", "AssessmentTakenQuestionQTIDetails",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/status/?", "AssessmentTakenQuestionStatus",
     "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/submit/?", "AssessmentTakenQuestionSubmit",
@@ -109,6 +108,8 @@ urls = (
     "/banks/(.*)/assessmentstaken/(.*)/finish/?", "FinishAssessmentTaken",
     "/banks/(.*)/assessmentstaken/(.*)/?", "AssessmentTakenDetails",
     "/banks/(.*)/assessments/(.*)/assessmentsoffered/?", "AssessmentsOffered",
+    "/banks/(.*)/assessmentsoffered/?", "AssessmentsOffered",
+    "/banks/(.*)/assessmentsoffered/(.*)/?", "AssessmentOfferedDetails",
     "/banks/(.*)/assessments/(.*)/assignedbankids/(.*)/?", "AssessmentRemoveAssignedBankIds",
     "/banks/(.*)/assessments/(.*)/assignedbankids/?", "AssessmentAssignedBankIds",
     "/banks/(.*)/assessments/(.*)/items/(.*)/?", "AssessmentItemDetails",
@@ -1509,17 +1510,19 @@ class AssessmentsOffered(utilities.BaseClass):
         [{"startTime" : {"year":2015,"month":1,"day":15},"duration": {"days":1}},{"startTime" : {"year":2015,"month":9,"day":15},"duration": {"days":1}}]
     """
     @utilities.format_response
-    def GET(self, bank_id, sub_id):
+    def GET(self, bank_id, sub_id=None):
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
-            assessment_id = utilities.clean_id(sub_id)
+            if sub_id is not None:
+                sub_id = utilities.clean_id(sub_id)
 
             inputs = self.data()
 
             if 'genusTypeId' in inputs:
                 querier = bank.get_assessment_offered_query()
-                querier.match_assessment_id(assessment_id, match=True)
+                if sub_id is not None:
+                    querier.match_assessment_id(sub_id, match=True)
 
                 if 'genusTypeId' in inputs:
                     if utilities.unescaped(inputs['genusTypeId']):
@@ -1528,16 +1531,22 @@ class AssessmentsOffered(utilities.BaseClass):
                         querier.match_genus_type(inputs['genusTypeId'], match=True)
                 offerings = bank.get_assessments_offered_by_query(querier)
             else:
-                offerings = bank.get_assessments_offered_for_assessment(assessment_id)
+                if sub_id is not None:
+                    offerings = bank.get_assessments_offered_for_assessment(sub_id)
+                else:
+                    offerings = bank.get_assessments_offered()
             data = utilities.extract_items(offerings)
             return data
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
-    def POST(self, bank_id, sub_id):
+    def POST(self, bank_id, sub_id=None):
         # Cannot create offerings if no items attached to assessment
         try:
+            if sub_id is None:
+                raise IllegalState('assessment_id required to create an AssessmentOffered')
+
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             autils.check_assessment_has_items(bank, utilities.clean_id(sub_id))

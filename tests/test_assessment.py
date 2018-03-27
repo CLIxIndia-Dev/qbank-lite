@@ -3252,6 +3252,96 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         data = self.json(req)
         self.assertEqual(len(data), 0)
 
+    def test_can_query_on_assessment_offered_genus_type_without_assessment(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo',
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['genusTypeId'], genus_type)
+
+        url = '{0}/assessmentsoffered?genusTypeId={1}'.format(
+            self.url,
+            genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}/assessmentsoffered?genusTypeId={1}'.format(
+            self.url,
+            unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}/assessmentsoffered?genusTypeId=foo'.format(
+            self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_cannot_create_offered_without_assessment_id(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+
+        self.link_item_to_assessment(item, assessment)
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo',
+            "genusTypeId": genus_type
+        }
+        url = '{0}/assessmentsoffered'.format(
+            self.url)
+        with self.assertRaises(AppError):
+            self.app.post(url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
