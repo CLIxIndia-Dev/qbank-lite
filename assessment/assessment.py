@@ -85,6 +85,7 @@ QTI_ITEM = Type(**ITEM_RECORD_TYPES['qti'])
 QTI_QUESTION = Type(**QUESTION_RECORD_TYPES['qti'])
 QUESTION_WITH_FILES = Type(**QUESTION_RECORD_TYPES['files'])
 REVIEWABLE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['review-options'])
+PROVENANCE_TAKEN = Type(**ASSESSMENT_TAKEN_RECORD_TYPES['provenance'])
 SIMPLE_SEQUENCE_ASSESSMENT = Type(**ASSESSMENT_RECORD_TYPES['simple-child-sequencing'])
 WRONG_ANSWER_ITEM = Type(**ITEM_RECORD_TYPES['wrong-answer'])
 WRONG_ANSWER_GENUS = Type(**ANSWER_GENUS_TYPES['wrong-answer'])
@@ -97,33 +98,34 @@ MULTI_LANGUAGE_FEEDBACK_ANSWER_RECORD = Type(**ANSWER_RECORD_TYPES['multi-langua
 
 
 urls = (
-    "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken", "AssessmentsTaken",
-    "/banks/(.*)/assessmentsoffered/(.*)/results", "AssessmentOfferedResults",
-    "/banks/(.*)/assessmentsoffered/(.*)", "AssessmentOfferedDetails",
-    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/qti", "AssessmentTakenQuestionQTIDetails",
-    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/status", "AssessmentTakenQuestionStatus",
-    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/submit", "AssessmentTakenQuestionSubmit",
-    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)", "AssessmentTakenQuestionDetails",
-    "/banks/(.*)/assessmentstaken/(.*)/questions", "AssessmentTakenQuestions",
-    "/banks/(.*)/assessmentstaken/(.*)/finish", "FinishAssessmentTaken",
-    "/banks/(.*)/assessmentstaken/(.*)", "AssessmentTakenDetails",
-    "/banks/(.*)/assessments/(.*)/assessmentsoffered", "AssessmentsOffered",
-    "/banks/(.*)/assessments/(.*)/assignedbankids/(.*)", "AssessmentRemoveAssignedBankIds",
-    "/banks/(.*)/assessments/(.*)/assignedbankids", "AssessmentAssignedBankIds",
-    "/banks/(.*)/assessments/(.*)/items/(.*)", "AssessmentItemDetails",
-    "/banks/(.*)/assessments/(.*)/items", "AssessmentItemsList",
-    "/banks/(.*)/assessments/(.*)", "AssessmentDetails",
-    "/banks/(.*)/assessments", "AssessmentsList",
-    "/banks/(.*)/items/(.*)/videoreplacement", "ItemVideoTagReplacement",
-    "/banks/(.*)/items/(.*)/qti", "ItemQTIDetails",
-    "/banks/(.*)/items/(.*)", "ItemDetails",
-    "/banks/(.*)/items", "ItemsList",
-    "/banks/(.*)", "AssessmentBankDetails",
-    "/banks", "AssessmentBanksList",
-    "/hierarchies/roots/(.*)", "AssessmentHierarchiesRootDetails",
-    "/hierarchies/roots", "AssessmentHierarchiesRootsList",
-    "/hierarchies/nodes/(.*)/children", "AssessmentHierarchiesNodeChildrenList",
-    "/hierarchies/nodes/(.*)", "AssessmentHierarchiesNodeDetails"
+    "/banks/(.*)/assessmentsoffered/(.*)/assessmentstaken/?", "AssessmentsTaken",
+    "/banks/(.*)/assessmentsoffered/(.*)/results/?", "AssessmentOfferedResults",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/qti/?", "AssessmentTakenQuestionQTIDetails",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/status/?", "AssessmentTakenQuestionStatus",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/submit/?", "AssessmentTakenQuestionSubmit",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/(.*)/?", "AssessmentTakenQuestionDetails",
+    "/banks/(.*)/assessmentstaken/(.*)/questions/?", "AssessmentTakenQuestions",
+    "/banks/(.*)/assessmentstaken/(.*)/finish/?", "FinishAssessmentTaken",
+    "/banks/(.*)/assessmentstaken/(.*)/?", "AssessmentTakenDetails",
+    "/banks/(.*)/assessments/(.*)/assessmentsoffered/?", "AssessmentsOffered",
+    "/banks/(.*)/assessmentsoffered/?", "AssessmentsOffered",
+    "/banks/(.*)/assessmentsoffered/(.*)/?", "AssessmentOfferedDetails",
+    "/banks/(.*)/assessments/(.*)/assignedbankids/(.*)/?", "AssessmentRemoveAssignedBankIds",
+    "/banks/(.*)/assessments/(.*)/assignedbankids/?", "AssessmentAssignedBankIds",
+    "/banks/(.*)/assessments/(.*)/items/(.*)/?", "AssessmentItemDetails",
+    "/banks/(.*)/assessments/(.*)/items/?", "AssessmentItemsList",
+    "/banks/(.*)/assessments/(.*)/?", "AssessmentDetails",
+    "/banks/(.*)/assessments/?", "AssessmentsList",
+    "/banks/(.*)/items/(.*)/videoreplacement/?", "ItemVideoTagReplacement",
+    "/banks/(.*)/items/(.*)/qti/?", "ItemQTIDetails",
+    "/banks/(.*)/items/(.*)/?", "ItemDetails",
+    "/banks/(.*)/items/?", "ItemsList",
+    "/banks/(.*)/?", "AssessmentBankDetails",
+    "/banks/?", "AssessmentBanksList",
+    "/hierarchies/roots/(.*)/?", "AssessmentHierarchiesRootDetails",
+    "/hierarchies/roots/?", "AssessmentHierarchiesRootsList",
+    "/hierarchies/nodes/(.*)/children/?", "AssessmentHierarchiesNodeChildrenList",
+    "/hierarchies/nodes/(.*)/?", "AssessmentHierarchiesNodeDetails"
 )
 
 
@@ -307,11 +309,25 @@ class AssessmentsList(utilities.BaseClass):
         try:
             am = autils.get_assessment_manager()
             assessment_bank = am.get_bank(utilities.clean_id(bank_id))
-
-            if "isolated" in self.data():
+            inputs = self.data()
+            if "isolated" in inputs:
                 assessment_bank.use_isolated_bank_view()
 
-            assessments = assessment_bank.get_assessments()
+            if 'displayName' in inputs or 'genusTypeId' in inputs:
+                querier = assessment_bank.get_assessment_query()
+                if 'displayName' in inputs:
+                    if utilities.unescaped(inputs['displayName']):
+                        querier.match_display_name(quote(inputs['displayName'], safe='/ '), match=True)
+                    else:
+                        querier.match_display_name(inputs['displayName'], match=True)
+                if 'genusTypeId' in inputs:
+                    if utilities.unescaped(inputs['genusTypeId']):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                assessments = assessment_bank.get_assessments_by_query(querier)
+            else:
+                assessments = assessment_bank.get_assessments()
 
             data = utilities.extract_items(assessments)
             return data
@@ -1494,20 +1510,43 @@ class AssessmentsOffered(utilities.BaseClass):
         [{"startTime" : {"year":2015,"month":1,"day":15},"duration": {"days":1}},{"startTime" : {"year":2015,"month":9,"day":15},"duration": {"days":1}}]
     """
     @utilities.format_response
-    def GET(self, bank_id, sub_id):
+    def GET(self, bank_id, sub_id=None):
         try:
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
-            offerings = bank.get_assessments_offered_for_assessment(utilities.clean_id(sub_id))
+            if sub_id is not None:
+                sub_id = utilities.clean_id(sub_id)
+
+            inputs = self.data()
+
+            if 'genusTypeId' in inputs:
+                querier = bank.get_assessment_offered_query()
+                if sub_id is not None:
+                    querier.match_assessment_id(sub_id, match=True)
+
+                if 'genusTypeId' in inputs:
+                    if utilities.unescaped(inputs['genusTypeId']):
+                        querier.match_genus_type(quote(inputs['genusTypeId'], safe='/ '), match=True)
+                    else:
+                        querier.match_genus_type(inputs['genusTypeId'], match=True)
+                offerings = bank.get_assessments_offered_by_query(querier)
+            else:
+                if sub_id is not None:
+                    offerings = bank.get_assessments_offered_for_assessment(sub_id)
+                else:
+                    offerings = bank.get_assessments_offered()
             data = utilities.extract_items(offerings)
             return data
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
     @utilities.format_response
-    def POST(self, bank_id, sub_id):
+    def POST(self, bank_id, sub_id=None):
         # Cannot create offerings if no items attached to assessment
         try:
+            if sub_id is None:
+                raise IllegalState('assessment_id required to create an AssessmentOffered')
+
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             autils.check_assessment_has_items(bank, utilities.clean_id(sub_id))
@@ -1733,11 +1772,19 @@ class AssessmentsTaken(utilities.BaseClass):
             if create_new_taken:
                 # use our new Taken Record object, which has a "can_review_whether_correct()"
                 # method.
+                taken_records = [REVIEWABLE_TAKEN]
+
+                inputs = self.data()
+                if 'provenanceId' in inputs:
+                    taken_records.append(PROVENANCE_TAKEN)
                 form = bank.get_assessment_taken_form_for_create(utilities.clean_id(sub_id),
-                                                                 [REVIEWABLE_TAKEN])
+                                                                 taken_records)
 
                 # Set the taken name / description if there, for use with SLNova
-                form = utilities.set_form_basics(form, self.data())
+                form = utilities.set_form_basics(form, inputs)
+
+                if 'provenanceId' in inputs:
+                    form.set_provenance(inputs['provenanceId'])
 
                 data = utilities.convert_dl_object(bank.create_assessment_taken(form))
 

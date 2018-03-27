@@ -1,3 +1,13 @@
+## [3.18.0] - 2018-03-27:
+### Added
+  - Support for bank-wide `AssessmentOffered` endpoint.
+
+## [3.17.0] - 2018-03-23:
+### Added
+  - Support for `AssessmentTaken` provenance (`dlkit` 0.6.9).
+  - Support to query `Assessment` and `AssessmentOffered`
+    by `genusTypeId`.
+
 ## [3.16.5] - 2018-03-19:
 ### Changed
   - Mongodb test fixtures for `3.16.3`.
@@ -400,6 +410,8 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.18.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.17.0...v3.18.0
+[3.17.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.5...v3.17.0
 [3.16.5]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.4...v3.16.5
 [3.16.4]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.3...v3.16.4
 [3.16.3]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.2...v3.16.3
