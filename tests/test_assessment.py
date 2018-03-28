@@ -1429,9 +1429,12 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
         self.ok(req)
 
         # PUT to this root url also returns a 405
-        self.assertRaises(AppError,
-                          self.app.put,
-                          taken_endpoint)
+        # Changed March 9, 2018. No longer returns a 405.
+        req = self.app.put(taken_endpoint)
+        self.ok(req)
+        # self.assertRaises(AppError,
+        #                   self.app.put,
+        #                   taken_endpoint)
 
         # POST to this root url also returns a 405
         self.assertRaises(AppError,
@@ -2324,6 +2327,83 @@ class AssessmentCrUDTests(BaseAssessmentTestCase):
                           self.app.delete,
                           url)
 
+    def test_can_query_on_assessment_genus_type(self):
+        assessments_endpoint = self.url + '/assessments'
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+        payload = {
+            "name": "New assessment",
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_assessment = self.json(req)
+
+        url = '{0}?genusTypeId={1}'.format(assessments_endpoint,
+                                           genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_assessment['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(assessments_endpoint,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_assessment['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId=foo'.format(assessments_endpoint)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_query_on_assessment_display_name(self):
+        assessments_endpoint = self.url + '/assessments'
+
+        display_name = "New assessment%3A bar %40"
+        payload = {
+            "name": display_name
+        }
+        req = self.app.post(assessments_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_assessment = self.json(req)
+
+        url = '{0}?displayName={1}'.format(assessments_endpoint,
+                                           quote(display_name))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_assessment['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        unescaped_display_name = unquote(display_name)
+        url = '{0}?displayName={1}'.format(assessments_endpoint,
+                                           unescaped_display_name)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_assessment['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        url = '{0}?displayName=foo'.format(assessments_endpoint)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
 
 class AssessmentOfferedTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -3114,6 +3194,154 @@ class AssessmentOfferedTests(BaseAssessmentTestCase):
         offering = json.loads(req.body)
         self.assertEquals(offering['unlockPrevious'], payload['unlockPrevious'])
 
+    def test_can_query_on_assessment_offered_genus_type(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo',
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId={1}'.format(assessment_offering_endpoint,
+                                           genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(assessment_offering_endpoint,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}?genusTypeId=foo'.format(assessment_offering_endpoint)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_query_on_assessment_offered_genus_type_without_assessment(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+        assessment_id = unquote(assessment['id'])
+
+        assessment_detail_endpoint = '{0}/assessments/{1}'.format(self.url,
+                                                                  assessment_id)
+        assessment_offering_endpoint = assessment_detail_endpoint + '/assessmentsoffered'
+        self.link_item_to_assessment(item, assessment)
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo',
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessment_offering_endpoint,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        offering = json.loads(req.body)
+        self.assertEquals(offering['genusTypeId'], genus_type)
+
+        url = '{0}/assessmentsoffered?genusTypeId={1}'.format(
+            self.url,
+            genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}/assessmentsoffered?genusTypeId={1}'.format(
+            self.url,
+            unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(offering['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
+        url = '{0}/assessmentsoffered?genusTypeId=foo'.format(
+            self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_cannot_create_offered_without_assessment_id(self):
+        item = self.create_item()
+
+        assessment = self.create_assessment()
+
+        self.link_item_to_assessment(item, assessment)
+
+        genus_type = "assessment-genus-type%3Atest%40ODL.MIT.EDU"
+
+        # Use POST to create an offering
+        payload = {
+            "startTime": {
+                "day": 1,
+                "month": 1,
+                "year": 2015
+            },
+            "duration": {
+                "days": 2
+            },
+            "unlockPrevious": 'foo',
+            "genusTypeId": genus_type
+        }
+        url = '{0}/assessmentsoffered'.format(
+            self.url)
+        with self.assertRaises(AppError):
+            self.app.post(url,
+                          params=json.dumps(payload),
+                          headers={'content-type': 'application/json'})
+
 
 class AssessmentTakingTests(BaseAssessmentTestCase):
     def create_assessment(self):
@@ -3647,6 +3875,247 @@ class AssessmentTakingTests(BaseAssessmentTestCase):
             self.assertTrue(question['response']['isCorrect'])
             self.assertFalse(question['additionalAttempts'][0]['isCorrect'])
 
+    def test_can_set_display_name(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        taken_name = "Taken for student X"
+        payload = {
+            "name": taken_name
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['displayName']['text'] == taken_name
+
+    def test_can_update_display_name(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        taken_name = "Taken for student X"
+        payload = {
+            "name": taken_name
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['displayName']['text'] == taken_name
+        assert data['id'] == taken['id']
+
+    def test_can_set_description(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        taken_desc = "Taken for student X"
+        payload = {
+            "description": taken_desc
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['description']['text'] == taken_desc
+
+    def test_can_update_description(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        taken_desc = "Taken for student X"
+        payload = {
+            "description": taken_desc
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['description']['text'] == taken_desc
+        assert data['id'] == taken['id']
+
+    def test_can_set_genus_type(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        genus_type = "taken-genus-type%3Aslnova-simulation%40ODL.MIT.EDU"
+        payload = {
+            "genusTypeId": genus_type
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['genusTypeId'] == genus_type
+
+    def test_can_update_genus_type(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            headers={
+                                'x-api-proxy': test_student
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        genus_type = "taken-genus-type%3Aslnova-simulation%40ODL.MIT.EDU"
+        payload = {
+            "genusTypeId": genus_type
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['genusTypeId'] == genus_type
+        assert data['id'] == taken['id']
+
+    def test_can_set_provenance_id(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+        provenance_id = "assessment.AssessmentTaken%3A010101010101010101010101%40ODL.MIT.EDU"
+        payload = {
+            "provenanceId": provenance_id
+        }
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['provenanceId'] == provenance_id
+
+    def test_cannot_update_provenance_id(self):
+        item = self.create_item(with_feedback=True)
+        self.assessment = self.create_assessment()
+        self.link_item_to_assessment(item, self.assessment)
+        offered = self.create_offered()
+        assessment_offering_detail_endpoint = self.url + '/assessmentsoffered/' + unquote(str(offered['id']))
+        test_student = 'student@tiss.edu'  # this is what we have authz set up for
+        # Can POST to create a new taken
+        assessment_offering_takens_endpoint = assessment_offering_detail_endpoint + '/assessmentstaken'
+
+        provenance_id_1 = "assessment.AssessmentTaken%3A010101010101010101010101%40ODL.MIT.EDU"
+        payload = {
+            "provenanceId": provenance_id_1
+        }
+
+        req = self.app.post(assessment_offering_takens_endpoint,
+                            params=json.dumps(payload),
+                            headers={
+                                'x-api-proxy': test_student,
+                                'content-type': 'application/json'
+                            })
+        self.ok(req)
+        taken = json.loads(req.body)
+        assert taken['provenanceId'] == provenance_id_1
+
+        url = '{0}/assessmentstaken/{1}'.format(self.url,
+                                                taken['id'])
+
+        provenance_id_2 = "assessment.AssessmentTaken%3A101010101010101010101010%40ODL.MIT.EDU"
+        payload = {
+            "provenanceId": provenance_id_2
+        }
+        req = self.app.put(url,
+                           params=json.dumps(payload),
+                           headers={
+                               'x-api-proxy': test_student,
+                               'content-type': 'application/json'
+                           })
+        self.ok(req)
+        data = json.loads(req.body)
+        assert data['provenanceId'] == provenance_id_1
+        assert provenance_id_1 != provenance_id_2
+        assert data['id'] == taken['id']
+
 
 class BankTests(BaseAssessmentTestCase):
     def setUp(self):
@@ -3660,6 +4129,34 @@ class BankTests(BaseAssessmentTestCase):
         remove "parental" roles like for DepartmentAdmin / DepartmentOfficer
         """
         super(BankTests, self).tearDown()
+
+    def test_can_delete_bank(self):
+        payload = {
+            "name": "New bank",
+            "aliasId": "assessment.Bank%3Apublished-012345678910111213141516%40ODL.MIT.EDU"
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}/{1}'.format(self.url,
+                               payload['aliasId'])
+        req = self.app.get(url)
+        self.ok(req)
+        fetched_bank = self.json(req)
+        self.assertEqual(new_bank['id'], fetched_bank['id'])
+        self.assertEqual(new_bank['displayName']['text'], payload['name'])
+
+        url = '{0}/{1}'.format(self.url,
+                               new_bank['id'])
+        req = self.app.delete(url)
+        self.ok(req)
+
+        self.assertRaises(AppError,
+                          self.app.get,
+                          url)
 
     def test_can_set_bank_alias_on_create(self):
         payload = {
@@ -3701,7 +4198,53 @@ class BankTests(BaseAssessmentTestCase):
         self.assertEqual(new_bank['id'], data[0]['id'])
         self.assertEqual(data[0]['genusTypeId'], genus_type)
 
+        unescaped_genus_type = unquote(genus_type)
+        url = '{0}?genusTypeId={1}'.format(self.url,
+                                           unescaped_genus_type)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['genusTypeId'], genus_type)
+
         url = '{0}?genusTypeId=foo'.format(self.url)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 0)
+
+    def test_can_query_on_bank_display_name(self):
+        display_name = "New bank%3A bar %40"
+        payload = {
+            "name": display_name
+        }
+        req = self.app.post(self.url,
+                            params=json.dumps(payload),
+                            headers={'content-type': 'application/json'})
+        self.ok(req)
+        new_bank = self.json(req)
+
+        url = '{0}?displayName={1}'.format(self.url,
+                                           quote(display_name))
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        unescaped_display_name = unquote(display_name)
+        url = '{0}?displayName={1}'.format(self.url,
+                                           unescaped_display_name)
+        req = self.app.get(url)
+        self.ok(req)
+        data = self.json(req)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(new_bank['id'], data[0]['id'])
+        self.assertEqual(data[0]['displayName']['text'], display_name)
+
+        url = '{0}?displayName=foo'.format(self.url)
         req = self.app.get(url)
         self.ok(req)
         data = self.json(req)
