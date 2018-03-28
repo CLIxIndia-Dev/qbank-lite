@@ -15,11 +15,11 @@ import utilities
 
 urls = (
     "/repositories/(.*)/assets/(.*)/contents/(.*)/stream/?", "AssetContentStream",
-    "/repositories/(.*)/assets/(.*)/contents/(.*)/?", "AssetContentDetails",
+    "/repositories/(.*)/assets/(.*)/contents/(.*[^/])/?", "AssetContentDetails",
     "/repositories/(.*)/assets/(.*)/contents/?", "AssetContentsList",
-    "/repositories/(.*)/assets/(.*)/?", "AssetDetails",
+    "/repositories/(.*)/assets/(.*[^/])/?", "AssetDetails",
     "/repositories/(.*)/assets/?", "AssetsList",
-    "/repositories/(.*)/?", "RepositoryDetails",
+    "/repositories/(.*[^/])/?", "RepositoryDetails",
     "/repositories/?", "RepositoriesList"
 )
 
