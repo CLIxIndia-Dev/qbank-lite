@@ -142,10 +142,6 @@ DEFAULT_SCRIPT_TYPE = Type(**types.Script().get_type_data('DEFAULT'))
 DEFAULT_FORMAT_TYPE = Type(**types.Format().get_type_data('DEFAULT'))
 
 
-def _unescaped(string):
-    return ':' in string and '@' in string
-
-
 def add_file_ids_to_form(form, file_ids):
     """
     Add existing asset_ids to a form
