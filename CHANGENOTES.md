@@ -1,3 +1,8 @@
+## [3.19.0] - 2018-04-18:
+### Added
+  - `bypassAuthorizationForFilesRecordAssetContentLookup` configuration parameter
+    for `JSON` config. Requires `dlkit` `0.7.0` or above.
+
 ## [3.18.1] - 2018-03-28:
 ### Fixed
   - regex for URLs accounts for trailing slash in IDs.
@@ -414,6 +419,7 @@
   - Add endpoints for creating asset contents.
   - Improve unicode / hindi support
 
+[3.19.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.18.1...v3.19.0
 [3.18.1]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.18.0...v3.18.1
 [3.18.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.17.0...v3.18.0
 [3.17.0]: https://github.com/CLIxIndia-Dev/qbank-lite/compare/v3.16.5...v3.17.0
