@@ -107,6 +107,7 @@ urls = (
     "/banks/(.*)/assessmentstaken/(.*)/questions/?", "AssessmentTakenQuestions",
     "/banks/(.*)/assessmentstaken/(.*)/finish/?", "FinishAssessmentTaken",
     "/banks/(.*)/assessmentstaken/(.*[^/])/?", "AssessmentTakenDetails",
+    "/banks/(.*)/assessmentstaken", "AssessmentTakenList",
     "/banks/(.*)/assessments/(.*)/assessmentsoffered/?", "AssessmentsOffered",
     "/banks/(.*)/assessmentsoffered/?", "AssessmentsOffered",
     "/banks/(.*)/assessmentsoffered/(.*[^/])/?", "AssessmentOfferedDetails",
@@ -337,13 +338,20 @@ class AssessmentsList(utilities.BaseClass):
     @utilities.format_response
     def POST(self, bank_id):
         try:
+            local_data_map = self.data()
             am = autils.get_assessment_manager()
             bank = am.get_bank(utilities.clean_id(bank_id))
             bank.use_isolated_bank_view()
 
             form = bank.get_assessment_form_for_create([SIMPLE_SEQUENCE_ASSESSMENT])
 
-            form = utilities.set_form_basics(form, self.data())
+            form = utilities.set_form_basics(form, local_data_map)
+
+            if 'levelId' in local_data_map:
+                form.level = utilities.clean_id(local_data_map['levelId'])
+
+            if 'rubricId' in local_data_map:
+                form.rubric = utilities.clean_id(local_data_map['rubricId'])
 
             new_assessment = bank.create_assessment(form)
             # if item IDs are included in the assessment, append them.
@@ -1848,6 +1856,27 @@ class AssessmentTakenDetails(utilities.BaseClass):
         except Exception as ex:
             utilities.handle_exceptions(ex)
 
+
+class AssessmentTakenList(utilities.BaseClass):
+    """
+    Get a list of assessment takens
+
+    GET
+
+    Note that for RESTful calls, you need to set the request header
+    'content-type' to 'application/json'
+    """
+    @utilities.format_response
+    def GET(self, bank_id):
+        try:
+            am = autils.get_assessment_manager()
+            atls = am.get_assessment_taken_lookup_session(proxy=am._proxy)
+            atls.use_federated_bank_view()
+            takens = atls.get_assessments_taken()
+            data = utilities.convert_dl_object(takens)
+            return data
+        except Exception as ex:
+            utilities.handle_exceptions(ex)
 
 class FinishAssessmentTaken(utilities.BaseClass):
     """

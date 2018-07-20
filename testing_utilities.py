@@ -288,6 +288,14 @@ def configure_dlkit():
                     {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
                 ]
             },
+            'gradingProviderImpl': {
+                'syntax': 'STRING',
+                'displayName': 'Grading Provider Implementation',
+                'description': 'Implementation for grading service provider',
+                'values': [
+                    {'value': 'TEST_AUTHZ_ADAPTER_1', 'priority': 1}
+                ]
+            },
         }
     }
 
@@ -385,6 +393,15 @@ def create_test_repository():
     return new_repo
 
 
+def create_new_gradebook():
+    gm = get_managers()['gm']
+    form = gm.get_gradebook_form_for_create([])
+    form.display_name = 'a gradebook'
+    form.description = 'for testing with'
+    new_gradebook = gm.create_gradebook(form)
+
+    return new_gradebook
+
 def get_fixture_bank():
     # from authorization_utilities import get_vault
     am = get_managers()['am']
@@ -412,7 +429,8 @@ def get_managers(username='student@tiss.edu'):
     managers = [('am', 'ASSESSMENT'),
                 ('authzm', 'AUTHORIZATION'),
                 ('logm', 'LOGGING'),
-                ('rm', 'REPOSITORY')]
+                ('rm', 'REPOSITORY'),
+                ('gm', 'GRADING')]
     results = {}
     for manager in managers:
         nickname = manager[0]

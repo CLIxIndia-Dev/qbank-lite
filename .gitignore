@@ -16,3 +16,4 @@ interface_maps/
 package_maps/
 pattern_maps/
 webapps/
+/venv/

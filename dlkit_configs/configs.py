@@ -437,6 +437,14 @@ SERVICE = {
                 {'value': 'JSON_1', 'priority': 1}
             ]
         },
+        'gradingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Grading Provider Implementation',
+            'description': 'Implementation for grading service provider',
+            'values': [
+                {'value': 'JSON_1', 'priority': 1}
+            ]
+        }
     }
 }
 
@@ -809,6 +817,14 @@ TEST_AUTHZ_ADAPTER_1 = {
                 {'value': 'TEST_JSON_1', 'priority': 1}
             ]
         },
+        'gradingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Grading Provider Implementation',
+            'description': 'Implementation for grading service provider',
+            'values': [
+                {'value': 'TEST_JSON_1', 'priority': 1}
+            ]
+        }
     }
 }
 
@@ -870,6 +886,14 @@ TEST_SERVICE = {
             'syntax': 'STRING',
             'displayName': 'Authorization Provider Implementation',
             'description': 'Implementation for authorization service provider',
+            'values': [
+                {'value': 'TEST_JSON_1', 'priority': 1}
+            ]
+        },
+        'gradingProviderImpl': {
+            'syntax': 'STRING',
+            'displayName': 'Grading Provider Implementation',
+            'description': 'Implementation for grading service provider',
             'values': [
                 {'value': 'TEST_JSON_1', 'priority': 1}
             ]

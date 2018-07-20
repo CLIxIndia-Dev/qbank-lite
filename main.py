@@ -7,6 +7,7 @@ import web
 from assessment import assessment
 from logging_ import logging_
 from repository import repository
+from grading import grading
 import utilities
 
 from web.wsgiserver import CherryPyWSGIServer
@@ -33,6 +34,7 @@ urls = (
     '/api/v1/assessment', assessment.app_assessment,
     '/api/v1/logging', logging_.app_logging,
     '/api/v1/repository', repository.app_repository,
+    '/api/v1/grading', grading.app_grading,
     '/test', 'video_test',
     '/datastore_path', 'bootloader_storage_path',
     '/version', 'version',

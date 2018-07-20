@@ -11,9 +11,9 @@ COPY requirements.txt /tmp/requirements.txt
 COPY test_requirements.txt /tmp/test_requirements.txt
 RUN pip install -r requirements.txt -r test_requirements.txt
 
-RUN mkdir /qbank
-COPY . /qbank
-WORKDIR /qbank
+RUN mkdir /qbank-lite
+COPY . /qbank-lite
+WORKDIR /qbank-lite
 
 EXPOSE 8080
 

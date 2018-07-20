@@ -4,6 +4,8 @@ import traceback
 import web
 import os
 
+from datetime import date, datetime
+from decimal import Decimal
 from urllib import quote
 
 from dlkit.json_ import types
@@ -137,7 +139,7 @@ def format_response(func):
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict) or isinstance(results, list):
-            return json.dumps(results)
+            return json.dumps(results, default=json_serial)
         else:
             return results
     return wrapper
@@ -155,7 +157,7 @@ def format_xml_response(func):
         web.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
         web.header("Access-Control-Max-Age", "1728000")
         if isinstance(results, dict):
-            return json.dumps(results)
+            return json.dumps(results, default=json_serial)
         else:
             return results
     return wrapper
@@ -211,9 +213,9 @@ def convert_dl_object(obj):
     """
     try:
         # return json.loads(json.loads(json.dumps(obj, cls=DLEncoder)))
-        return json.dumps(obj.object_map)
+        return json.dumps(obj.object_map, default=json_serial)
     except:
-        return json.dumps(obj)
+        return json.dumps(obj, default=json_serial)
 
 
 def convert_two_digit_lang_code_to_locale_object(language_code):
@@ -249,18 +251,18 @@ def extract_items(item_list):
                         # but we are suppressing all errors that might happen
                         # due to bad items
                         pass
-                return json.dumps(results)
+                return json.dumps(results, default=json_serial)
             except OperationFailed:
                 return json.dumps([i.object_map for i in item_list])
         else:
-            return json.dumps([])
+            return json.dumps([], default=json_serial)
     except AttributeError:
         if len(item_list) > 0:
             try:
                 return json.dumps([i.object_map for i in item_list])
             except AttributeError:
-                return json.dumps(item_list)
-        return json.dumps([])
+                return json.dumps(item_list, default=json_serial)
+        return json.dumps([], default=json_serial)
 
 
 def handle_exceptions(ex):
@@ -301,7 +303,7 @@ def set_form_basics(form, data):
             form.add_display_name(create_display_text(_grab_first_match(name_keys)))
         except AttributeError:
             # to support legacy data
-            form.display_name = _grab_first_match(name_keys)
+            form.display_name = create_display_text(_grab_first_match(name_keys))
 
     if 'editName' in data:
         new_name = create_display_text(data['editName'])
@@ -315,7 +317,7 @@ def set_form_basics(form, data):
             form.add_description(create_display_text(_grab_first_match(description_keys)))
         except AttributeError:
             # to support legacy data
-            form.description = _grab_first_match(description_keys)
+            form.description = create_display_text(_grab_first_match(description_keys))
 
     if 'editDescription' in data:
         new_description = create_display_text(data['editDescription'])
@@ -367,3 +369,12 @@ def verify_min_length(my_dict, list_of_keys, expected_len):
         else:
             if len(my_dict[key]) < int(expected_len):
                 raise TypeError('"' + key + '" is shorter than ' + str(expected_len) + '.')
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError ("Type %s not serializable" % type(obj))
